@@ -190,6 +190,9 @@ importers:
 
   packages/ui-tui:
     dependencies:
+      '@tfsdc/application':
+        specifier: workspace:*
+        version: link:../application
       '@tfsdc/kernel':
         specifier: workspace:*
         version: link:../kernel
