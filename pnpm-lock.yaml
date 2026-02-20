@@ -199,6 +199,9 @@ importers:
 
   packages/ui-web:
     dependencies:
+      '@tfsdc/application':
+        specifier: workspace:*
+        version: link:../application
       '@tfsdc/kernel':
         specifier: workspace:*
         version: link:../kernel
