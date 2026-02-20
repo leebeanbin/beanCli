@@ -10,8 +10,10 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@tfsdc/domain": "workspace:*",
     "@tfsdc/application": "workspace:*",
-    "@tfsdc/kernel": "workspace:*"
+    "@tfsdc/domain": "workspace:*",
+    "@tfsdc/kernel": "workspace:*",
+    "kafkajs": "^2.2.4",
+    "pg": "^8.18.0"
   }
 }
