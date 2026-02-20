@@ -1,0 +1,17 @@
+{
+  "name": "@tfsdc/infrastructure",
+  "version": "0.0.1",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "lint": "eslint src/",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@tfsdc/domain": "workspace:*",
+    "@tfsdc/application": "workspace:*",
+    "@tfsdc/kernel": "workspace:*"
+  }
+}

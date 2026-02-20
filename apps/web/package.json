@@ -1,0 +1,16 @@
+{
+  "name": "@tfsdc/web",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev",
+    "start": "next start",
+    "lint": "eslint src/",
+    "clean": "rm -rf .next"
+  },
+  "dependencies": {
+    "@tfsdc/ui-web": "workspace:*",
+    "@tfsdc/kernel": "workspace:*"
+  }
+}
