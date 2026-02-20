@@ -1,1 +1,1 @@
-export {};
+export { SqlAstValidatorImpl } from './SqlAstValidatorImpl.js';

@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@tfsdc/domain": "workspace:*",
-    "@tfsdc/kernel": "workspace:*"
+    "@tfsdc/kernel": "workspace:*",
+    "node-sql-parser": "^5.4.0"
   }
 }

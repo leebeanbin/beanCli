@@ -143,6 +143,9 @@ importers:
       '@tfsdc/kernel':
         specifier: workspace:*
         version: link:../kernel
+      node-sql-parser:
+        specifier: ^5.4.0
+        version: 5.4.0
 
   packages/infrastructure:
     dependencies:
@@ -752,6 +755,9 @@ packages:
   '@types/node@25.3.0':
     resolution: {integrity: sha512-4K3bqJpXpqfg2XKGK9bpDTc6xO/xoUP/RBWS7AtRMug6zZFaRekiLzjVtAoZMquxoAbzBvy5nxQ7veS5eYzf8A==}
 
+  '@types/pegjs@0.10.6':
+    resolution: {integrity: sha512-eLYXDbZWXh2uxf+w8sXS8d6KSoXTswfps6fvCUuVAGN8eRpfe7h9eSRydxiSJvo9Bf+GzifsDOr9TMQlmJdmkw==}
+
   '@types/stack-utils@2.0.3':
     resolution: {integrity: sha512-9aEbYZ3TbYMznPdcdr3SmIrLXwC/AKZXQeCf9Pgao5CKb8CyHuEX5jzWPTkvregvhRJHcpRO6BFoGW9ycaOkYw==}
 
@@ -998,6 +1004,10 @@ packages:
     resolution: {integrity: sha512-lIyg0szRfYbiy67j9KN8IyeD7q7hcmqnJ1ddWmNt19ItGpNN64mnllmxUNFIOdOm6by97jlL6wfpTTJrmnjWAA==}
     engines: {node: '>=6.0.0'}
     hasBin: true
+
+  big-integer@1.6.52:
+    resolution: {integrity: sha512-QxD8cf2eVqJOOz63z6JIN9BzvVs/dlySa5HGSBH5xtR8dPteIRQnBxxKqkNTiT6jbDTF6jAfrd4oMcND9RGbQg==}
+    engines: {node: '>=0.6'}
 
   brace-expansion@1.1.12:
     resolution: {integrity: sha512-9T9UjW3r0UW5c1Q7GTwllptXwhvYmEzFhzMfZ9H7FQWt+uZePjZPjBP/W1ZEyZ1twGWom5/56TF4lPcqjnDHcg==}
@@ -1643,6 +1653,10 @@ packages:
 
   node-releases@2.0.27:
     resolution: {integrity: sha512-nmh3lCkYZ3grZvqcCH+fjmQ7X+H0OeZgP40OierEaAptX4XofMh5kwNbWh7lBduUzCcV/8kZ+NDLCwm2iorIlA==}
+
+  node-sql-parser@5.4.0:
+    resolution: {integrity: sha512-jVe6Z61gPcPjCElPZ6j8llB3wnqGcuQzefim1ERsqIakxnEy5JlzV7XKdO1KmacRG5TKwPc4vJTgSRQ0LfkbFw==}
+    engines: {node: '>=8'}
 
   normalize-path@3.0.0:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
@@ -2663,6 +2677,8 @@ snapshots:
     dependencies:
       undici-types: 7.18.2
 
+  '@types/pegjs@0.10.6': {}
+
   '@types/stack-utils@2.0.3': {}
 
   '@types/yargs-parser@21.0.3': {}
@@ -2918,6 +2934,8 @@ snapshots:
   balanced-match@4.0.3: {}
 
   baseline-browser-mapping@2.10.0: {}
+
+  big-integer@1.6.52: {}
 
   brace-expansion@1.1.12:
     dependencies:
@@ -3731,6 +3749,11 @@ snapshots:
   node-int64@0.4.0: {}
 
   node-releases@2.0.27: {}
+
+  node-sql-parser@5.4.0:
+    dependencies:
+      '@types/pegjs': 0.10.6
+      big-integer: 1.6.52
 
   normalize-path@3.0.0: {}
 
