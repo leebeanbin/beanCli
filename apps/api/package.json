@@ -11,11 +11,13 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@fastify/websocket": "^11.2.0",
     "@tfsdc/application": "workspace:*",
+    "@tfsdc/audit": "workspace:*",
     "@tfsdc/domain": "workspace:*",
     "@tfsdc/infrastructure": "workspace:*",
     "@tfsdc/kernel": "workspace:*",
-    "@tfsdc/audit": "workspace:*",
-    "@tfsdc/policy": "workspace:*"
+    "@tfsdc/policy": "workspace:*",
+    "fastify": "^5.7.4"
   }
 }
