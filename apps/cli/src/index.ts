@@ -23,6 +23,7 @@ import {
 } from '@tfsdc/ui-tui';
 import type { IScene, StreamHealthStat, IndexInfo, TableMeta, TableStatRow, DbConnection } from '@tfsdc/ui-tui';
 import { loadConnections, upsertConnection, removeConnection } from './connections.js';
+import { createAdapter, initDbAdapters } from '@tfsdc/infrastructure';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
@@ -84,6 +85,9 @@ const INTROSPECT_SQL = `
 type BootPhase = 'connection' | 'splash' | 'table-select' | 'main';
 
 async function main() {
+  // Register all DB adapters for direct connection testing (no API required)
+  initDbAdapters();
+
   // Quick session check from disk — no network call at startup
   const savedSession = loadSession();
   if (savedSession?.token) {
@@ -644,30 +648,33 @@ async function main() {
     connectionScene.setConnections(loadConnections());
   };
 
-  connectionScene.onConnect = async (conn: DbConnection): Promise<boolean> => {
+  connectionScene.onConnect = async (conn: DbConnection): Promise<string | null> => {
+    // Test directly with the adapter — no API server required at this stage
+    let adapter;
     try {
-      const res = await fetch(`${API_URL}/api/v1/connections/test`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type:     conn.type,
-          host:     conn.host,
-          port:     conn.port,
-          database: conn.database,
-          username: conn.username,
-          password: conn.password,
-        }),
+      adapter = createAdapter({
+        type:     conn.type,
+        host:     conn.host,
+        port:     conn.port,
+        database: conn.database,
+        username: conn.username,
+        password: conn.password,
       });
-      const body = await res.json() as { ok: boolean; error?: string };
-      if (!body.ok) return false;
-      // Save active connection id header for all future API calls
+    } catch (err) {
+      return err instanceof Error ? err.message : `Unknown DB type: ${conn.type}`;
+    }
+
+    try {
+      await adapter.listTables();          // throws on connection failure
       _activeConnectionId = conn.id;
       phase = 'splash';
       renderLoop.setScene(splashScene);
       renderLoop.markDirty();
-      return true;
-    } catch {
-      return false;
+      return null;                         // null = success
+    } catch (err) {
+      return err instanceof Error ? err.message : 'Connection failed';
+    } finally {
+      await adapter.close().catch(() => {});
     }
   };
 

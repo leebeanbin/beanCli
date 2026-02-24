@@ -62,7 +62,8 @@ export class ConnectionScene implements IScene {
     database: '', username: '', password: '',
   };
 
-  onConnect?: (conn: DbConnection) => Promise<boolean>;
+  /** Return null on success, or an error message string on failure. */
+  onConnect?: (conn: DbConnection) => Promise<string | null>;
   onSave?:   (conn: DbConnection) => void;
   onDelete?: (id: string) => void;
 
@@ -466,16 +467,17 @@ export class ConnectionScene implements IScene {
     this.markDirtyFn?.();
 
     void this.onConnect?.(conn)
-      .then((ok) => {
-        if (!ok) {
-          this.errorMsg = 'Connection refused or credentials invalid';
+      .then((errMsg) => {
+        if (errMsg !== null) {
+          // errMsg is the actual error from the adapter/API
+          this.errorMsg = errMsg.slice(0, 80);
           this.phase = 'error';
           this.markDirtyFn?.();
         }
-        // On success, caller transitions the boot phase — no action needed here
+        // On null (success), caller transitions the boot phase — no action needed here
       })
       .catch((err: unknown) => {
-        this.errorMsg = err instanceof Error ? err.message.slice(0, 60) : 'Unknown error';
+        this.errorMsg = err instanceof Error ? err.message.slice(0, 80) : 'Unknown error';
         this.phase = 'error';
         this.markDirtyFn?.();
       });

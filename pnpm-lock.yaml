@@ -81,6 +81,9 @@ importers:
 
   apps/cli:
     dependencies:
+      '@tfsdc/infrastructure':
+        specifier: workspace:*
+        version: link:../../packages/infrastructure
       '@tfsdc/kernel':
         specifier: workspace:*
         version: link:../../packages/kernel
