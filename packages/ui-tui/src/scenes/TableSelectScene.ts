@@ -9,13 +9,14 @@ export interface TableMeta {
   sizeHuman: string;
 }
 
+// ASCII-only bar — no EAW block chars
 function miniBar(sizeBytes: number, maxBytes: number, width = 10): string {
   const filled = maxBytes > 0 ? Math.round((sizeBytes / maxBytes) * width) : 0;
-  return '▐' + '█'.repeat(filled) + '░'.repeat(width - filled) + '▌';
+  return '|' + '='.repeat(filled) + ' '.repeat(width - filled) + '|';
 }
 
 function fmtRows(n: number): string {
-  if (n < 0) return '—';
+  if (n < 0) return '--';
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
   return String(n);
@@ -39,7 +40,6 @@ export class TableSelectScene implements IScene {
   setTables(tables: TableMeta[]): void {
     this.tables = tables;
     this.loading = false;
-    // Pre-select tables whose name starts with state_
     this.selected = new Set(tables.filter(t => t.name.startsWith('state_')).map(t => t.name));
     this.cursorIdx = 0;
   }
@@ -53,6 +53,7 @@ export class TableSelectScene implements IScene {
   render(canvas: ITerminalCanvas): void {
     const { cols, rows } = canvas.getSize();
     const t = getTheme();
+    const panel = t.palette.bgPanel;
     const filtered = this.filteredTables();
     const maxBytes = this.tables.reduce((m, tbl) => Math.max(m, tbl.sizeBytes), 1);
 
@@ -61,32 +62,31 @@ export class TableSelectScene implements IScene {
     const boxX = Math.max(0, Math.floor((cols - boxW) / 2));
     const maxVisible = Math.max(4, rows - 10);
     const contentH = this.loading ? 1 : Math.min(filtered.length, maxVisible);
-    const boxH = contentH + 6; // title + sep + rows + sep + hints + bottom
+    const boxH = contentH + 6;
     const boxY = Math.max(0, Math.floor((rows - boxH) / 2));
+    const inner = boxW - 2;
 
-    // ── Top border ──────────────────────────────────────
-    canvas.write(boxX, boxY, '╔' + '═'.repeat(boxW - 2) + '╗', t.s.border);
+    // ── Top border — brand color to match LoginScene ──────
+    canvas.write(boxX, boxY, '╔' + '═'.repeat(inner) + '╗', t.s.brand);
 
-    // ── Title row ────────────────────────────────────────
-    const titleText = '  DATABASE TABLES  ◉ postgres@localhost:5432/tfsdc';
-    canvas.write(boxX, boxY + 1, '║', t.s.border);
-    canvas.write(boxX + 1, boxY + 1, titleText.slice(0, boxW - 2).padEnd(boxW - 2), t.s.brand);
-    canvas.write(boxX + boxW - 1, boxY + 1, '║', t.s.border);
+    // ── Title row ─────────────────────────────────────────
+    const titleText = '  DATABASE TABLES  * postgres@localhost:5432/tfsdc';
+    canvas.write(boxX, boxY + 1, '║', t.s.brand);
+    canvas.write(boxX + 1, boxY + 1, titleText.slice(0, inner).padEnd(inner), { color: t.palette.brand, bgColor: panel, bold: true });
+    canvas.write(boxX + boxW - 1, boxY + 1, '║', t.s.brand);
 
-    // ── Separator ────────────────────────────────────────
-    canvas.write(boxX, boxY + 2, '╠' + '═'.repeat(boxW - 2) + '╣', t.s.border);
+    // ── Header separator ──────────────────────────────────
+    canvas.write(boxX, boxY + 2, '╠' + '═'.repeat(inner) + '╣', t.s.brand);
 
     if (this.loading) {
-      // Loading state
-      canvas.write(boxX, boxY + 3, '║', t.s.border);
-      canvas.write(boxX + 1, boxY + 3, '  Loading tables...'.padEnd(boxW - 2), t.s.pixelLoading);
-      canvas.write(boxX + boxW - 1, boxY + 3, '║', t.s.border);
+      canvas.write(boxX, boxY + 3, '║', t.s.brand);
+      canvas.write(boxX + 1, boxY + 3, '  Loading tables...'.padEnd(inner), { color: t.palette.accent, bgColor: panel });
+      canvas.write(boxX + boxW - 1, boxY + 3, '║', t.s.brand);
     } else if (filtered.length === 0) {
-      canvas.write(boxX, boxY + 3, '║', t.s.border);
-      canvas.write(boxX + 1, boxY + 3, '  No tables found.'.padEnd(boxW - 2), t.s.muted);
-      canvas.write(boxX + boxW - 1, boxY + 3, '║', t.s.border);
+      canvas.write(boxX, boxY + 3, '║', t.s.brand);
+      canvas.write(boxX + 1, boxY + 3, '  No tables found.'.padEnd(inner), { color: t.palette.muted, bgColor: panel });
+      canvas.write(boxX + boxW - 1, boxY + 3, '║', t.s.brand);
     } else {
-      // Scrolling window
       const half = Math.floor(maxVisible / 2);
       const visStart = Math.max(0, Math.min(this.cursorIdx - half, filtered.length - maxVisible));
       const visEnd = Math.min(filtered.length, visStart + maxVisible);
@@ -97,52 +97,57 @@ export class TableSelectScene implements IScene {
         const isSelected = this.selected.has(tbl.name);
         const rowY = boxY + 3 + (i - visStart);
 
-        canvas.write(boxX, rowY, '║', t.s.border);
+        canvas.write(boxX, rowY, '║', t.s.brand);
 
-        const cursor = isCursor ? '▶' : ' ';
-        const check = isSelected ? '[✓]' : '[ ]';
-        const bar = miniBar(tbl.sizeBytes, maxBytes);
+        // Row background: cursor = purple, selected = dark teal, normal = panel
+        const rowBg = isCursor ? '#3f2f66' : (isSelected ? '#0d2a1a' : panel);
+        const rowFg = isCursor ? t.palette.text
+          : (isSelected ? t.palette.success : t.palette.dim);
+
+        // ASCII cursor and checkbox — no EAW chars
+        const cur   = isCursor ? '>' : ' ';
+        const check = isSelected ? '[+]' : '[ ]';
+        const bar   = miniBar(tbl.sizeBytes, maxBytes);
         const rowsStr = fmtRows(tbl.rowEstimate).padStart(7);
         const nameCol = tbl.name.padEnd(22).slice(0, 22);
-        const rowContent = ` ${cursor} ${check} ${nameCol} ${bar}  ${rowsStr} rows  ${tbl.sizeHuman.padEnd(6)}`;
+        const rowContent = ` ${cur} ${check} ${nameCol} ${bar}  ${rowsStr} rows  ${tbl.sizeHuman.padEnd(6)}`;
 
-        const style = isCursor
-          ? t.s.pixelSelected
-          : (isSelected ? t.s.rowSelected : t.s.pixelUnselected);
+        canvas.write(boxX + 1, rowY,
+          rowContent.slice(0, inner).padEnd(inner),
+          { color: rowFg, bgColor: rowBg, bold: isCursor || isSelected });
 
-        canvas.write(boxX + 1, rowY, rowContent.slice(0, boxW - 2).padEnd(boxW - 2), style);
-        canvas.write(boxX + boxW - 1, rowY, '║', t.s.border);
+        canvas.write(boxX + boxW - 1, rowY, '║', t.s.brand);
       }
 
-      // Fill empty rows below table list
+      // Empty filler rows
       for (let i = visEnd - visStart; i < maxVisible; i++) {
         const rowY = boxY + 3 + i;
-        canvas.write(boxX, rowY, '║', t.s.border);
-        canvas.write(boxX + 1, rowY, ' '.repeat(boxW - 2), t.s.text);
-        canvas.write(boxX + boxW - 1, rowY, '║', t.s.border);
+        canvas.write(boxX, rowY, '║', t.s.brand);
+        canvas.write(boxX + 1, rowY, ' '.repeat(inner), { bgColor: panel });
+        canvas.write(boxX + boxW - 1, rowY, '║', t.s.brand);
       }
     }
 
-    // ── Hint separator ───────────────────────────────────
+    // ── Hint separator ────────────────────────────────────
     const hintY = boxY + 3 + contentH;
-    canvas.write(boxX, hintY, '╠' + '═'.repeat(boxW - 2) + '╣', t.s.border);
+    canvas.write(boxX, hintY, '╠' + '─'.repeat(inner) + '╣', t.s.borderDim);
 
-    // ── Hints row ────────────────────────────────────────
-    canvas.write(boxX, hintY + 1, '║', t.s.border);
+    // ── Hints row ─────────────────────────────────────────
+    canvas.write(boxX, hintY + 1, '║', t.s.brand);
     const hints = this.filterActive
-      ? `  / ${this.filterText}▍  Enter apply filter  Esc clear`
-      : '  ↑/↓ Navigate  Space Select  / Filter  Enter Confirm  g/G Top/Bot';
-    canvas.write(boxX + 1, hintY + 1, hints.slice(0, boxW - 2).padEnd(boxW - 2), t.s.hintText);
-    canvas.write(boxX + boxW - 1, hintY + 1, '║', t.s.border);
+      ? `  / ${this.filterText}_  Enter: apply filter   Esc: clear`
+      : '  Up/Down: navigate   Space: select   /: filter   Enter: open   g/G: top/bot';
+    canvas.write(boxX + 1, hintY + 1, hints.slice(0, inner).padEnd(inner), { color: t.palette.muted, bgColor: panel });
+    canvas.write(boxX + boxW - 1, hintY + 1, '║', t.s.brand);
 
-    // ── Bottom border ────────────────────────────────────
-    canvas.write(boxX, hintY + 2, '╚' + '═'.repeat(boxW - 2) + '╝', t.s.border);
+    // ── Bottom border ─────────────────────────────────────
+    canvas.write(boxX, hintY + 2, '╚' + '═'.repeat(inner) + '╝', t.s.brand);
 
-    // ── Selection count ──────────────────────────────────
+    // ── Selection count (below box) ───────────────────────
     const count = this.selected.size;
     const countMsg = count === 0
-      ? 'No tables selected — press Space to select'
-      : `${count} table${count !== 1 ? 's' : ''} selected`;
+      ? 'No tables selected -- press Space to select'
+      : `${count} table${count !== 1 ? 's' : ''} selected  (Enter to open)`;
     const countX = Math.max(0, Math.floor((cols - countMsg.length) / 2));
     canvas.write(countX, hintY + 3, countMsg, count > 0 ? t.s.accent : t.s.muted);
   }
@@ -183,11 +188,8 @@ export class TableSelectScene implements IScene {
       case ' ': {
         const tbl = filtered[this.cursorIdx];
         if (tbl) {
-          if (this.selected.has(tbl.name)) {
-            this.selected.delete(tbl.name);
-          } else {
-            this.selected.add(tbl.name);
-          }
+          if (this.selected.has(tbl.name)) this.selected.delete(tbl.name);
+          else this.selected.add(tbl.name);
         }
         break;
       }
