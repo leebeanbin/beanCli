@@ -3,6 +3,28 @@ import Link from 'next/link';
 
 const VALID_TABLES = ['state_users', 'state_products', 'state_orders', 'state_payments', 'state_shipments'];
 
+const HIDDEN_COLUMNS = new Set(['last_offset', 'email_hash', 'tracking_number_hash']);
+
+function fmtCellValue(col: string, value: unknown, row: Record<string, unknown>): string {
+  if (value === null || value === undefined) return '—';
+  if (HIDDEN_COLUMNS.has(col)) return '[private]';
+  if (col.endsWith('_ms')) {
+    const n = Number(value);
+    return isNaN(n) ? String(value) : new Date(n).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'medium' });
+  }
+  if (col.endsWith('_cents')) {
+    const n = Number(value);
+    if (isNaN(n)) return String(value);
+    const currency = String(row['currency_code'] ?? 'USD').toUpperCase();
+    try {
+      return new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 2 }).format(n / 100);
+    } catch {
+      return `${(n / 100).toFixed(2)} ${currency}`;
+    }
+  }
+  return String(value);
+}
+
 interface StateRow {
   id: string;
   entity_id_hash: string;
@@ -35,7 +57,10 @@ export default async function StatePage({
 
   const data = await getStateData(table, limit, offset);
 
-  const columns = data?.items[0] ? Object.keys(data.items[0]).slice(0, 8) : [];
+  const allColumns = data?.items[0] ? Object.keys(data.items[0]) : [];
+  const columns = allColumns
+    .filter(c => !c.startsWith('_') && c !== 'created_at' && !HIDDEN_COLUMNS.has(c))
+    .slice(0, 8);
 
   return (
     <div>
@@ -74,7 +99,7 @@ export default async function StatePage({
                   <tr key={i} className="hover:bg-gray-50">
                     {columns.map((col) => (
                       <td key={col} className="px-3 py-2 text-xs font-mono max-w-xs truncate">
-                        {String(row[col] ?? '')}
+                        {fmtCellValue(col, row[col], row)}
                       </td>
                     ))}
                   </tr>

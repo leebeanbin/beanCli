@@ -174,9 +174,19 @@ pnpm dev:recovery    # DLQ re-processor
 pnpm dev:cli         # TUI (main interface) ← start here
 ```
 
+### Boot Flow
+
+```
+App start
+  └─ Load ~/.config/beanCli/connections.json
+      ├─ No saved connections → ConnectionScene (add first)
+      └─ Connections exist   → ConnectionScene (list, Enter to connect)
+                                   └─ Test connection → SplashScene → TableSelectScene → Main
+```
+
 ### 5. Open the TUI
 
-The TUI launches in your terminal automatically with `pnpm dev:cli`. Use these keys to navigate:
+The TUI launches in your terminal automatically with `pnpm dev:cli`. The **Connection Manager** appears first — add a PostgreSQL connection or select a saved one, then press Enter to connect. Use these keys to navigate:
 
 | Key | Action |
 |---|---|
@@ -292,6 +302,60 @@ ChangeApplied event → Kafka → TUI + Web sync
 
 ---
 
+## Connection Manager
+
+beanCLI uses a **local connection store** instead of embedding credentials in the target database. This means:
+
+- Works with PostgreSQL, MySQL, SQLite, MongoDB, Redis — any DB type
+- Credentials live in `~/.config/beanCli/connections.json` (chmod 600 — local only)
+- No `cli_users` table polluting your target database
+
+### TUI: ConnectionScene
+
+On every startup, the TUI shows the Connection Manager:
+
+```
+╔══════════════════════════════════════════════════════════════╗
+║        [ beanCLI — DATABASE CONNECTIONS ]                    ║
+╠══════════════════════════════════════════════════════════════╣
+║  > * local-pg        postgresql   localhost:5432             ║
+║      prod-mysql       mysql        db.prod.com:3306          ║
+║      analytics-mongo  mongodb      analytics:27017           ║
+╠──────────────────────────────────────────────────────────────╣
+║  n: new   d: delete   *: default   Enter: connect            ║
+╚══════════════════════════════════════════════════════════════╝
+```
+
+| Key | Action |
+|---|---|
+| `↑` / `↓` | Navigate connections |
+| `n` | Add new connection |
+| `e` | Edit selected |
+| `d` | Delete selected |
+| `*` | Set as default |
+| `Enter` | Connect (tests + proceeds to main app) |
+
+### Supported DB Types
+
+| Type | Default Port | Notes |
+|---|---|---|
+| `postgresql` | 5432 | Full feature support |
+| `mysql` | 3306 | MariaDB compatible |
+| `sqlite` | — | Uses Node.js built-in `node:sqlite` |
+| `mongodb` | 27017 | Collections as tables |
+| `redis` | 6379 | Key prefixes as tables |
+
+### DB Adapter Architecture (SOLID)
+
+New DB types can be added without modifying existing code (Open/Closed Principle):
+
+1. Create `packages/infrastructure/src/db/adapters/MyAdapter.ts` implementing `IDbAdapter`
+2. Add one line to `registerAllAdapters.ts`
+
+That's it — no other files change.
+
+---
+
 ## API Reference
 
 Base URL: `http://localhost:3100`
@@ -324,6 +388,7 @@ Base URL: `http://localhost:3100`
 | `GET` | `/api/v1/monitoring/metrics` | DB latency, pool utilization |
 | `GET` | `/api/v1/monitoring/stream-stats` | Kafka stream throughput |
 | `WS` | `/ws` | WebSocket event stream |
+| `POST` | `/api/v1/connections/test` | Test a DB connection (no auth required) |
 
 ### Submit a change (example)
 
@@ -414,7 +479,7 @@ pnpm dev:recovery     # DLQ worker only
 pnpm build            # Turborepo parallel build (all 15 packages)
 
 # Test
-pnpm test             # Jest (all packages, 68 tests)
+pnpm test             # Jest (all packages, 72 tests)
 pnpm test:watch       # Jest watch mode
 
 # Run a single test file
@@ -480,6 +545,9 @@ expect(canvas.styleAt(canvas.findText('DONE')!.x, canvas.findText('DONE')!.y)?.c
 | S3 | TUI: Box Drawing, spinner badges, layered components | Done |
 | S4 | TUI: help popup, row detail, command palette | Planned |
 | S5 | AI: natural language → SQL, index advisor | Planned |
+| S6 | ExploreScene: smart value formatting (_ms → datetime, _cents → $) | Done |
+| S7 | Multi-DB Connection Manager (TUI + API adapter registry) | Done |
+| S8 | Web Console: Connection Manager page | Done |
 
 ---
 
