@@ -19,9 +19,10 @@ import {
   SceneTabBar,
   SplashScene,
   TableSelectScene,
-  LoginScene,
+  ConnectionScene,
 } from '@tfsdc/ui-tui';
-import type { IScene, StreamHealthStat, IndexInfo, TableMeta, TableStatRow, LoginResult } from '@tfsdc/ui-tui';
+import type { IScene, StreamHealthStat, IndexInfo, TableMeta, TableStatRow, DbConnection } from '@tfsdc/ui-tui';
+import { loadConnections, upsertConnection, removeConnection } from './connections.js';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
@@ -58,10 +59,12 @@ function clearSession(): void {
 }
 
 let _session: Session | null = null;
+let _activeConnectionId: string | null = null;
 
 function apiHeaders(): Record<string, string> {
   const h: Record<string, string> = { 'Content-Type': 'application/json' };
   if (_session?.token) h['Authorization'] = `Bearer ${_session.token}`;
+  if (_activeConnectionId) h['X-Connection-Id'] = _activeConnectionId;
   return h;
 }
 
@@ -78,7 +81,7 @@ const INTROSPECT_SQL = `
   ORDER BY c.relname
 `.trim();
 
-type BootPhase = 'login' | 'splash' | 'table-select' | 'main';
+type BootPhase = 'connection' | 'splash' | 'table-select' | 'main';
 
 async function main() {
   // Quick session check from disk — no network call at startup
@@ -87,8 +90,8 @@ async function main() {
     _session = savedSession;
   }
 
-  let CLI_ACTOR = _session?.username ?? '';
-  let CLI_ROLE  = _session?.role ?? '';
+  let CLI_ACTOR = _session?.username ?? 'local';
+  let CLI_ROLE  = _session?.role ?? 'DBA';
 
   const appState = new AppState();
   const viewportState = new ViewportState();
@@ -167,28 +170,29 @@ async function main() {
   });
 
   // ── Boot scenes ──────────────────────────────────────
-  const loginScene = new LoginScene();
+  const connectionScene = new ConnectionScene();
   const splashScene = new SplashScene();
   const tableSelectScene = new TableSelectScene();
 
+  // Load saved connections into connection scene
+  const savedConns = loadConnections();
+  connectionScene.setConnections(savedConns);
+
   // ── Command line ────────────────────────────────────
   const commandLine = new CommandLine();
-  if (CLI_ACTOR) {
-    commandLine.configure({ actor: CLI_ACTOR, role: CLI_ROLE, environment: CLI_ENV });
-  }
+  commandLine.configure({ actor: CLI_ACTOR, role: CLI_ROLE, environment: CLI_ENV });
 
   // ── Render loop ─────────────────────────────────────
   const sceneNames = ['explore', 'monitor', 'audit', 'recovery', 'indexlab', 'aichat'];
   let sceneIndex = 0;
 
-  // Start with LoginScene if no saved session, otherwise go straight to splash
-  const initialScene = _session ? splashScene : loginScene;
-  const renderLoop = new RenderLoop(canvas, initialScene);
+  // Always start with ConnectionScene (DB connection picker)
+  const renderLoop = new RenderLoop(canvas, connectionScene);
   const statusBar = new StatusBar();
   const sceneTabBar = new SceneTabBar();
 
   // ── Boot phase state ─────────────────────────────────
-  let phase: BootPhase = _session ? 'splash' : 'login';
+  let phase: BootPhase = 'connection';
   let selectedTables: string[] = [];
 
   // Only show chrome (status bar, scene tab bar) during main phase
@@ -626,30 +630,45 @@ async function main() {
 
   // ── Boot state machine ──────────────────────────────
 
-  // LoginScene → SplashScene on successful auth
-  loginScene.setMarkDirty(() => renderLoop.markDirty());
-  loginScene.onSubmit = async (username: string, password: string): Promise<LoginResult | null> => {
+  // ConnectionScene → SplashScene on successful DB connection
+  connectionScene.setMarkDirty(() => renderLoop.markDirty());
+
+  connectionScene.onSave = (conn: DbConnection) => {
+    upsertConnection(conn);
+    // Refresh the scene's list from disk
+    connectionScene.setConnections(loadConnections());
+  };
+
+  connectionScene.onDelete = (id: string) => {
+    removeConnection(id);
+    connectionScene.setConnections(loadConnections());
+  };
+
+  connectionScene.onConnect = async (conn: DbConnection): Promise<boolean> => {
     try {
-      const res = await fetch(`${API_URL}/api/v1/auth/login`, {
+      const res = await fetch(`${API_URL}/api/v1/connections/test`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({
+          type:     conn.type,
+          host:     conn.host,
+          port:     conn.port,
+          database: conn.database,
+          username: conn.username,
+          password: conn.password,
+        }),
       });
-      if (res.ok) {
-        return await res.json() as LoginResult;
-      }
-    } catch { /* server offline */ }
-    return null;
-  };
-  loginScene.onSuccess = (result: LoginResult) => {
-    _session = result;
-    saveSession(result);
-    CLI_ACTOR = result.username;
-    CLI_ROLE  = result.role;
-    commandLine.configure({ actor: CLI_ACTOR, role: CLI_ROLE, environment: CLI_ENV });
-    phase = 'splash';
-    renderLoop.setScene(splashScene);
-    renderLoop.markDirty();
+      const body = await res.json() as { ok: boolean; error?: string };
+      if (!body.ok) return false;
+      // Save active connection id header for all future API calls
+      _activeConnectionId = conn.id;
+      phase = 'splash';
+      renderLoop.setScene(splashScene);
+      renderLoop.markDirty();
+      return true;
+    } catch {
+      return false;
+    }
   };
 
   // Phase 1 → 2: SplashScene → TableSelectScene
@@ -725,7 +744,7 @@ async function main() {
 
       // During boot phases, route keys only to the current boot scene
       if (phase !== 'main') {
-        const bootScene = phase === 'login' ? loginScene
+        const bootScene = phase === 'connection' ? connectionScene
           : phase === 'splash' ? splashScene
           : tableSelectScene;
         if (key === '\u001b[A') bootScene.onKeyPress('up');

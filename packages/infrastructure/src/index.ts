@@ -23,3 +23,20 @@ export type {
   IDbQueryResult,
   IMetricsProvider,
 } from './db/IDbPool.js';
+
+// DB Adapters (multi-DB connection layer)
+export type { IDbAdapter } from './db/adapters/IDbAdapter.js';
+export type { DbConnectionConfig, DbAdapterFactory } from './db/adapters/DbAdapterRegistry.js';
+export { createAdapter, registerDbAdapter, registeredAdapterTypes } from './db/adapters/DbAdapterRegistry.js';
+export { PgAdapter } from './db/adapters/PgAdapter.js';
+export { MySqlAdapter } from './db/adapters/MySqlAdapter.js';
+export { SqliteAdapter } from './db/adapters/SqliteAdapter.js';
+export { MongoAdapter } from './db/adapters/MongoAdapter.js';
+export { RedisAdapter } from './db/adapters/RedisAdapter.js';
+
+/**
+ * Register all built-in DB adapters.
+ * Call once at application startup before using `createAdapter`.
+ * Adding a new adapter = create adapter class + add one line to registerAllAdapters.ts.
+ */
+export { registerAllAdapters as initDbAdapters } from './db/adapters/registerAllAdapters.js';

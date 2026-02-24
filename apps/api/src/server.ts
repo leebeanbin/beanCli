@@ -24,7 +24,7 @@ import type {
   IApprovalRouteHandler,
 } from '@tfsdc/application';
 import type { PgPool } from '@tfsdc/infrastructure';
-import { SchemaIntrospector } from '@tfsdc/infrastructure';
+import { SchemaIntrospector, createAdapter, initDbAdapters } from '@tfsdc/infrastructure';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -46,6 +46,9 @@ export interface ServerDeps {
 }
 
 export async function buildServer(deps: ServerDeps) {
+  // Register all DB adapters once at startup
+  initDbAdapters();
+
   const app = Fastify({ logger: true });
   const APP_ENV = (process.env.APP_ENV ?? 'dev').toLowerCase();
 
@@ -767,6 +770,46 @@ Provide brief explanations in Korean.`;
         error: 'AI sidecar not available',
         detail: (err as Error).message,
       });
+    }
+  });
+
+  // ─── Connection Test ─────────────────────────────
+  // No auth required — CLI is on trusted local network
+  app.post('/api/v1/connections/test', async (request, reply) => {
+    const body = request.body as {
+      type?: string;
+      host?: string;
+      port?: number;
+      database?: string;
+      username?: string;
+      password?: string;
+    };
+
+    if (!body?.type) {
+      return reply.status(400).send({ ok: false, error: 'type is required' });
+    }
+
+    let adapter;
+    try {
+      adapter = createAdapter({
+        type: body.type,
+        host: body.host,
+        port: body.port,
+        database: body.database,
+        username: body.username,
+        password: body.password,
+      });
+    } catch (err) {
+      return reply.status(400).send({ ok: false, error: (err as Error).message });
+    }
+
+    try {
+      const tables = await adapter.listTables();
+      return { ok: true, tables };
+    } catch (err) {
+      return reply.status(400).send({ ok: false, error: (err as Error).message });
+    } finally {
+      await adapter.close().catch(() => {});
     }
   });
 
