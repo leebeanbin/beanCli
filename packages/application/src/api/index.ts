@@ -26,8 +26,19 @@ export { WsEventBroadcaster } from './websocket/WsEventBroadcaster.js';
 export { healthHandler } from './routes/health.routes.js';
 export type { HealthDeps, HealthResponse } from './routes/health.routes.js';
 export type { IChangeRouteHandler, CreateChangeInput, ChangeListQuery } from './routes/changes.routes.js';
+export { ChangeRouteHandlerImpl } from './routes/ChangeRouteHandlerImpl.js';
 export type { IApprovalRouteHandler } from './routes/approvals.routes.js';
-export { isValidStateTable, listState, getStateById } from './routes/state.routes.js';
-export type { StateListQuery } from './routes/state.routes.js';
+export { ApprovalRouteHandlerImpl } from './routes/ApprovalRouteHandlerImpl.js';
+export {
+  isValidStateTable,
+  listState,
+  getStateById,
+  updateStateField,
+  deleteStateRow,
+  insertStateRow,
+  getStateSchema,
+  StateValidationError,
+} from './routes/state.routes.js';
+export type { StateListQuery, FieldSchemaMeta } from './routes/state.routes.js';
 export { listAuditLogs } from './routes/audit.routes.js';
 export type { AuditListQuery } from './routes/audit.routes.js';

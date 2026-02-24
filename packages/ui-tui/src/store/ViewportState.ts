@@ -4,6 +4,8 @@ export interface ViewportRange {
   limit: number;
   totalRows: number;
   rows: Record<string, unknown>[];
+  isLoading?: boolean;
+  error?: string;
 }
 
 export class ViewportState {
@@ -15,6 +17,26 @@ export class ViewportState {
 
   set(table: string, data: ViewportRange): void {
     this.viewports.set(table, data);
+  }
+
+  setLoading(table: string, loading: boolean): void {
+    const existing = this.viewports.get(table);
+    if (existing) {
+      existing.isLoading = loading;
+      if (loading) existing.error = undefined;
+    } else {
+      this.viewports.set(table, { table, offset: 0, limit: 100, totalRows: 0, rows: [], isLoading: loading });
+    }
+  }
+
+  setError(table: string, error: string): void {
+    const existing = this.viewports.get(table);
+    if (existing) {
+      existing.error = error;
+      existing.isLoading = false;
+    } else {
+      this.viewports.set(table, { table, offset: 0, limit: 100, totalRows: 0, rows: [], error, isLoading: false });
+    }
   }
 
   updateRows(table: string, rows: Record<string, unknown>[]): void {

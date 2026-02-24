@@ -10,6 +10,9 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@tfsdc/kernel": "workspace:*"
+    "@tfsdc/kernel": "workspace:*",
+    "@tfsdc/domain": "workspace:*",
+    "@tfsdc/application": "workspace:*",
+    "@tfsdc/ui-tui": "workspace:*"
   }
 }

@@ -16,6 +16,7 @@ describe('TuiWsClient', () => {
       onOpen: jest.fn((cb) => { openCb = cb; }),
       onMessage: jest.fn((cb) => { messageCb = cb; }),
       onClose: jest.fn((cb) => { closeCb = cb; }),
+      onError: jest.fn(),
     };
     callbacks = {
       onChangeApplied: jest.fn(),

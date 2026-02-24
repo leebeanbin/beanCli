@@ -34,8 +34,8 @@ COMMENT ON COLUMN hmac_keys.key_value IS 'pgcrypto로 암호화된 키 바이트
 CREATE TABLE events_raw (
   id              BIGSERIAL    NOT NULL,
   source_topic    TEXT         NOT NULL,
-  partition       INT          NOT NULL,
-  offset          BIGINT       NOT NULL,
+  kafka_partition INT          NOT NULL,
+  kafka_offset    BIGINT       NOT NULL,
   event_time_ms   BIGINT       NOT NULL,
   entity_type     TEXT         NOT NULL,
   entity_id_hash  TEXT         NOT NULL,  -- HMAC-SHA256
@@ -48,7 +48,7 @@ CREATE TABLE events_raw (
 
   CONSTRAINT events_raw_pkey PRIMARY KEY (id),
   CONSTRAINT events_raw_topic_partition_offset_unique
-    UNIQUE (source_topic, partition, offset)
+    UNIQUE (source_topic, kafka_partition, kafka_offset)
 );
 
 CREATE INDEX events_raw_entity_type_hash_idx
@@ -74,8 +74,8 @@ COMMENT ON COLUMN events_raw.entity_id_plain IS 'PROD 기본 NULL. ENTITY_ID_PLA
 CREATE TABLE dlq_events (
   id                  BIGSERIAL    NOT NULL,
   source_topic        TEXT         NOT NULL,
-  partition           INT          NOT NULL,
-  offset              BIGINT       NOT NULL,
+  kafka_partition     INT          NOT NULL,
+  kafka_offset        BIGINT       NOT NULL,
   payload_encrypted   BYTEA        NOT NULL,  -- AES-256-GCM 암호화
   key_id              TEXT         NOT NULL,  -- 복호화 키 참조
   error_message       TEXT         NOT NULL,
@@ -186,8 +186,7 @@ CREATE INDEX backup_snapshots_change_id_idx
   ON backup_snapshots (change_id);
 
 CREATE INDEX backup_snapshots_expires_at_idx
-  ON backup_snapshots (expires_at)
-  WHERE expires_at > now();
+  ON backup_snapshots (expires_at);
 
 COMMENT ON TABLE backup_snapshots IS '변경 전 row 스냅샷. TTL 7일. L2 변경 필수, L0/L1 선택.';
 COMMENT ON COLUMN backup_snapshots.expires_at IS 'TTL 7일. 만료된 스냅샷은 vacuum job이 주기적으로 삭제.';

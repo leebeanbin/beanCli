@@ -9,5 +9,7 @@ module.exports = {
     '^@tfsdc/kernel$': '<rootDir>/../kernel/src',
     '^@tfsdc/domain$': '<rootDir>/../domain/src',
     '^@tfsdc/application$': '<rootDir>/../application/src',
+    '^@tfsdc/testing$': '<rootDir>/../testing/src',
+    '^@tfsdc/ui-tui$': '<rootDir>/src',
   },
 };
