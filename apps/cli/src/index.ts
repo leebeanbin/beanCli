@@ -19,9 +19,9 @@ import {
   SceneTabBar,
   SplashScene,
   TableSelectScene,
+  LoginScene,
 } from '@tfsdc/ui-tui';
-import type { IScene, StreamHealthStat, IndexInfo, TableMeta, TableStatRow } from '@tfsdc/ui-tui';
-import { createInterface } from 'readline';
+import type { IScene, StreamHealthStat, IndexInfo, TableMeta, TableStatRow, LoginResult } from '@tfsdc/ui-tui';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
@@ -57,64 +57,7 @@ function clearSession(): void {
   try { writeFileSync(SESSION_FILE, '{}'); } catch { /* ignore */ }
 }
 
-// ── Terminal login prompt (before TUI starts) ─────────────────
-async function promptLogin(): Promise<Session> {
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
-  const ask = (q: string) => new Promise<string>(r => rl.question(q, r));
-
-  process.stdout.write('\x1b[2J\x1b[H'); // clear screen
-  process.stdout.write('beanCLI — Login\n');
-  process.stdout.write('─'.repeat(40) + '\n');
-
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    const username = (await ask('Username: ')).trim();
-    process.stdout.write('\x1b[8m'); // hide input (dim)
-    const password = (await ask('Password: ')).trim();
-    process.stdout.write('\x1b[28m\n'); // show again
-
-    try {
-      const res = await fetch(`${API_URL}/api/v1/auth/login`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ username, password }),
-      });
-      if (res.ok) {
-        const data = await res.json() as Session;
-        rl.close();
-        return data;
-      }
-      const err = await res.json() as { error?: string };
-      process.stdout.write(`! ${err.error ?? 'Login failed'} — try again\n`);
-    } catch {
-      process.stdout.write('! Cannot reach API — check that the server is running\n');
-    }
-  }
-}
-
 let _session: Session | null = null;
-
-async function ensureSession(): Promise<Session> {
-  if (_session) return _session;
-  const saved = loadSession();
-  if (saved?.token) {
-    // Quick validation — if API returns 401 on /health we'll re-login
-    try {
-      const res = await fetch(`${API_URL}/api/v1/state/state_users?limit=1`, {
-        headers: { Authorization: `Bearer ${saved.token}` },
-      });
-      if (res.status !== 401) {
-        _session = saved;
-        return saved;
-      }
-    } catch { /* network error — try anyway */ }
-  }
-
-  const session = await promptLogin();
-  saveSession(session);
-  _session = session;
-  return session;
-}
 
 function apiHeaders(): Record<string, string> {
   const h: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -135,13 +78,17 @@ const INTROSPECT_SQL = `
   ORDER BY c.relname
 `.trim();
 
-type BootPhase = 'splash' | 'table-select' | 'main';
+type BootPhase = 'login' | 'splash' | 'table-select' | 'main';
 
 async function main() {
-  // Require login before starting the TUI
-  const session = await ensureSession();
-  const CLI_ACTOR = session.username;
-  const CLI_ROLE  = session.role;
+  // Quick session check from disk — no network call at startup
+  const savedSession = loadSession();
+  if (savedSession?.token) {
+    _session = savedSession;
+  }
+
+  let CLI_ACTOR = _session?.username ?? '';
+  let CLI_ROLE  = _session?.role ?? '';
 
   const appState = new AppState();
   const viewportState = new ViewportState();
@@ -220,23 +167,28 @@ async function main() {
   });
 
   // ── Boot scenes ──────────────────────────────────────
+  const loginScene = new LoginScene();
   const splashScene = new SplashScene();
   const tableSelectScene = new TableSelectScene();
 
   // ── Command line ────────────────────────────────────
   const commandLine = new CommandLine();
-  commandLine.configure({ actor: CLI_ACTOR, role: CLI_ROLE, environment: CLI_ENV });
+  if (CLI_ACTOR) {
+    commandLine.configure({ actor: CLI_ACTOR, role: CLI_ROLE, environment: CLI_ENV });
+  }
 
   // ── Render loop ─────────────────────────────────────
   const sceneNames = ['explore', 'monitor', 'audit', 'recovery', 'indexlab', 'aichat'];
   let sceneIndex = 0;
 
-  const renderLoop = new RenderLoop(canvas, splashScene);
+  // Start with LoginScene if no saved session, otherwise go straight to splash
+  const initialScene = _session ? splashScene : loginScene;
+  const renderLoop = new RenderLoop(canvas, initialScene);
   const statusBar = new StatusBar();
   const sceneTabBar = new SceneTabBar();
 
   // ── Boot phase state ─────────────────────────────────
-  let phase: BootPhase = 'splash';
+  let phase: BootPhase = _session ? 'splash' : 'login';
   let selectedTables: string[] = [];
 
   // Only show chrome (status bar, scene tab bar) during main phase
@@ -674,6 +626,32 @@ async function main() {
 
   // ── Boot state machine ──────────────────────────────
 
+  // LoginScene → SplashScene on successful auth
+  loginScene.setMarkDirty(() => renderLoop.markDirty());
+  loginScene.onSubmit = async (username: string, password: string): Promise<LoginResult | null> => {
+    try {
+      const res = await fetch(`${API_URL}/api/v1/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+      if (res.ok) {
+        return await res.json() as LoginResult;
+      }
+    } catch { /* server offline */ }
+    return null;
+  };
+  loginScene.onSuccess = (result: LoginResult) => {
+    _session = result;
+    saveSession(result);
+    CLI_ACTOR = result.username;
+    CLI_ROLE  = result.role;
+    commandLine.configure({ actor: CLI_ACTOR, role: CLI_ROLE, environment: CLI_ENV });
+    phase = 'splash';
+    renderLoop.setScene(splashScene);
+    renderLoop.markDirty();
+  };
+
   // Phase 1 → 2: SplashScene → TableSelectScene
   splashScene.onProceed = () => {
     phase = 'table-select';
@@ -747,7 +725,9 @@ async function main() {
 
       // During boot phases, route keys only to the current boot scene
       if (phase !== 'main') {
-        const bootScene = phase === 'splash' ? splashScene : tableSelectScene;
+        const bootScene = phase === 'login' ? loginScene
+          : phase === 'splash' ? splashScene
+          : tableSelectScene;
         if (key === '\u001b[A') bootScene.onKeyPress('up');
         else if (key === '\u001b[B') bootScene.onKeyPress('down');
         else if (key === '\u001b[C') bootScene.onKeyPress('right');
