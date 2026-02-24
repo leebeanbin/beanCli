@@ -18,6 +18,9 @@ coverage/
 !.vscode/settings.json
 .idea/
 
+# Claude Code — project instructions (local only)
+CLAUDE.md
+
 # OS
 .DS_Store
 Thumbs.db
