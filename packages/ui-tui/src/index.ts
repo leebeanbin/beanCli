@@ -49,6 +49,8 @@ export type { AiChatCallbacks, SqlExecResult } from './scenes/AiChatScene.js';
 export { SplashScene } from './scenes/SplashScene.js';
 export { TableSelectScene } from './scenes/TableSelectScene.js';
 export type { TableMeta } from './scenes/TableSelectScene.js';
+export { LoginScene } from './scenes/LoginScene.js';
+export type { LoginResult } from './scenes/LoginScene.js';
 
 // WS Client
 export { TuiWsClient } from './ws/TuiWsClient.js';
