@@ -80,6 +80,20 @@ const DEFAULT_COLUMNS: TableColumn[] = [
 
 const DETAIL_PANEL_WIDTH = 32;
 
+const HIDDEN_DETAIL_FIELDS = new Set([
+  'last_offset',
+  'email_hash',
+  'tracking_number_hash',
+]);
+
+function fmtDetailValue(key: string, value: unknown, row: Record<string, unknown>): string {
+  if (value === null || value === undefined) return '—';
+  if (key.endsWith('_ms'))    return fmtTimestamp(value, 'datetime');
+  if (key.endsWith('_cents')) return fmtCents(value, row);
+  if (HIDDEN_DETAIL_FIELDS.has(key)) return '[private]';
+  return String(value);
+}
+
 // ── Field-level validation schemas ────────────────────────────
 // Defines allowed values / numeric bounds per field per table.
 // Used to validate user input before API calls and show inline hints.
@@ -307,8 +321,15 @@ export class ExploreScene implements IScene {
       canvas.write(1, rows - 2, editLabel, t.s.editLabel);
       const fieldLabel = ` ${this.editField}: `;
       canvas.write(1 + editLabel.length, rows - 2, fieldLabel, { color: t.palette.sysColor, bold: true });
+      const editHint = this.editField.endsWith('_ms')    ? '[unix ms] '
+                     : this.editField.endsWith('_cents') ? '[cents] '
+                     : '';
+      const hintStartX = 1 + editLabel.length + fieldLabel.length;
+      if (editHint) {
+        canvas.write(hintStartX, rows - 2, editHint, t.s.dim);
+      }
       const inputDisplay = this.editValue + '▍';
-      const startX = 1 + editLabel.length + fieldLabel.length;
+      const startX = hintStartX + editHint.length;
       const editFieldHint = this.getFieldHint(currentTable, this.editField);
       const editNavHint = 'Enter  Esc';
       const editRightReserve = editNavHint.length + (editFieldHint ? editFieldHint.length + 3 : 0) + 4;
@@ -358,14 +379,14 @@ export class ExploreScene implements IScene {
     canvas.write(panelX + 2, panelStart, '── Detail ', t.s.accent);
 
     const entries = Object.entries(row).filter(
-      ([k]) => !k.startsWith('_') && k !== 'created_at',
+      ([k]) => !k.startsWith('_') && k !== 'created_at' && !HIDDEN_DETAIL_FIELDS.has(k),
     );
 
     let y = panelStart + 1;
     for (const [key, value] of entries) {
       if (y >= panelStart + panelHeight) break;
       const label = key.length > 12 ? key.slice(0, 11) + '…' : key;
-      const val = String(value ?? '');
+      const val = fmtDetailValue(key, value, row);
       const maxValLen = w - 16;
       const display = val.length > maxValLen ? val.slice(0, maxValLen - 1) + '…' : val;
 

@@ -51,6 +51,8 @@ export { TableSelectScene } from './scenes/TableSelectScene.js';
 export type { TableMeta } from './scenes/TableSelectScene.js';
 export { LoginScene } from './scenes/LoginScene.js';
 export type { LoginResult } from './scenes/LoginScene.js';
+export { ConnectionScene } from './scenes/ConnectionScene.js';
+export type { DbConnection, DbType } from './scenes/ConnectionScene.js';
 
 // WS Client
 export { TuiWsClient } from './ws/TuiWsClient.js';

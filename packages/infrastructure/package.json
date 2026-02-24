@@ -14,7 +14,10 @@
     "@tfsdc/domain": "workspace:*",
     "@tfsdc/kernel": "workspace:*",
     "kafkajs": "^2.2.4",
-    "pg": "^8.18.0"
+    "pg": "^8.18.0",
+    "mysql2": "^3.11.3",
+    "mongodb": "^6.10.0",
+    "ioredis": "^5.4.2"
   },
   "devDependencies": {
     "@types/pg": "^8.11.14"
