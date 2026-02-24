@@ -21,7 +21,7 @@ import {
   TableSelectScene,
   ConnectionScene,
 } from '@tfsdc/ui-tui';
-import type { IScene, StreamHealthStat, IndexInfo, TableMeta, TableStatRow, DbConnection } from '@tfsdc/ui-tui';
+import type { IScene, StreamHealthStat, IndexInfo, TableMeta, TableStatRow, DbConnection, DbType } from '@tfsdc/ui-tui';
 import { loadConnections, upsertConnection, removeConnection } from './connections.js';
 import { createAdapter, initDbAdapters } from '@tfsdc/infrastructure';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
@@ -32,6 +32,39 @@ const API_URL = process.env.API_URL ?? 'http://localhost:3100';
 const WS_URL = process.env.WS_URL ?? 'ws://localhost:3100/ws';
 const CLI_ENV = (process.env.APP_ENV?.toUpperCase() ?? 'DEV') as string;
 const schemaLoaded = new Set<string>();
+
+const DEFAULT_TABLES: TableMeta[] = [
+  { name: 'state_orders',    rowEstimate: 0, sizeBytes: 0, sizeHuman: '?' },
+  { name: 'state_users',     rowEstimate: 0, sizeBytes: 0, sizeHuman: '?' },
+  { name: 'state_products',  rowEstimate: 0, sizeBytes: 0, sizeHuman: '?' },
+  { name: 'state_payments',  rowEstimate: 0, sizeBytes: 0, sizeHuman: '?' },
+  { name: 'state_shipments', rowEstimate: 0, sizeBytes: 0, sizeHuman: '?' },
+];
+
+/** Parse a postgres/mysql/mongodb URL into a partial DbConnection */
+function parseDbUrl(url: string): Partial<DbConnection> | null {
+  try {
+    const u = new URL(url);
+    const proto = u.protocol.replace(':', '');
+    const typeMap: Record<string, DbType> = {
+      postgres: 'postgresql', postgresql: 'postgresql',
+      mysql: 'mysql',
+      mongodb: 'mongodb',
+      redis: 'redis',
+      rediss: 'redis',
+    };
+    const type = typeMap[proto];
+    if (!type) return null;
+    return {
+      type,
+      host:     u.hostname || 'localhost',
+      port:     u.port ? Number(u.port) : undefined,
+      database: u.pathname.replace(/^\//, '') || undefined,
+      username: u.username ? decodeURIComponent(u.username) : undefined,
+      password: u.password ? decodeURIComponent(u.password) : undefined,
+    };
+  } catch { return null; }
+}
 
 // ── Session token management ──────────────────────────────────
 const SESSION_DIR  = join(homedir(), '.config', 'beanCli');
@@ -179,7 +212,31 @@ async function main() {
   const tableSelectScene = new TableSelectScene();
 
   // Load saved connections into connection scene
-  const savedConns = loadConnections();
+  let savedConns = loadConnections();
+
+  // If no saved connections, auto-fill from DATABASE_URL env var
+  if (savedConns.length === 0) {
+    const dbUrl = process.env.DATABASE_URL;
+    if (dbUrl) {
+      const defaults = parseDbUrl(dbUrl);
+      if (defaults?.type) {
+        const autoConn: DbConnection = {
+          id:       `auto-${Date.now()}`,
+          label:    'local (from .env)',
+          isDefault: true,
+          type:     defaults.type,
+          host:     defaults.host,
+          port:     defaults.port,
+          database: defaults.database,
+          username: defaults.username,
+          password: defaults.password,
+        };
+        upsertConnection(autoConn);
+        savedConns = [autoConn];
+      }
+    }
+  }
+
   connectionScene.setConnections(savedConns);
 
   // ── Command line ────────────────────────────────────
@@ -198,6 +255,7 @@ async function main() {
   // ── Boot phase state ─────────────────────────────────
   let phase: BootPhase = 'connection';
   let selectedTables: string[] = [];
+  let _connectedTables: string[] = [];   // tables obtained from adapter.listTables() at connect time
 
   // Only show chrome (status bar, scene tab bar) during main phase
   renderLoop.setPostRender((c) => {
@@ -648,7 +706,7 @@ async function main() {
     connectionScene.setConnections(loadConnections());
   };
 
-  connectionScene.onConnect = async (conn: DbConnection): Promise<string | null> => {
+  connectionScene.onConnect = async (conn: DbConnection): Promise<{ error: string | null; tables: string[] }> => {
     // Test directly with the adapter — no API server required at this stage
     let adapter;
     try {
@@ -661,18 +719,21 @@ async function main() {
         password: conn.password,
       });
     } catch (err) {
-      return err instanceof Error ? err.message : `Unknown DB type: ${conn.type}`;
+      const msg = err instanceof Error ? err.message : `Unknown DB type: ${conn.type}`;
+      return { error: msg, tables: [] };
     }
 
     try {
-      await adapter.listTables();          // throws on connection failure
+      const tables = await adapter.listTables();   // throws on connection failure
+      _connectedTables = tables;
       _activeConnectionId = conn.id;
       phase = 'splash';
       renderLoop.setScene(splashScene);
       renderLoop.markDirty();
-      return null;                         // null = success
+      return { error: null, tables };
     } catch (err) {
-      return err instanceof Error ? err.message : 'Connection failed';
+      const msg = err instanceof Error ? err.message : 'Connection failed';
+      return { error: msg, tables: [] };
     } finally {
       await adapter.close().catch(() => {});
     }
@@ -684,7 +745,16 @@ async function main() {
     renderLoop.setScene(tableSelectScene);
     renderLoop.markDirty();
 
-    // Fetch tables from API via SQL execute endpoint
+    // Use tables already obtained via adapter.listTables() during ConnectionScene.onConnect
+    if (_connectedTables.length > 0) {
+      tableSelectScene.setTables(
+        _connectedTables.map(name => ({ name, rowEstimate: 0, sizeBytes: 0, sizeHuman: '?' })),
+      );
+      renderLoop.markDirty();
+      return;
+    }
+
+    // Fallback: try API (works when API server is running for PostgreSQL)
     executeSqlDirect(INTROSPECT_SQL).then(result => {
       const rows = result.rows ?? [];
       const tables: TableMeta[] = rows.map(r => ({
@@ -694,28 +764,10 @@ async function main() {
         sizeHuman: String(r['size_human'] ?? '?'),
       })).filter(t => t.name.length > 0);
 
-      if (tables.length > 0) {
-        tableSelectScene.setTables(tables);
-      } else {
-        // Fallback to default tables if API not available
-        tableSelectScene.setTables([
-          { name: 'state_orders', rowEstimate: 0, sizeBytes: 0, sizeHuman: '?' },
-          { name: 'state_users', rowEstimate: 0, sizeBytes: 0, sizeHuman: '?' },
-          { name: 'state_products', rowEstimate: 0, sizeBytes: 0, sizeHuman: '?' },
-          { name: 'state_payments', rowEstimate: 0, sizeBytes: 0, sizeHuman: '?' },
-          { name: 'state_shipments', rowEstimate: 0, sizeBytes: 0, sizeHuman: '?' },
-        ]);
-      }
+      tableSelectScene.setTables(tables.length > 0 ? tables : DEFAULT_TABLES);
       renderLoop.markDirty();
     }).catch(() => {
-      // Fallback on network error
-      tableSelectScene.setTables([
-        { name: 'state_orders', rowEstimate: 0, sizeBytes: 0, sizeHuman: '?' },
-        { name: 'state_users', rowEstimate: 0, sizeBytes: 0, sizeHuman: '?' },
-        { name: 'state_products', rowEstimate: 0, sizeBytes: 0, sizeHuman: '?' },
-        { name: 'state_payments', rowEstimate: 0, sizeBytes: 0, sizeHuman: '?' },
-        { name: 'state_shipments', rowEstimate: 0, sizeBytes: 0, sizeHuman: '?' },
-      ]);
+      tableSelectScene.setTables(DEFAULT_TABLES);
       renderLoop.markDirty();
     });
   };
