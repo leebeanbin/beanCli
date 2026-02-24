@@ -21,7 +21,7 @@ const BOOT_STEPS = [
 
 function loadingBar(pct: number, width = 12): string {
   const filled = Math.round(pct * width);
-  return '[' + '█'.repeat(filled) + '░'.repeat(width - filled) + ']';
+  return '[' + '='.repeat(filled) + ' '.repeat(width - filled) + ']';
 }
 
 export class SplashScene implements IScene {
