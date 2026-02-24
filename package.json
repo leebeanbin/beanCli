@@ -22,6 +22,8 @@
     "dev:api": "turbo run dev --filter=@tfsdc/api",
     "dev:projector": "turbo run dev --filter=@tfsdc/projector",
     "dev:cli": "node --env-file=.env --watch --import tsx apps/cli/src/index.ts",
+    "dev:cli:ink": "node --env-file=.env --watch --import tsx/esm apps/cli/src/index-ink.tsx",
+    "dev:cli:ink:filter": "turbo run dev:ink --filter=@tfsdc/cli",
     "dev:recovery": "turbo run dev --filter=@tfsdc/recovery-worker",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
