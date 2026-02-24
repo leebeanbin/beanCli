@@ -2,26 +2,15 @@ import React from 'react';
 import { Box, Text, useInput } from 'ink';
 import { Panel } from './Panel.js';
 import { StatusBar } from './StatusBar.js';
+import { SchemaPanel } from '../panels/SchemaPanel.js';
+import { ConnectionFormOverlay } from '../connection/ConnectionFormOverlay.js';
 import { usePanelFocus } from '../../hooks/usePanelFocus.js';
 import { useAppContext } from '../../context/AppContext.js';
+import { useConnection } from '../../hooks/useConnection.js';
 
 const VERSION = '0.1.2';
 
 // ── Placeholder panel contents ───────────────────────────────────────────────
-
-const SchemaContent: React.FC<{ focused: boolean }> = ({ focused }) => (
-  <Box flexDirection="column" gap={0}>
-    <Text color="#4a5568">○  no connection</Text>
-    <Text color="#2a3a4a">{' '}</Text>
-    <Text color={focused ? '#6b7280' : '#374151'}>
-      Ctrl+P → Connect Database
-    </Text>
-    <Text color="#2a3a4a">{' '}</Text>
-    <Text color="#374151" dimColor>Phase 1: Schema tree</Text>
-    <Text color="#374151" dimColor>  tables / views / indexes</Text>
-    <Text color="#374151" dimColor>  columns / types</Text>
-  </Box>
-);
 
 const QueryContent: React.FC<{ focused: boolean }> = ({ focused }) => (
   <Box flexDirection="column">
@@ -51,17 +40,12 @@ const AiContent: React.FC<{ focused: boolean }> = ({ focused }) => (
     <Text color="#00d4ff" bold>beanllm</Text>
     <Text color="#374151">──────────</Text>
     <Text color="#2a3a4a">{' '}</Text>
-    <Text color={focused ? '#6b7280' : '#374151'}>
-      Ask anything about
-    </Text>
-    <Text color={focused ? '#6b7280' : '#374151'}>
-      your database.
-    </Text>
+    <Text color={focused ? '#6b7280' : '#374151'}>Ask anything about</Text>
+    <Text color={focused ? '#6b7280' : '#374151'}>your database.</Text>
     <Text color="#2a3a4a">{' '}</Text>
     <Text color="#374151" dimColor>Phase 3: AI panel</Text>
     <Text color="#374151" dimColor>  NL → SQL</Text>
     <Text color="#374151" dimColor>  error analysis</Text>
-    <Text color="#374151" dimColor>  query explain</Text>
   </Box>
 );
 
@@ -69,21 +53,27 @@ const AiContent: React.FC<{ focused: boolean }> = ({ focused }) => (
 
 export const AppShell: React.FC = () => {
   const { focusedPanel, nextPanel, prevPanel, focusPanel } = usePanelFocus();
-  const { paletteOpen, connection, env } = useAppContext();
+  const { paletteOpen, overlay, setOverlay, connection, env } = useAppContext();
+  const { saveConn } = useConnection();
+
+  const isBlocked = paletteOpen || overlay !== null;
 
   useInput((input, key) => {
-    if (paletteOpen) return; // palette captures all input
+    if (isBlocked) return;
 
     // Panel cycling
     if (key.tab && !key.shift) { nextPanel(); return; }
     if (key.tab && key.shift)  { prevPanel(); return; }
 
-    // Direct panel jump by number
+    // Direct panel jump
     if (input === '1') { focusPanel('schema'); return; }
     if (input === '2') { focusPanel('query');  return; }
     if (input === '3') { focusPanel('result'); return; }
     if (input === '4') { focusPanel('ai');     return; }
   });
+
+  // ── Overlay: ConnectionForm ─────────────────────────────────────────────────
+  const showConnForm = overlay?.type === 'connection-form';
 
   return (
     <Box flexDirection="column" flexGrow={1}>
@@ -91,14 +81,14 @@ export const AppShell: React.FC = () => {
       {/* ── 3-pane area ─────────────────────────────────── */}
       <Box flexGrow={1}>
 
-        {/* Left: Schema 22 cols */}
+        {/* Left: Schema tree */}
         <Panel
           title="Schema"
           isFocused={focusedPanel === 'schema'}
           hint="1"
-          width={24}
+          width={26}
         >
-          <SchemaContent focused={focusedPanel === 'schema'} />
+          <SchemaPanel />
         </Panel>
 
         {/* Center: Query (top) + Result (bottom) */}
@@ -122,7 +112,7 @@ export const AppShell: React.FC = () => {
           </Panel>
         </Box>
 
-        {/* Right: AI 22 cols */}
+        {/* Right: AI Copilot */}
         <Panel
           title="AI · beanllm"
           isFocused={focusedPanel === 'ai'}
@@ -141,6 +131,20 @@ export const AppShell: React.FC = () => {
         connection={connection}
         focused={focusedPanel}
       />
+
+      {/* ── ConnectionForm overlay ───────────────────────── */}
+      {showConnForm && (
+        <Box position="absolute" marginLeft={4} marginTop={2}>
+          <ConnectionFormOverlay
+            initial={overlay?.conn}
+            onSave={(conn) => {
+              saveConn(conn);
+              setOverlay(null);
+            }}
+            onCancel={() => setOverlay(null)}
+          />
+        </Box>
+      )}
 
     </Box>
   );
