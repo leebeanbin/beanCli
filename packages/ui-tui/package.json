@@ -11,6 +11,10 @@
   },
   "dependencies": {
     "@tfsdc/kernel": "workspace:*",
-    "@tfsdc/application": "workspace:*"
+    "@tfsdc/application": "workspace:*",
+    "ws": "^8.18.2"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.5.14"
   }
 }

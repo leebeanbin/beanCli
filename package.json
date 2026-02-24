@@ -17,9 +17,19 @@
     "format:check": "prettier --check .",
     "clean": "turbo run clean && rm -rf node_modules",
     "db:migrate": "bash packages/sql/migrations/run_migrations.sh",
+    "dev:all": "bash scripts/dev-start.sh",
+    "dev:api": "turbo run dev --filter=@tfsdc/api",
+    "dev:projector": "turbo run dev --filter=@tfsdc/projector",
+    "dev:cli": "node --env-file=.env --watch --import tsx apps/cli/src/index.ts",
+    "dev:recovery": "turbo run dev --filter=@tfsdc/recovery-worker",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
-    "docker:reset": "docker compose down -v && docker compose up -d"
+    "docker:reset": "docker compose down -v && docker compose up -d",
+    "docker:wait": "bash scripts/wait-for-services.sh",
+    "data:quality": "bash scripts/data-quality-report.sh",
+    "data:quality:gate": "bash scripts/data-quality-gate.sh",
+    "dev:stop": "bash scripts/dev-stop.sh",
+    "setup": "cp -n .env.example .env 2>/dev/null; pnpm install; pnpm docker:up; pnpm docker:wait; echo '✅ Ready! Run: pnpm dev:all'"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

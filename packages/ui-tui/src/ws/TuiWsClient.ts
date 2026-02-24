@@ -8,6 +8,7 @@ export interface IWsTransport {
   onOpen(callback: () => void): void;
   onMessage(callback: (data: string) => void): void;
   onClose(callback: () => void): void;
+  onError(callback: (err: Error) => void): void;
 }
 
 export interface TuiWsCallbacks {
@@ -54,6 +55,14 @@ export class TuiWsClient {
       const delay = Math.min(this.reconnectDelay * 2, 30000);
       this.reconnectDelay = delay;
       setTimeout(() => this.connect(url, tables), delay);
+    });
+
+    // ECONNREFUSED 등 연결 오류 — onClose 전에 발생하므로 별도 처리 필요
+    // 핸들러 없으면 Node.js가 uncaught exception으로 처리해 프로세스 종료됨
+    this.transport.onError(() => {
+      // onClose가 이어서 발생하므로 재연결은 onClose에서 처리
+      // 여기서는 상태만 갱신
+      this.connected = false;
     });
   }
 

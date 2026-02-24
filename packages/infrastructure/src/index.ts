@@ -12,6 +12,11 @@ export { KafkaProducerAdapter } from './kafka/KafkaProducerAdapter.js';
 
 // DB
 export { PgPool } from './db/PgPool.js';
+export { PgChangeRequestRepository } from './db/PgChangeRequestRepository.js';
+export { SchemaIntrospector } from './db/SchemaIntrospector.js';
+export type {
+  TableMeta, ColumnMeta, IndexMeta, IndexUsage, TableStat,
+} from './db/SchemaIntrospector.js';
 export type {
   IDbPool,
   IDbTransaction,

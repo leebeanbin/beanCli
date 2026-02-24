@@ -1,20 +1,35 @@
 import type { RawEvent, IHasher } from '@tfsdc/domain';
-import type { IProjectorDb } from '../ports/IProjectorDb.js';
+import type { IProjectorDb, IMetricsProvider } from '../ports/IProjectorDb.js';
 import type { IDlqPublisher } from '../ports/IDlqPublisher.js';
 import type { IKafkaConsumer } from '../ports/IKafkaConsumer.js';
 import type { EventDispatcher } from '../EventDispatcher.js';
 
 const MAX_RETRIES = 3;
 const BACKOFF_BASE_MS = 1000;
+const DB_P95_LATENCY_HARD_LIMIT_MS = 200;
+const CONNECTION_POOL_THROTTLE_PCT = 80;
+
+/**
+ * Thrown when the DB is overloaded. The Kafka consumer should NOT commit the
+ * offset so the event is redelivered once load subsides. This error bypasses
+ * the retry loop and DLQ — it is not a processing failure.
+ */
+export class OverloadError extends Error {
+  constructor(details: string) {
+    super(`OVERLOAD: ${details}`);
+    this.name = 'OverloadError';
+  }
+}
 
 export interface ProcessEventMetrics {
   processed: number;
   duplicateSkips: number;
   dlqSent: number;
+  overloadDrops: number;
 }
 
 export class ProcessEventUseCase {
-  private _metrics: ProcessEventMetrics = { processed: 0, duplicateSkips: 0, dlqSent: 0 };
+  private _metrics: ProcessEventMetrics = { processed: 0, duplicateSkips: 0, dlqSent: 0, overloadDrops: 0 };
 
   constructor(
     private readonly db: IProjectorDb,
@@ -23,6 +38,7 @@ export class ProcessEventUseCase {
     private readonly kafkaConsumer: IKafkaConsumer,
     private readonly dlqPublisher: IDlqPublisher,
     private readonly activeKeyId: string,
+    private readonly metricsProvider?: IMetricsProvider,
   ) {}
 
   get metrics(): Readonly<ProcessEventMetrics> {
@@ -30,6 +46,18 @@ export class ProcessEventUseCase {
   }
 
   async execute(event: RawEvent): Promise<void> {
+    // Throttle check — throws OverloadError (not retried, not DLQ'd)
+    if (this.metricsProvider) {
+      const [p95, poolPct] = await Promise.all([
+        this.metricsProvider.getDbP95LatencyMs(),
+        this.metricsProvider.getConnectionPoolUsagePct(),
+      ]);
+      if (p95 >= DB_P95_LATENCY_HARD_LIMIT_MS || poolPct >= CONNECTION_POOL_THROTTLE_PCT) {
+        this._metrics.overloadDrops++;
+        throw new OverloadError(`p95=${p95}ms pool=${poolPct}%`);
+      }
+    }
+
     const entityIdHash = await this.hasher.hash(event.entityType, event.canonicalId);
 
     let lastError: Error | undefined;
@@ -39,10 +67,10 @@ export class ProcessEventUseCase {
         const inserted = await this.db.transaction(async (tx) => {
           const result = await tx.query(
             `INSERT INTO events_raw
-              (source_topic, partition, "offset", event_time_ms,
+              (source_topic, kafka_partition, kafka_offset, event_time_ms,
                entity_type, entity_id_hash, payload, key_id)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            ON CONFLICT (source_topic, partition, "offset") DO NOTHING`,
+            ON CONFLICT (source_topic, kafka_partition, kafka_offset) DO NOTHING`,
             [
               event.sourceTopic,
               event.partition,

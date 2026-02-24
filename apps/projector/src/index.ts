@@ -18,6 +18,7 @@ import {
   ProductAdjustedHandler,
   ShipmentStatusChangedHandler,
 } from '@tfsdc/domain';
+import type { RawEvent } from '@tfsdc/domain';
 
 const DATABASE_URL = process.env.DATABASE_URL ?? 'postgres://postgres:postgres@localhost:5432/tfsdc';
 const KAFKA_BROKER = process.env.KAFKA_BROKER ?? 'localhost:9092';
@@ -68,6 +69,8 @@ async function main() {
     const batchSize = await concurrency.getBatchSize();
     const events = await kafkaConsumer.poll(batchSize);
 
+    const processedBefore = useCase.metrics.processed;
+
     for (const event of events) {
       await useCase.execute(event);
     }
@@ -77,8 +80,28 @@ async function main() {
       console.log(
         `[projector] batch=${events.length} processed=${m.processed} skips=${m.duplicateSkips} dlq=${m.dlqSent}`,
       );
+
+      // Notify API via PostgreSQL LISTEN/NOTIFY for real-time WS events
+      const processedDelta = m.processed - processedBefore;
+      if (processedDelta > 0) {
+        const counts = groupByEntityType(events);
+        for (const [entityType, count] of counts) {
+          await pgPool.query(
+            `SELECT pg_notify('tfsdc_stream_event', $1)`,
+            [JSON.stringify({ entityType, count })],
+          ).catch((err: Error) => console.warn('[projector] notify failed:', err.message));
+        }
+      }
     }
   }
+}
+
+function groupByEntityType(events: RawEvent[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const event of events) {
+    counts.set(event.entityType, (counts.get(event.entityType) ?? 0) + 1);
+  }
+  return counts;
 }
 
 main().catch((err) => {

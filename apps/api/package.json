@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "tsc",
-    "dev": "tsx watch src/index.ts",
+    "dev": "node --env-file=../../.env --watch --import tsx src/index.ts",
     "start": "node dist/index.js",
     "test": "jest --passWithNoTests",
     "lint": "eslint src/",
@@ -15,9 +15,14 @@
     "@tfsdc/application": "workspace:*",
     "@tfsdc/audit": "workspace:*",
     "@tfsdc/domain": "workspace:*",
+    "@tfsdc/dsl": "workspace:*",
     "@tfsdc/infrastructure": "workspace:*",
     "@tfsdc/kernel": "workspace:*",
     "@tfsdc/policy": "workspace:*",
-    "fastify": "^5.7.4"
+    "fastify": "^5.7.4",
+    "pg": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.11.14"
   }
 }

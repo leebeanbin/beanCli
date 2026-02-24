@@ -15,5 +15,8 @@
     "@tfsdc/kernel": "workspace:*",
     "kafkajs": "^2.2.4",
     "pg": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.11.14"
   }
 }

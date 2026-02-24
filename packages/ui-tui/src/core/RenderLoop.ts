@@ -10,12 +10,25 @@ export class RenderLoop {
   private frameCount = 0;
   private lastSlowFrameMs = 0;
 
+  private postRender?: (canvas: ITerminalCanvas) => void;
+  private animationTimer: ReturnType<typeof setInterval> | null = null;
+
   constructor(
     private readonly canvas: ITerminalCanvas,
     private scene: IScene,
     private readonly targetFps = 30,
   ) {
     this.frameBudgetMs = 1000 / this.targetFps;
+  }
+
+  setPostRender(fn: (canvas: ITerminalCanvas) => void): void {
+    this.postRender = fn;
+  }
+
+  /** Marks dirty on a fixed interval — required for spinner animations. */
+  enableAnimation(intervalMs = 250): void {
+    if (this.animationTimer) clearInterval(this.animationTimer);
+    this.animationTimer = setInterval(() => this.markDirty(), intervalMs);
   }
 
   markDirty(): void {
@@ -29,10 +42,8 @@ export class RenderLoop {
 
   stop(): void {
     this.running = false;
-    if (this.timer) {
-      clearTimeout(this.timer);
-      this.timer = null;
-    }
+    if (this.timer) { clearTimeout(this.timer); this.timer = null; }
+    if (this.animationTimer) { clearInterval(this.animationTimer); this.animationTimer = null; }
   }
 
   setScene(scene: IScene): void {
@@ -73,6 +84,7 @@ export class RenderLoop {
     const start = performance.now();
     this.canvas.beginFrame();
     this.scene.render(this.canvas);
+    this.postRender?.(this.canvas);
     this.canvas.endFrame();
     const took = performance.now() - start;
     this.frameCount++;
