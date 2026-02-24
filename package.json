@@ -1,7 +1,8 @@
 {
   "name": "tfsdc",
+  "version": "0.1.2",
   "private": true,
-  "description": "Terminal-First Streaming Data Console",
+  "description": "Terminal-First Streaming Data Console — Modern TUI AI Database Manager",
   "packageManager": "pnpm@10.28.1",
   "engines": {
     "node": ">=20.0.0"
