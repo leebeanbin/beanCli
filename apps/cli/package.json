@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@tfsdc/ui-tui": "workspace:*",
-    "@tfsdc/kernel": "workspace:*"
+    "@tfsdc/kernel": "workspace:*",
+    "@tfsdc/infrastructure": "workspace:*"
   }
 }
