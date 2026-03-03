@@ -36,23 +36,25 @@ export class MySqlAdapter implements IDbAdapter {
 
   async listTables(): Promise<string[]> {
     const conn = await this.getConnection() as {
-      query: (sql: string) => Promise<[Array<Record<string, unknown>>, unknown]>;
+      execute: (sql: string, values: unknown[]) => Promise<[Array<Record<string, unknown>>, unknown]>;
     };
     const db = this.config.database ?? '';
-    const [rows] = await conn.query(
+    // SEC-FIX: parameterised query — db name never interpolated into SQL string
+    const [rows] = await conn.execute(
       `SELECT TABLE_NAME AS table_name FROM information_schema.TABLES
-       WHERE TABLE_SCHEMA = '${db.replace(/'/g, "''")}'
+       WHERE TABLE_SCHEMA = ?
        AND TABLE_TYPE IN ('BASE TABLE', 'VIEW')
        ORDER BY TABLE_NAME`,
+      [db],
     );
     return (rows as Array<{ table_name: string }>).map(r => r.table_name);
   }
 
-  async queryRows(sql: string, _params?: unknown[]): Promise<Record<string, unknown>[]> {
+  async queryRows(sql: string, params?: unknown[]): Promise<Record<string, unknown>[]> {
     const conn = await this.getConnection() as {
-      query: (sql: string) => Promise<[Array<Record<string, unknown>>, unknown]>;
+      execute: (sql: string, values: unknown[]) => Promise<[Array<Record<string, unknown>>, unknown]>;
     };
-    const [rows] = await conn.query(sql);
+    const [rows] = await conn.execute(sql, params ?? []);
     return rows as Record<string, unknown>[];
   }
 
