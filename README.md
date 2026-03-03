@@ -208,6 +208,10 @@ SQL 제출
 - **엔티티 ID**: HMAC-SHA256 해시 (평문 ID 저장 안 함 — `ENTITY_ID_PLAIN_ENABLED` 제어)
 - **SQL 인젝션**: 파라미터화 쿼리 + quoteIdent() 식별자 인용
 - **감사 로그**: `audit_events` 테이블 — 애플리케이션 레이어에서 UPDATE/DELETE 권한 없음
+- **쿼리 타임아웃**: 전 어댑터 30s 하드 킬 (PG·MySQL·MongoDB·Redis), 결과 5,000행 상한
+- **Rate Limiting**: `@fastify/rate-limit` — 전역 60 req/min, `/auth/login` 5/min, `/connections/test` 10/min
+- **로거 redact**: Fastify pino — `authorization`, `password`, `credential`, `secret` 필드 자동 마스킹
+- **KeyStore 캐시**: `CachedKeyStore` — DB 조회 없이 TTL 5분 인메모리 캐시 (3–10× 처리량 향상)
 
 ---
 
@@ -310,7 +314,11 @@ Base URL: `http://localhost:3100`
 | 멀티라인 SQL 에디터 | ✅ Done |
 | AI 패널 (beanllm SSE) | ✅ Done |
 | ConnectionPicker → DatabasePicker 흐름 | ✅ Done |
-| SEC-005: 쿼리 타임아웃 + 행 수 제한 | ⏳ Todo |
-| SEC-006: Fastify 로거 자격증명 redact | ⏳ Todo |
+| SEC-005: 쿼리 타임아웃 + 행 수 제한 (전 어댑터) | ✅ Done |
+| SEC-006: Fastify 로거 자격증명 redact | ✅ Done |
+| CachedKeyStore: AES/HMAC KeyStore TTL 캐시 (5분) | ✅ Done |
+| API rate limiting: 전역 60/min + 민감 엔드포인트 강화 | ✅ Done |
+| QueryResult.warning + ResultPanel amber 경고 UI | ✅ Done |
+| 쿼리 히스토리 파일 저장 (~/.config/beanCli/history.json) | ✅ Done |
 | ARCH-006: 구 ui-tui 패키지 삭제 | ⏳ Todo |
 | Web Console (Next.js) | ⏳ Planned |
