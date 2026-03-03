@@ -169,9 +169,17 @@ export const ResultPanel: React.FC = () => {
   }
 
   const typeColor = TYPE_COLOR[queryResult.type] ?? '#6b7280';
+  const queryWarning = queryResult.warning;
 
   return (
     <Box flexDirection="column" flexGrow={1}>
+
+      {/* ── Warning banner (truncation etc.) ───────────────── */}
+      {queryWarning && (
+        <Box marginBottom={1}>
+          <Text color="#f59e0b">⚠  {queryWarning}</Text>
+        </Box>
+      )}
 
       {/* ── Meta row ───────────────────────────────────────── */}
       <Box gap={2}>
