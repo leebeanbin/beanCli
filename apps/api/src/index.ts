@@ -56,6 +56,19 @@ async function startNotificationListener(
 }
 
 async function main() {
+  const APP_ENV_VAL = (process.env.APP_ENV ?? 'dev').toLowerCase();
+  if (APP_ENV_VAL === 'prod') {
+    const DEFAULT_SECRET = 'dev-jwt-secret-change-in-prod';
+    if (!process.env.JWT_SECRET || process.env.JWT_SECRET === DEFAULT_SECRET) {
+      console.error('[api] FATAL: JWT_SECRET must be set in production (not the default value)');
+      process.exit(1);
+    }
+    if (Buffer.byteLength(process.env.JWT_SECRET, 'utf8') < 32) {
+      console.error('[api] FATAL: JWT_SECRET must be at least 32 bytes in production');
+      process.exit(1);
+    }
+  }
+
   const pgPool = new PgPool({ connectionString: DATABASE_URL, max: 10 });
   const wsManager = new WsConnectionManager();
   const startTime = Date.now();
