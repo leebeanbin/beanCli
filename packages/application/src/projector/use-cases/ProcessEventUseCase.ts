@@ -1,7 +1,8 @@
-import type { RawEvent, IHasher } from '@tfsdc/domain';
-import type { IProjectorDb, IMetricsProvider } from '../ports/IProjectorDb.js';
-import type { IDlqPublisher } from '../ports/IDlqPublisher.js';
-import type { IKafkaConsumer } from '../ports/IKafkaConsumer.js';
+import type {
+  RawEvent, IHasher,
+  IProjectorDb, IMetricsProvider,
+  IDlqPublisher, IKafkaConsumer,
+} from '@tfsdc/domain';
 import type { EventDispatcher } from '../EventDispatcher.js';
 
 const MAX_RETRIES = 3;
