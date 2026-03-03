@@ -73,10 +73,14 @@ export async function buildServer(deps: ServerDeps) {
   await app.register(fastifyRateLimit, {
     max: 60,
     timeWindow: '1 minute',
-    errorResponseBuilder: (_req: unknown, ctx: { max: number; after: string }) => ({
-      error: `Rate limit exceeded — max ${ctx.max} req/min`,
-      retryAfter: ctx.after,
-    }),
+    // errorResponseBuilder result is thrown by the plugin — must be an Error with statusCode
+    errorResponseBuilder: (_req: unknown, ctx: { max: number; after: string; statusCode: number }) => {
+      const err = Object.assign(
+        new Error(`Rate limit exceeded — max ${ctx.max} req/min`),
+        { statusCode: ctx.statusCode, retryAfter: ctx.after },
+      );
+      return err;
+    },
   });
 
   await app.register(fastifyWebsocket);
