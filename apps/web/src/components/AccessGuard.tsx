@@ -13,11 +13,13 @@ export function AccessGuard({ page, children }: Props) {
   const role = parseRole();
   if (!role || !hasAccess(role as Parameters<typeof hasAccess>[0], page)) {
     return (
-      <div className="py-12 text-center">
-        <p className="text-red-600 font-semibold text-lg">Access Denied</p>
-        <p className="text-gray-500 text-sm mt-2">
-          Your role ({role ?? 'none'}) is not permitted to view this page.
-        </p>
+      <div className="py-12 flex justify-center">
+        <div className="border-2 border-danger shadow-px-d p-8 text-center max-w-sm w-full">
+          <p className="font-pixel text-4xl text-danger mb-3">ACCESS DENIED</p>
+          <p className="font-mono text-xs text-fg-2">
+            role: <span className="text-fg">{role ?? 'none'}</span> — not permitted to view this page.
+          </p>
+        </div>
       </div>
     );
   }
