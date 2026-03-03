@@ -6,7 +6,7 @@
     "build": "tsc",
     "dev": "node --env-file=../../.env --watch --import tsx src/index.ts",
     "start": "node dist/index.js",
-    "test": "jest --passWithNoTests",
+    "test": "jest --config jest.config.cjs --passWithNoTests",
     "loadtest": "node --import tsx scripts/loadtest.ts",
     "lint": "eslint src/",
     "clean": "rm -rf dist"
