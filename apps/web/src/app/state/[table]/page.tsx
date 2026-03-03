@@ -53,7 +53,7 @@ export default async function StatePage({
   const offset = Number(offsetStr ?? 0);
 
   if (!VALID_TABLES.includes(table)) {
-    return <div className="text-red-600">Invalid table: {table}</div>;
+    return <div className="text-danger font-mono text-xs">Invalid table: {table}</div>;
   }
 
   const data = await getStateData(table, limit, offset);
@@ -66,19 +66,24 @@ export default async function StatePage({
   return (
     <div>
       <div className="flex items-center gap-3 mb-6">
-        <h1 className="text-2xl font-bold">
+        <h1 className="font-pixel text-3xl text-fg">
           {table}
           <LiveTableRefresh table={table} />
         </h1>
-        <span className="text-gray-500 text-sm">({data?.total ?? 0} rows)</span>
+        <span className="text-fg-2 text-xs font-mono">({data?.total ?? 0} rows)</span>
       </div>
 
-      <div className="flex gap-2 mb-4">
+      {/* Table tabs */}
+      <div className="flex gap-2 mb-4 flex-wrap">
         {VALID_TABLES.map((t) => (
           <Link
             key={t}
             href={`/state/${t}`}
-            className={`text-xs px-3 py-1 rounded border ${t === table ? 'bg-blue-600 text-white border-blue-600' : 'text-gray-600 border-gray-300 hover:border-blue-400'}`}
+            className={`text-xs font-mono px-3 py-1 border transition-none ${
+              t === table
+                ? 'border-accent text-accent shadow-px-a'
+                : 'border-rim text-fg-2 hover:border-accent hover:text-accent'
+            }`}
           >
             {t.replace('state_', '')}
           </Link>
@@ -86,23 +91,23 @@ export default async function StatePage({
       </div>
 
       {!data ? (
-        <p className="text-gray-500 text-sm">Could not load data — API may be offline.</p>
+        <p className="text-fg-2 text-xs font-mono">Could not load data — API may be offline.</p>
       ) : (
         <>
-          <div className="bg-white rounded-lg shadow-sm border overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
-              <thead className="bg-gray-50">
-                <tr>
+          <div className="bg-bg-2 border border-rim shadow-px overflow-x-auto">
+            <table className="min-w-full border-collapse text-xs font-mono">
+              <thead>
+                <tr className="bg-bg border-b border-rim">
                   {columns.map((col) => (
-                    <th key={col} className="px-3 py-2 text-left font-medium text-gray-500 text-xs">{col}</th>
+                    <th key={col} className="px-3 py-2 text-left text-fg-2 uppercase tracking-widest">{col}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody>
                 {data.items.map((row, i) => (
-                  <tr key={i} className="hover:bg-gray-50">
+                  <tr key={i} className="border-b border-rim hover:bg-bg transition-none">
                     {columns.map((col) => (
-                      <td key={col} className="px-3 py-2 text-xs font-mono max-w-xs truncate">
+                      <td key={col} className="px-3 py-2 text-fg max-w-xs truncate">
                         {fmtCellValue(col, row[col], row)}
                       </td>
                     ))}
@@ -112,21 +117,22 @@ export default async function StatePage({
             </table>
           </div>
 
+          {/* Pagination */}
           <div className="flex gap-2 mt-4">
             {offset > 0 && (
               <Link
                 href={`/state/${table}?limit=${limit}&offset=${Math.max(0, offset - limit)}`}
-                className="text-xs px-3 py-1 rounded border border-gray-300 hover:border-blue-400"
+                className="text-xs font-mono px-3 py-1 border border-rim text-fg-2 hover:border-accent hover:text-accent transition-none"
               >
-                Previous
+                [ Previous ]
               </Link>
             )}
             {data.items.length === limit && (
               <Link
                 href={`/state/${table}?limit=${limit}&offset=${offset + limit}`}
-                className="text-xs px-3 py-1 rounded border border-gray-300 hover:border-blue-400"
+                className="text-xs font-mono px-3 py-1 border border-rim text-fg-2 hover:border-accent hover:text-accent transition-none"
               >
-                Next
+                [ Next ]
               </Link>
             )}
           </div>

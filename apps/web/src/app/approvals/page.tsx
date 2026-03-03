@@ -38,20 +38,25 @@ export default function ApprovalsPage() {
     <AccessGuard page="approvalInbox">
       <div>
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">Pending Approvals</h1>
-          <button onClick={fetchPending} className="text-xs text-blue-600 hover:underline">Refresh</button>
+          <h1 className="font-pixel text-3xl text-fg">[ Pending Approvals ]</h1>
+          <button
+            onClick={fetchPending}
+            className="text-xs font-mono text-fg-2 hover:text-accent border border-rim hover:border-accent px-2 py-0.5 transition-none"
+          >
+            Refresh
+          </button>
         </div>
 
         {message && (
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800">
+          <div className="mb-4 p-3 bg-bg-2 border border-accent text-xs font-mono text-accent shadow-px-a">
             {message}
           </div>
         )}
 
         {loading ? (
-          <p className="text-gray-500 text-sm">Loading…</p>
+          <p className="text-fg-2 text-xs font-mono">Loading…</p>
         ) : items.length === 0 ? (
-          <p className="text-gray-500 text-sm">No pending approvals.</p>
+          <p className="text-fg-2 text-xs font-mono">No pending approvals.</p>
         ) : (
           <div className="space-y-4">
             {items.map((item) => (
