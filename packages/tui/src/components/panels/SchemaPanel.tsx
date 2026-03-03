@@ -3,6 +3,7 @@ import { Box, Text, useInput } from 'ink';
 import { useAppContext } from '../../context/AppContext.js';
 import { useConnection } from '../../hooks/useConnection.js';
 import type { DbConnection } from '../../services/types.js';
+import { SPINNER } from '../../utils/constants.js';
 
 const DB_TYPE_COLOR: Record<string, string> = {
   postgresql: '#3b82f6',
@@ -11,8 +12,6 @@ const DB_TYPE_COLOR: Record<string, string> = {
   mongodb:    '#22c55e',
   redis:      '#ef4444',
 };
-
-const SPINNER = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 
 // ── Sub-component: Connection List ───────────────────────────────────────────
 

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { useAppContext } from '../../context/AppContext.js';
-
-const SPINNER = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+import { escStr } from '../../utils/sql.js';
+import { SPINNER } from '../../utils/constants.js';
 
 const DLQ_SQL = `
 SELECT
@@ -16,12 +16,6 @@ WHERE status NOT IN ('REPROCESSED', 'REQUEUED')
 ORDER BY created_at DESC
 LIMIT 100
 `.trim();
-
-function escStr(v: unknown): string {
-  if (v === null || v === undefined) return 'NULL';
-  return `'${String(v).replace(/'/g, "''")}'`;
-}
-
 
 export const RecoveryPanel: React.FC = () => {
   const { focusedPanel, overlay, paletteOpen, connectionService, activeConnection } = useAppContext();

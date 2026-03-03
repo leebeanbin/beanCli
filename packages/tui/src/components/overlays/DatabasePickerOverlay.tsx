@@ -14,6 +14,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { useAppContext } from '../../context/AppContext.js';
+import { SPINNER } from '../../utils/constants.js';
 
 // System databases that users typically don't want to work in directly
 const SYSTEM_DBS: Record<string, string[]> = {
@@ -21,8 +22,6 @@ const SYSTEM_DBS: Record<string, string[]> = {
   postgresql: ['postgres', 'template0', 'template1'],
   mongodb:    ['admin', 'config', 'local'],
 };
-
-const SPINNER = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 
 export const DatabasePickerOverlay: React.FC = () => {
   const {

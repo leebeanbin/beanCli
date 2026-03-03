@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { useAppContext } from '../../context/AppContext.js';
 import { formatValue } from '../../utils/formatValue.js';
+import { COL_WINDOW, PAGE_SIZE } from '../../utils/constants.js';
 
 const TYPE_COLOR: Record<string, string> = {
   select: '#10b981',
@@ -9,9 +10,6 @@ const TYPE_COLOR: Record<string, string> = {
   ddl:    '#a855f7',
   other:  '#6b7280',
 };
-
-const COL_WINDOW = 6;
-const PAGE_SIZE  = 10;
 
 // ── Vertical detail view ──────────────────────────────────────────────────────
 
