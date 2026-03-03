@@ -52,9 +52,9 @@ export class MySqlAdapter implements IDbAdapter {
 
   async queryRows(sql: string, params?: unknown[]): Promise<Record<string, unknown>[]> {
     const conn = await this.getConnection() as {
-      execute: (sql: string, values: unknown[]) => Promise<[Array<Record<string, unknown>>, unknown]>;
+      execute: (opts: { sql: string; timeout: number; values: unknown[] }) => Promise<[Array<Record<string, unknown>>, unknown]>;
     };
-    const [rows] = await conn.execute(sql, params ?? []);
+    const [rows] = await conn.execute({ sql, timeout: 30_000, values: params ?? [] });
     return rows as Record<string, unknown>[];
   }
 
