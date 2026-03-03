@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsc",
     "test": "jest",
+    "bench": "node --import tsx src/bench/index.ts",
     "lint": "eslint src/",
     "clean": "rm -rf dist"
   },
@@ -13,13 +14,14 @@
     "@tfsdc/application": "workspace:*",
     "@tfsdc/domain": "workspace:*",
     "@tfsdc/kernel": "workspace:*",
+    "ioredis": "^5.4.2",
     "kafkajs": "^2.2.4",
-    "pg": "^8.18.0",
-    "mysql2": "^3.11.3",
     "mongodb": "^6.10.0",
-    "ioredis": "^5.4.2"
+    "mysql2": "^3.11.3",
+    "pg": "^8.18.0"
   },
   "devDependencies": {
-    "@types/pg": "^8.11.14"
+    "@types/pg": "^8.11.14",
+    "tinybench": "^6.0.0"
   }
 }

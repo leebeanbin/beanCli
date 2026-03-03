@@ -13,6 +13,18 @@ import { detectQueryType } from '@tfsdc/tui';
 
 const API_URL = process.env['API_URL'] ?? 'http://localhost:3100';
 
+// SEC-005: query safety limits
+const QUERY_TIMEOUT_MS = 30_000;
+const MAX_ROWS = 5_000;
+
+// SEC-006: strip passwords/secrets from driver error messages before surfacing to UI
+function sanitizeErrorMsg(msg: string): string {
+  return msg
+    .replace(/password[=:'"]\S+/gi, 'password=[REDACTED]')
+    .replace(/pwd[=:'"]\S+/gi, 'pwd=[REDACTED]')
+    .replace(/:(\/\/[^:@]*:)[^@]*@/g, '://$1[REDACTED]@');   // URI form: //user:pass@host
+}
+
 let adaptersReady = false;
 
 export function createCliConnectionService(): IConnectionService {
@@ -78,9 +90,9 @@ export function createCliConnectionService(): IConnectionService {
         activeConnType = conn.type;
         return { error: null, tables };
       } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Connection failed';
+        const raw = err instanceof Error ? err.message : 'Connection failed';
         await adapter.close().catch(() => {});
-        return { error: msg, tables: [] };
+        return { error: sanitizeErrorMsg(raw), tables: [] };  // SEC-006
       }
     },
 
@@ -94,10 +106,32 @@ export function createCliConnectionService(): IConnectionService {
 
       const start = Date.now();
       try {
-        const rows = await activeAdapter.queryRows(sql);
+        // SEC-005: enforce 30s query timeout
+        const timeout = new Promise<never>((_, reject) =>
+          setTimeout(
+            () => reject(new Error(`Query timed out after ${QUERY_TIMEOUT_MS / 1000}s`)),
+            QUERY_TIMEOUT_MS,
+          ),
+        );
+        const allRows = await Promise.race([activeAdapter.queryRows(sql), timeout]);
         const duration = Date.now() - start;
+
+        // SEC-005: cap result set at MAX_ROWS
+        const totalRows = allRows.length;
+        const rows = totalRows > MAX_ROWS ? allRows.slice(0, MAX_ROWS) : allRows;
         const columns = rows.length > 0 ? Object.keys(rows[0]!) : [];
-        return { columns, rows, rowCount: rows.length, duration, type: detectQueryType(sql) };
+        const truncated = totalRows > MAX_ROWS;
+
+        return {
+          columns,
+          rows,
+          rowCount: totalRows,   // reflects true total even when truncated
+          duration,
+          type: detectQueryType(sql),
+          ...(truncated && {
+            error: `⚠ Result truncated: ${totalRows.toLocaleString()} rows returned, showing first ${MAX_ROWS.toLocaleString()}`,
+          }),
+        };
       } catch (err) {
         const duration = Date.now() - start;
         const msg = err instanceof Error ? err.message : 'Query failed';

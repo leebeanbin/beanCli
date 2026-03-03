@@ -22,6 +22,7 @@ export class PgAdapter implements IDbAdapter {
       max: 2,
       connectionTimeoutMillis: 5000,
       idleTimeoutMillis: 1000,
+      query_timeout: 30_000,   // SEC-005: hard kill at 30s
     });
   }
 
