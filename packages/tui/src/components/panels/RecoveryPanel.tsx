@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { useAppContext } from '../../context/AppContext.js';
 import { escStr } from '../../utils/sql.js';
 import { SPINNER } from '../../utils/constants.js';
+import { useCursor } from '../../hooks/useCursor.js';
 
 const DLQ_SQL = `
 SELECT
@@ -21,7 +22,6 @@ export const RecoveryPanel: React.FC = () => {
   const { focusedPanel, overlay, paletteOpen, connectionService, activeConnection } = useAppContext();
 
   const [rows,       setRows]       = useState<Record<string, unknown>[]>([]);
-  const [cursor,     setCursor]     = useState(0);
   const [loading,    setLoading]    = useState(false);
   const [reverting,  setReverting]  = useState(false);
   const [error,      setError]      = useState<string | null>(null);
@@ -60,11 +60,14 @@ export const RecoveryPanel: React.FC = () => {
   fetchRef.current = fetchData;
   useEffect(() => { void fetchRef.current(); }, []);
 
-  const filtered = filter
-    ? rows.filter(r => Object.values(r).some(v => String(v ?? '').toLowerCase().includes(filter.toLowerCase())))
-    : rows;
+  const filtered = useMemo(
+    () => filter
+      ? rows.filter(r => Object.values(r).some(v => String(v ?? '').toLowerCase().includes(filter.toLowerCase())))
+      : rows,
+    [rows, filter],
+  );
 
-  const maxCursor = Math.max(0, filtered.length - 1);
+  const [cursor, setCursor] = useCursor(filtered.length, isActive && !filtering);
 
   const reprocess = useCallback(async (rowId: string) => {
     if (!connectionService || reverting) return;
@@ -88,8 +91,6 @@ export const RecoveryPanel: React.FC = () => {
       if (inp && inp >= ' ' && !key.ctrl) { setFilter(s => s + inp); }
       return;
     }
-    if (key.upArrow   || inp === 'k') { setCursor(c => Math.max(0, c - 1)); return; }
-    if (key.downArrow || inp === 'j') { setCursor(c => Math.min(maxCursor, c + 1)); return; }
     if (inp === 'r' && !reverting) {
       const row = filtered[cursor];
       if (row?.['id']) void reprocess(String(row['id']));

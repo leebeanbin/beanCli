@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { useAppContext } from '../../context/AppContext.js';
 import { SPINNER } from '../../utils/constants.js';
@@ -111,9 +111,12 @@ export const MonitorPanel: React.FC = () => {
     return () => clearInterval(id);
   }, []);
 
-  const filtered = filter
-    ? rows.filter(r => r.entity_type.toLowerCase().includes(filter.toLowerCase()))
-    : rows;
+  const filtered = useMemo(
+    () => filter
+      ? rows.filter(r => r.entity_type.toLowerCase().includes(filter.toLowerCase()))
+      : rows,
+    [rows, filter],
+  );
 
   const maxCursor = Math.max(0, filtered.length - 1);
 

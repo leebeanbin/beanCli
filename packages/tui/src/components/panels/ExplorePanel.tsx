@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { useAppContext } from '../../context/AppContext.js';
 import { formatValue } from '../../utils/formatValue.js';
@@ -190,14 +190,17 @@ export const ExplorePanel: React.FC = () => {
     if (browseTable) void fetchRef.current(browseTable);
   }, [browseTable]);
 
-  // Filtered rows
-  const filteredRows = filter
-    ? rows.filter(row =>
-        Object.values(row).some(v =>
-          String(v ?? '').toLowerCase().includes(filter.toLowerCase()),
-        ),
-      )
-    : rows;
+  // Filtered rows — useMemo so filter re-runs only when rows or filter change
+  const filteredRows = useMemo(
+    () => filter
+      ? rows.filter(row =>
+          Object.values(row).some(v =>
+            String(v ?? '').toLowerCase().includes(filter.toLowerCase()),
+          ),
+        )
+      : rows,
+    [rows, filter],
+  );
 
   const maxCursor   = Math.max(0, filteredRows.length - 1);
   const maxColCursor = Math.max(0, columns.length - 1);
