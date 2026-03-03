@@ -76,7 +76,7 @@ interface TreeProps {
   isActive: boolean;
 }
 
-const TableTree: React.FC<TreeProps> = ({ tables, cursor, isActive }) => {
+const TableTree: React.FC<TreeProps> = ({ tables, cursor, isActive: _isActive }) => {
   if (tables.length === 0) {
     return <Text color="#4a5568" dimColor>No tables found.</Text>;
   }
@@ -114,7 +114,8 @@ type Phase = 'list' | 'connecting' | 'connected' | 'error';
 export const SchemaPanel: React.FC = () => {
   const {
     focusedPanel, connections, activeConnection, tables,
-    overlay, setOverlay,
+    overlay, setOverlay, setFocusedPanel,
+    setAppMode, setBrowseTable,
   } = useAppContext();
 
   const { connect, disconnect, saveConn, deleteConn, connecting, connectError } = useConnection();
@@ -193,9 +194,19 @@ export const SchemaPanel: React.FC = () => {
       // Table navigation
       if (key.upArrow || input === 'k')   { setTableCursor(c => Math.max(0, c - 1)); return; }
       if (key.downArrow || input === 'j') { setTableCursor(c => Math.min(maxTable, c + 1)); return; }
-      // Enter → select table (future: emit event to QueryPanel)
-      if (key.return) {
-        // Phase 2: will trigger query panel focus + table load
+      // Enter → open table in ExplorePanel (browse mode)
+      if (key.return && tables.length > 0) {
+        const table = tables[tableCursor];
+        if (table) {
+          setBrowseTable(table);
+          setAppMode('browse');
+          setFocusedPanel('query');
+        }
+        return;
+      }
+      // c — open Create Table wizard
+      if (input === 'c') {
+        setOverlay({ type: 'create-table' });
         return;
       }
       // Disconnect
@@ -266,7 +277,7 @@ export const SchemaPanel: React.FC = () => {
             />
             <Text color="#1a2a3a">{'─'.repeat(20)}</Text>
             <Text color="#374151" dimColor>j/k:move  Enter:use</Text>
-            <Text color="#374151" dimColor>D:disconnect</Text>
+            <Text color="#374151" dimColor>c:create table  D:disc</Text>
           </Box>
         );
     }

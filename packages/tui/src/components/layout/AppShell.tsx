@@ -1,62 +1,61 @@
-import React from 'react';
-import { Box, Text, useInput } from 'ink';
+import React, { useState, useEffect } from 'react';
+import { Box, useInput, useStdout } from 'ink';
 import { Panel } from './Panel.js';
 import { StatusBar } from './StatusBar.js';
 import { SchemaPanel } from '../panels/SchemaPanel.js';
+import { QueryPanel } from '../panels/QueryPanel.js';
+import { ResultPanel } from '../panels/ResultPanel.js';
+import { ExplorePanel } from '../panels/ExplorePanel.js';
+import { MonitorPanel } from '../panels/MonitorPanel.js';
+import { IndexPanel } from '../panels/IndexPanel.js';
+import { AuditPanel } from '../panels/AuditPanel.js';
+import { RecoveryPanel } from '../panels/RecoveryPanel.js';
+import { AiPanel } from '../panels/AiPanel.js';
 import { ConnectionFormOverlay } from '../connection/ConnectionFormOverlay.js';
+import { TablePickerOverlay } from '../overlays/TablePickerOverlay.js';
+import { CreateTableOverlay } from '../overlays/CreateTableOverlay.js';
+import { HelpOverlay } from '../overlays/HelpOverlay.js';
 import { usePanelFocus } from '../../hooks/usePanelFocus.js';
 import { useAppContext } from '../../context/AppContext.js';
 import { useConnection } from '../../hooks/useConnection.js';
+import type { AppMode } from '../../context/AppContext.js';
 
 const VERSION = '0.1.2';
 
-// ── Placeholder panel contents ───────────────────────────────────────────────
+// ── Center panel title/hint ───────────────────────────────────────────────────
 
-const QueryContent: React.FC<{ focused: boolean }> = ({ focused }) => (
-  <Box flexDirection="column">
-    <Text color={focused ? '#6b7280' : '#374151'}>
-      {'> '}
-      <Text color={focused ? '#e0e0e0' : '#4a5568'}>_</Text>
-    </Text>
-    <Text color="#2a3a4a">{' '}</Text>
-    <Text color="#374151" dimColor>Phase 2: Query editor</Text>
-    <Text color="#374151" dimColor>  syntax highlight</Text>
-    <Text color="#374151" dimColor>  history  completion</Text>
-  </Box>
-);
-
-const ResultContent: React.FC = () => (
-  <Box flexDirection="column">
-    <Text color="#374151">── empty ──</Text>
-    <Text color="#2a3a4a">{' '}</Text>
-    <Text color="#374151" dimColor>Phase 2: Result viewer</Text>
-    <Text color="#374151" dimColor>  scroll / search / export</Text>
-    <Text color="#374151" dimColor>  table ↔ vertical mode</Text>
-  </Box>
-);
-
-const AiContent: React.FC<{ focused: boolean }> = ({ focused }) => (
-  <Box flexDirection="column">
-    <Text color="#00d4ff" bold>beanllm</Text>
-    <Text color="#374151">──────────</Text>
-    <Text color="#2a3a4a">{' '}</Text>
-    <Text color={focused ? '#6b7280' : '#374151'}>Ask anything about</Text>
-    <Text color={focused ? '#6b7280' : '#374151'}>your database.</Text>
-    <Text color="#2a3a4a">{' '}</Text>
-    <Text color="#374151" dimColor>Phase 3: AI panel</Text>
-    <Text color="#374151" dimColor>  NL → SQL</Text>
-    <Text color="#374151" dimColor>  error analysis</Text>
-  </Box>
-);
+const CENTER_TITLES: Record<AppMode, string> = {
+  query:    'Query Editor',
+  browse:   'Explore',
+  monitor:  'Stream Monitor',
+  index:    'Index Lab',
+  audit:    'Audit Log',
+  recovery: 'DLQ Recovery',
+};
 
 // ── AppShell ─────────────────────────────────────────────────────────────────
 
 export const AppShell: React.FC = () => {
   const { focusedPanel, nextPanel, prevPanel, focusPanel } = usePanelFocus();
-  const { paletteOpen, overlay, setOverlay, connection, env } = useAppContext();
+  const {
+    paletteOpen, overlay, setOverlay, connection, env,
+    appMode, setAppMode, browseTable, userRole,
+  } = useAppContext();
   const { saveConn } = useConnection();
+  const { stdout } = useStdout();
+
+  // Track terminal width for layout — re-render on resize
+  const [termCols, setTermCols] = useState(stdout.columns ?? 80);
+  useEffect(() => {
+    const onResize = () => setTermCols(stdout.columns ?? 80);
+    stdout.on('resize', onResize);
+    return () => { stdout.off('resize', onResize); };
+  }, [stdout]);
 
   const isBlocked = paletteOpen || overlay !== null;
+
+  // True when the SQL text editor is active — block shortcut keys that conflict
+  const isTypingSQL = appMode === 'query' && focusedPanel === 'query';
 
   useInput((input, key) => {
     if (isBlocked) return;
@@ -65,21 +64,99 @@ export const AppShell: React.FC = () => {
     if (key.tab && !key.shift) { nextPanel(); return; }
     if (key.tab && key.shift)  { prevPanel(); return; }
 
-    // Direct panel jump
-    if (input === '1') { focusPanel('schema'); return; }
-    if (input === '2') { focusPanel('query');  return; }
-    if (input === '3') { focusPanel('result'); return; }
-    if (input === '4') { focusPanel('ai');     return; }
+    // Direct panel jump (skip when SQL editor is active to avoid inserting numbers)
+    if (!isTypingSQL) {
+      if (input === '1') { focusPanel('schema'); return; }
+      if (input === '2') { focusPanel('query');  return; }
+      if (input === '3') { focusPanel('result'); return; }
+      if (input === '4') { focusPanel('ai');     return; }
+    }
+
+    // t — open table picker
+    if (input === 't') { setOverlay({ type: 'table-picker' }); return; }
+
+    // Mode shortcuts — block only when SQL text editor is active
+    if (!isTypingSQL) {
+      if (input === 'm') { setAppMode('monitor');  focusPanel('query'); return; }
+      if (input === 'A') { setAppMode('audit');    focusPanel('query'); return; }
+      if (input === 'R') { setAppMode('recovery'); focusPanel('query'); return; }
+      if (input === 'I') { setAppMode('index');    focusPanel('query'); return; }
+      // b — return to browse mode if a table was previously selected
+      if (input === 'b' && browseTable) { setAppMode('browse'); focusPanel('query'); return; }
+    }
   });
 
-  // ── Overlay: ConnectionForm ─────────────────────────────────────────────────
-  const showConnForm = overlay?.type === 'connection-form';
+  // ── Center mode title ─────────────────────────────────────────────────────
+  const showConnForm    = overlay?.type === 'connection-form';
+  const showTablePicker = overlay?.type === 'table-picker';
+  const showCreateTable = overlay?.type === 'create-table';
+  const showHelp        = overlay?.type === 'help';
+  const centerTitle  = appMode === 'browse'
+    ? `Explore · ${browseTable ?? '—'}`
+    : CENTER_TITLES[appMode] ?? 'Query';
+
+  // ── Center content ────────────────────────────────────────────────────────
+  const renderCenter = () => {
+    const isCenterFocused = focusedPanel === 'query' || focusedPanel === 'result';
+
+    if (appMode === 'browse') {
+      return (
+        <Panel title={centerTitle} isFocused={isCenterFocused} hint="2" flexGrow={1}>
+          <ExplorePanel />
+        </Panel>
+      );
+    }
+
+    if (appMode === 'monitor') {
+      return (
+        <Panel title={centerTitle} isFocused={isCenterFocused} hint="2" flexGrow={1}>
+          <MonitorPanel />
+        </Panel>
+      );
+    }
+
+    if (appMode === 'index') {
+      return (
+        <Panel title={centerTitle} isFocused={isCenterFocused} hint="2" flexGrow={1}>
+          <IndexPanel />
+        </Panel>
+      );
+    }
+
+    if (appMode === 'audit') {
+      return (
+        <Panel title={centerTitle} isFocused={isCenterFocused} hint="2" flexGrow={1}>
+          <AuditPanel />
+        </Panel>
+      );
+    }
+
+    if (appMode === 'recovery') {
+      return (
+        <Panel title={centerTitle} isFocused={isCenterFocused} hint="2" flexGrow={1}>
+          <RecoveryPanel />
+        </Panel>
+      );
+    }
+
+    // Default: query mode
+    return (
+      <Box flexDirection="column" flexGrow={1}>
+        <Panel title="Query Editor" isFocused={focusedPanel === 'query'} hint="2" flexGrow={1}>
+          <QueryPanel />
+        </Panel>
+        <Panel title="Results" isFocused={focusedPanel === 'result'} hint="3" flexGrow={1}>
+          <ResultPanel />
+        </Panel>
+      </Box>
+    );
+  };
 
   return (
     <Box flexDirection="column" flexGrow={1}>
 
       {/* ── 3-pane area ─────────────────────────────────── */}
-      <Box flexGrow={1}>
+      <Box flexGrow={1} width={termCols}>
 
         {/* Left: Schema tree */}
         <Panel
@@ -91,35 +168,17 @@ export const AppShell: React.FC = () => {
           <SchemaPanel />
         </Panel>
 
-        {/* Center: Query (top) + Result (bottom) */}
-        <Box flexDirection="column" flexGrow={1}>
-          <Panel
-            title="Query Editor"
-            isFocused={focusedPanel === 'query'}
-            hint="2"
-            flexGrow={1}
-          >
-            <QueryContent focused={focusedPanel === 'query'} />
-          </Panel>
-
-          <Panel
-            title="Results"
-            isFocused={focusedPanel === 'result'}
-            hint="3"
-            flexGrow={1}
-          >
-            <ResultContent />
-          </Panel>
-        </Box>
+        {/* Center: mode-dependent content */}
+        {renderCenter()}
 
         {/* Right: AI Copilot */}
         <Panel
           title="AI · beanllm"
           isFocused={focusedPanel === 'ai'}
           hint="4"
-          width={24}
+          width={focusedPanel === 'ai' ? 50 : 26}
         >
-          <AiContent focused={focusedPanel === 'ai'} />
+          <AiPanel />
         </Panel>
 
       </Box>
@@ -130,6 +189,8 @@ export const AppShell: React.FC = () => {
         env={env}
         connection={connection}
         focused={focusedPanel}
+        appMode={appMode}
+        userRole={userRole}
       />
 
       {/* ── ConnectionForm overlay ───────────────────────── */}
@@ -143,6 +204,27 @@ export const AppShell: React.FC = () => {
             }}
             onCancel={() => setOverlay(null)}
           />
+        </Box>
+      )}
+
+      {/* ── Table picker overlay (t key) ─────────────────── */}
+      {showTablePicker && (
+        <Box position="absolute" marginLeft={0} marginTop={0}>
+          <TablePickerOverlay />
+        </Box>
+      )}
+
+      {/* ── Create Table wizard (c key in Schema panel) ───── */}
+      {showCreateTable && (
+        <Box position="absolute" marginLeft={0} marginTop={0}>
+          <CreateTableOverlay />
+        </Box>
+      )}
+
+      {/* ── Help overlay (? key) ─────────────────────────── */}
+      {showHelp && (
+        <Box position="absolute" marginLeft={0} marginTop={0}>
+          <HelpOverlay />
         </Box>
       )}
 
