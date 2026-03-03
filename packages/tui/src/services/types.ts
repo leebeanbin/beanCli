@@ -49,6 +49,7 @@ export interface QueryResult {
   type:      QueryType;
   message?:  string;            // for DML/DDL feedback
   error?:    string;
+  warning?:  string;            // non-fatal notice (e.g. truncation)
 }
 
 // ── AI types ─────────────────────────────────────────────────────────────────

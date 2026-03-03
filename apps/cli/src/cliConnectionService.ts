@@ -129,7 +129,7 @@ export function createCliConnectionService(): IConnectionService {
           duration,
           type: detectQueryType(sql),
           ...(truncated && {
-            error: `⚠ Result truncated: ${totalRows.toLocaleString()} rows returned, showing first ${MAX_ROWS.toLocaleString()}`,
+            warning: `Result truncated: showing first ${MAX_ROWS.toLocaleString()} of ${totalRows.toLocaleString()} rows`,
           }),
         };
       } catch (err) {
