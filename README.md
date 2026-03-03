@@ -47,18 +47,21 @@ Node.js ≥ 20   |   pnpm 10.28.1   |   Docker (인프라용, Mock 모드는 불
 ### 설치 & 실행
 
 ```bash
-# 1. 설치
-pnpm install
+# 1. 최초 셋업 (설치 + 글로벌 등록 + Docker 시작)
+pnpm setup
 
 # 2a. Mock 모드 — DB/API 없이 즉시 실행 (권장: 첫 실행)
-pnpm dev:mock
+beancli --mock
 
 # 2b. 실제 모드 — Docker 인프라 필요
-cp .env.example .env
-pnpm docker:up && pnpm docker:wait && pnpm db:migrate
-pnpm dev:cli:ink      # TUI만
-pnpm dev:all          # API + Projector + Worker + TUI 전체
+beancli
+
+# 전체 스택 (API + Projector + Worker + TUI)
+pnpm dev:all
 ```
+
+> **`beancli`를 처음 등록할 때**: `pnpm setup` 이후 새 터미널을 열면 바로 사용 가능.
+> 이미 설치된 경우: `pnpm link:global` 한 번만 실행하면 됩니다.
 
 ---
 
@@ -218,32 +221,37 @@ SQL 제출
 ## 개발 커맨드
 
 ```bash
-# 빌드
-pnpm build                            # Turbo 전체 빌드
-pnpm --filter @tfsdc/tui build        # TUI만
+# ── TUI 실행 ─────────────────────────────────────────────────
+beancli               # 실제 모드 (API + DB 필요)
+beancli --mock        # Mock 모드 (외부 서비스 불필요)
+MOCK=true beancli     # 환경변수로 mock 지정
 
-# 타입 체크
-pnpm --filter @tfsdc/tui exec tsc --noEmit
+# ── 개발 watch 모드 (소스 변경 시 자동 재시작) ─────────────
+pnpm dev:cli          # TUI watch (실제 모드)
+pnpm dev:mock         # TUI watch (Mock 모드)
+pnpm dev:all          # 전체 스택 watch
 
-# 테스트
-pnpm test                             # 전체
-pnpm test:watch                       # TDD watch 모드
+# ── 빌드 & 타입 체크 ────────────────────────────────────────
+pnpm build                                    # Turbo 전체 빌드
+pnpm --filter @tfsdc/tui exec tsc --noEmit    # TUI 타입 체크
+pnpm --filter @tfsdc/cli exec tsc --noEmit    # CLI 타입 체크
+
+# ── 테스트 ──────────────────────────────────────────────────
+pnpm test                                     # 전체
+pnpm test:watch                               # TDD watch 모드
 pnpm test -- --testPathPattern="ExplorePanel"
 
-# Lint / Format
+# ── Lint / Format ────────────────────────────────────────────
 pnpm lint && pnpm lint:fix
 pnpm format
 
-# DB
+# ── DB / Docker ──────────────────────────────────────────────
 pnpm docker:up && pnpm docker:wait
 pnpm db:migrate
 pnpm docker:reset                     # 볼륨 초기화 + 재시작
 
-# Seed 데이터 (로컬 개발)
-mysql -u root -pnada5011 bean_dev < scripts/seed-mysql-dev.sql
-sqlite3 ~/.config/beanCli/bean_dev.db < scripts/seed-sqlite-dev.sql
-mongosh bean_dev scripts/seed-mongodb-dev.js
-bash scripts/seed-redis-dev.sh
+# ── 글로벌 커맨드 등록 ───────────────────────────────────────
+pnpm link:global                      # beancli를 전역 PATH에 등록
 ```
 
 ---
@@ -320,5 +328,6 @@ Base URL: `http://localhost:3100`
 | API rate limiting: 전역 60/min + 민감 엔드포인트 강화 | ✅ Done |
 | QueryResult.warning + ResultPanel amber 경고 UI | ✅ Done |
 | 쿼리 히스토리 파일 저장 (~/.config/beanCli/history.json) | ✅ Done |
-| ARCH-006: 구 ui-tui 패키지 삭제 | ⏳ Todo |
+| ARCH-006: 구 ui-tui 패키지 삭제 | ✅ Done |
+| `beancli` 글로벌 커맨드 (`pnpm setup` → `beancli`) | ✅ Done |
 | Web Console (Next.js) | ⏳ Planned |
