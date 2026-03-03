@@ -1,5 +1,6 @@
 import { apiClient } from '../../../lib/api';
 import Link from 'next/link';
+import { LiveTableRefresh } from '../../../components/LiveTableRefresh';
 
 const VALID_TABLES = ['state_users', 'state_products', 'state_orders', 'state_payments', 'state_shipments'];
 
@@ -65,7 +66,10 @@ export default async function StatePage({
   return (
     <div>
       <div className="flex items-center gap-3 mb-6">
-        <h1 className="text-2xl font-bold">{table}</h1>
+        <h1 className="text-2xl font-bold">
+          {table}
+          <LiveTableRefresh table={table} />
+        </h1>
         <span className="text-gray-500 text-sm">({data?.total ?? 0} rows)</span>
       </div>
 
