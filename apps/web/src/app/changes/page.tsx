@@ -13,7 +13,6 @@ export default function ChangesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // New change form — pre-fill from ?sql= param if provided
   const [sql, setSql] = useState(() => searchParams.get('sql') ?? '');
   const [environment, setEnvironment] = useState('DEV');
   const [submitting, setSubmitting] = useState(false);
@@ -58,59 +57,70 @@ export default function ChangesPage() {
 
   if (!getToken()) {
     return (
-      <div className="text-sm text-gray-500">
-        Please set a JWT token in the <a href="/auth" className="underline text-blue-600">Auth</a> page first.
+      <div className="text-xs font-mono text-fg-2">
+        Please set a JWT token in the{' '}
+        <a href="/auth" className="text-accent hover:underline">Auth</a> page first.
       </div>
     );
   }
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Change Requests</h1>
+      <h1 className="font-pixel text-3xl text-fg mb-6">[ Change Requests ]</h1>
 
-      <form onSubmit={handleCreate} className="bg-white rounded-lg p-4 shadow-sm border mb-6">
-        <h2 className="font-semibold mb-3">New Change Request</h2>
+      {/* New change form */}
+      <form onSubmit={handleCreate} className="bg-bg-2 border border-rim shadow-px p-4 mb-6">
+        <div className="text-xs text-fg-2 font-mono uppercase tracking-widest mb-3">[ New Change Request ]</div>
         <div className="mb-3">
-          <label className="block text-sm font-medium text-gray-700 mb-1">SQL Statement</label>
+          <label className="block text-xs font-mono text-fg-2 uppercase tracking-widest mb-1">SQL Statement</label>
           <textarea
             value={sql}
             onChange={(e) => setSql(e.target.value)}
             rows={4}
-            className="w-full font-mono text-sm border rounded p-2"
+            className="w-full font-mono text-sm bg-bg border border-rim text-fg px-3 py-2 focus:outline-none focus:border-accent"
             placeholder="SELECT * FROM state_users WHERE id = '...';"
           />
         </div>
-        <div className="mb-3 flex gap-3 items-center">
-          <label className="text-sm font-medium text-gray-700">Environment:</label>
+        <div className="mb-3 flex gap-4 items-center">
+          <span className="text-xs font-mono text-fg-2 uppercase tracking-widest">Environment:</span>
           {(['DEV', 'LOCAL', 'PROD'] as const).map((env) => (
-            <label key={env} className="flex items-center gap-1 text-sm">
+            <label key={env} className="flex items-center gap-1 text-xs font-mono text-fg cursor-pointer">
               <input
                 type="radio"
                 value={env}
                 checked={environment === env}
                 onChange={(e) => setEnvironment(e.target.value)}
+                className="accent-accent"
               />
               {env}
             </label>
           ))}
         </div>
-        {error && <p className="text-red-600 text-sm mb-2">{error}</p>}
+        {error && <p className="text-danger text-xs font-mono mb-2">{error}</p>}
         <button
           type="submit"
           disabled={submitting || !sql.trim()}
-          className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+          className="px-3 py-1 text-xs font-mono border border-accent text-accent hover:bg-accent hover:text-bg shadow-px-a disabled:opacity-40 disabled:cursor-not-allowed transition-none"
         >
-          {submitting ? 'Creating…' : 'Create Change'}
+          {submitting ? 'Creating…' : '[ Create Change ]'}
         </button>
       </form>
 
-      <div className="bg-white rounded-lg p-4 shadow-sm border">
+      {/* Changes list */}
+      <div className="bg-bg-2 border border-rim shadow-px p-4">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold">All Changes ({total})</h2>
-          <button onClick={fetchChanges} className="text-xs text-blue-600 hover:underline">Refresh</button>
+          <div className="text-xs text-fg-2 font-mono uppercase tracking-widest">
+            [ All Changes ({total}) ]
+          </div>
+          <button
+            onClick={fetchChanges}
+            className="text-xs font-mono text-fg-2 hover:text-accent border border-rim hover:border-accent px-2 py-0.5 transition-none"
+          >
+            Refresh
+          </button>
         </div>
         {loading ? (
-          <p className="text-gray-500 text-sm">Loading…</p>
+          <p className="text-fg-2 text-xs font-mono">Loading…</p>
         ) : (
           <ChangeTable rows={changes} onSubmit={handleSubmit} onExecute={handleExecute} />
         )}

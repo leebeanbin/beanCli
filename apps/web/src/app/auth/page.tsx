@@ -4,7 +4,6 @@ import { useState } from 'react';
 
 const ROLES = ['MANAGER', 'DBA', 'SECURITY_ADMIN', 'VIEWER'] as const;
 
-// Minimal Base64url encoder (no external dep needed)
 function base64url(input: string | Uint8Array): string {
   const bytes = typeof input === 'string' ? new TextEncoder().encode(input) : input;
   let binary = '';
@@ -61,29 +60,29 @@ export default function AuthPage() {
 
   return (
     <div className="max-w-xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Dev JWT Generator</h1>
-      <p className="text-sm text-gray-500 mb-6">
+      <h1 className="font-pixel text-3xl text-fg mb-2">[ Dev JWT Generator ]</h1>
+      <p className="text-xs font-mono text-fg-2 mb-6">
         Development-only tool. Generates a HS256-signed JWT stored in localStorage.
-        Must match <code className="bg-gray-100 px-1 rounded">JWT_SECRET</code> in .env.
+        Must match <code className="text-accent">JWT_SECRET</code> in .env.
       </p>
 
-      <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
+      <div className="bg-bg-2 border border-rim shadow-px p-6 space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Subject (actor)</label>
+          <label className="block text-xs font-mono text-fg-2 uppercase tracking-widest mb-1">Subject (actor)</label>
           <input
             type="text"
             value={sub}
             onChange={(e) => setSub(e.target.value)}
-            className="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full bg-bg border border-rim text-fg font-mono text-sm px-3 py-2 focus:outline-none focus:border-accent"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+          <label className="block text-xs font-mono text-fg-2 uppercase tracking-widest mb-1">Role</label>
           <select
             value={role}
             onChange={(e) => setRole(e.target.value)}
-            className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full bg-bg border border-rim text-fg font-mono text-sm px-3 py-2 focus:outline-none focus:border-accent"
           >
             {ROLES.map((r) => (
               <option key={r} value={r}>{r}</option>
@@ -92,50 +91,50 @@ export default function AuthPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">JWT Secret</label>
+          <label className="block text-xs font-mono text-fg-2 uppercase tracking-widest mb-1">JWT Secret</label>
           <input
             type="password"
             value={secret}
             onChange={(e) => setSecret(e.target.value)}
-            className="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full bg-bg border border-rim text-fg font-mono text-sm px-3 py-2 focus:outline-none focus:border-accent"
           />
         </div>
 
         <button
           onClick={handleGenerate}
           disabled={!sub || !secret}
-          className="w-full bg-blue-600 text-white rounded px-4 py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="w-full border border-accent text-accent hover:bg-accent hover:text-bg px-4 py-2 text-sm font-mono shadow-px-a disabled:opacity-40 disabled:cursor-not-allowed transition-none"
         >
-          Generate Token
+          [ Generate Token ]
         </button>
       </div>
 
       {token && (
-        <div className="mt-6 bg-white border border-gray-200 rounded-lg p-6 space-y-4">
-          <h2 className="text-sm font-semibold text-gray-700">Generated Token</h2>
+        <div className="mt-6 bg-bg-2 border border-rim shadow-px p-6 space-y-4">
+          <div className="text-xs font-mono text-fg-2 uppercase tracking-widest">Generated Token</div>
           <textarea
             readOnly
             value={token}
             rows={5}
-            className="w-full border border-gray-200 rounded px-3 py-2 text-xs font-mono bg-gray-50 resize-none"
+            className="w-full bg-bg border border-rim text-fg-2 font-mono text-xs px-3 py-2 resize-none focus:outline-none"
           />
           <div className="flex gap-3">
             <button
               onClick={handleSave}
-              className="flex-1 bg-green-600 text-white rounded px-4 py-2 text-sm font-medium hover:bg-green-700 transition-colors"
+              className="flex-1 border border-ok text-ok hover:bg-ok hover:text-bg px-4 py-2 text-sm font-mono shadow-px-o transition-none"
             >
-              {saved ? 'Saved to localStorage' : 'Save to localStorage'}
+              {saved ? '● Saved to localStorage' : '[ Save to localStorage ]'}
             </button>
             <button
               onClick={handleClear}
-              className="flex-1 bg-gray-100 text-gray-700 rounded px-4 py-2 text-sm font-medium hover:bg-gray-200 transition-colors"
+              className="flex-1 border border-rim text-fg-2 hover:border-danger hover:text-danger px-4 py-2 text-sm font-mono transition-none"
             >
-              Clear Token
+              [ Clear Token ]
             </button>
           </div>
           {saved && (
-            <p className="text-xs text-green-600">
-              Token saved. Authenticated requests will use this token automatically.
+            <p className="text-xs font-mono text-ok">
+              ● Token saved. Authenticated requests will use this token automatically.
             </p>
           )}
         </div>

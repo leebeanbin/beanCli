@@ -24,35 +24,37 @@ export default async function AuditPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Audit Log</h1>
+      <h1 className="font-pixel text-3xl text-fg mb-6">[ Audit Log ]</h1>
 
       {!data ? (
-        <p className="text-gray-500 text-sm">Could not load audit logs — API may be offline or authentication required.</p>
+        <p className="text-fg-2 text-xs font-mono">
+          Could not load audit logs — API may be offline or authentication required.
+        </p>
       ) : (
-        <div className="bg-white rounded-lg shadow-sm border overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 text-sm">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-3 py-2 text-left font-medium text-gray-500 text-xs">Time</th>
-                <th className="px-3 py-2 text-left font-medium text-gray-500 text-xs">Category</th>
-                <th className="px-3 py-2 text-left font-medium text-gray-500 text-xs">Actor</th>
-                <th className="px-3 py-2 text-left font-medium text-gray-500 text-xs">Action</th>
-                <th className="px-3 py-2 text-left font-medium text-gray-500 text-xs">Resource</th>
-                <th className="px-3 py-2 text-left font-medium text-gray-500 text-xs">Result</th>
+        <div className="bg-bg-2 border border-rim shadow-px overflow-x-auto">
+          <table className="min-w-full border-collapse text-xs font-mono">
+            <thead>
+              <tr className="bg-bg border-b border-rim">
+                <th className="px-3 py-2 text-left text-fg-2 uppercase tracking-widest">Time</th>
+                <th className="px-3 py-2 text-left text-fg-2 uppercase tracking-widest">Category</th>
+                <th className="px-3 py-2 text-left text-fg-2 uppercase tracking-widest">Actor</th>
+                <th className="px-3 py-2 text-left text-fg-2 uppercase tracking-widest">Action</th>
+                <th className="px-3 py-2 text-left text-fg-2 uppercase tracking-widest">Resource</th>
+                <th className="px-3 py-2 text-left text-fg-2 uppercase tracking-widest">Result</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody>
               {data.items.map((log) => (
-                <tr key={log.id} className="hover:bg-gray-50">
-                  <td className="px-3 py-2 text-xs text-gray-500 whitespace-nowrap">
+                <tr key={log.id} className="border-b border-rim hover:bg-bg transition-none">
+                  <td className="px-3 py-2 text-fg-2 whitespace-nowrap">
                     {new Date(log.created_at).toLocaleString()}
                   </td>
-                  <td className="px-3 py-2 text-xs font-mono">{log.category}</td>
-                  <td className="px-3 py-2 text-xs">{log.actor}</td>
-                  <td className="px-3 py-2 text-xs font-mono">{log.action}</td>
-                  <td className="px-3 py-2 text-xs font-mono max-w-xs truncate">{log.resource}</td>
-                  <td className="px-3 py-2 text-xs">
-                    <span className={log.result === 'SUCCESS' ? 'text-green-600' : 'text-red-600'}>
+                  <td className="px-3 py-2 text-fg">{log.category}</td>
+                  <td className="px-3 py-2 text-fg">{log.actor}</td>
+                  <td className="px-3 py-2 text-accent">{log.action}</td>
+                  <td className="px-3 py-2 text-fg max-w-xs truncate">{log.resource}</td>
+                  <td className="px-3 py-2">
+                    <span className={log.result === 'SUCCESS' ? 'text-ok' : 'text-danger'}>
                       {log.result}
                     </span>
                   </td>
@@ -61,7 +63,7 @@ export default async function AuditPage() {
             </tbody>
           </table>
           {data.items.length === 0 && (
-            <p className="text-center text-gray-500 text-sm py-6">No audit logs found.</p>
+            <p className="text-center text-fg-2 text-xs font-mono py-6">No audit logs found.</p>
           )}
         </div>
       )}
