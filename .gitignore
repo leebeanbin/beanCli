@@ -18,8 +18,9 @@ coverage/
 !.vscode/settings.json
 .idea/
 
-# Claude Code — project instructions (local only)
+# Claude Code — local only (instructions + expert docs + commands + settings)
 CLAUDE.md
+.claude/
 
 # OS
 .DS_Store
