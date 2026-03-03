@@ -1,4 +1,5 @@
 import { hasAccess } from './useAccessControl.js';
+import type { AccessControlConfig } from './useAccessControl.js';
 
 describe('useAccessControl', () => {
   it('MANAGER can access approval inbox', () => {
@@ -34,5 +35,25 @@ describe('useAccessControl', () => {
     expect(hasAccess('MANAGER', 'changeTimeline')).toBe(true);
     expect(hasAccess('DBA', 'changeTimeline')).toBe(true);
     expect(hasAccess('SECURITY_ADMIN', 'changeTimeline')).toBe(true);
+  });
+
+  it('custom config override allows different role', () => {
+    const customConfig: AccessControlConfig = {
+      approvalInbox: ['ANALYST', 'MANAGER', 'DBA'],
+      changeTimeline: ['ANALYST', 'MANAGER', 'DBA', 'SECURITY_ADMIN'],
+      policySettings: ['DBA'],
+      dlqBrowser: ['SECURITY_ADMIN'],
+      keyRotation: ['SECURITY_ADMIN'],
+    };
+    expect(hasAccess('ANALYST', 'approvalInbox', customConfig)).toBe(true);
+    expect(hasAccess('ANALYST', 'approvalInbox')).toBe(false);
+  });
+
+  it('unknown role string returns false', () => {
+    expect(hasAccess('UNKNOWN_ROLE' as 'DBA', 'approvalInbox')).toBe(false);
+  });
+
+  it('undefined role returns false', () => {
+    expect(hasAccess(undefined as unknown as 'DBA', 'approvalInbox')).toBe(false);
   });
 });
