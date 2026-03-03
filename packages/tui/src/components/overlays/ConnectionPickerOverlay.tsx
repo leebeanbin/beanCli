@@ -15,6 +15,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Text, useInput, useStdout } from 'ink';
 import { useAppContext } from '../../context/AppContext.js';
 import type { DbConnection, DbType } from '../../services/types.js';
+import { SPINNER } from '../../utils/constants.js';
 
 // ── DB type metadata ──────────────────────────────────────────────────────────
 
@@ -71,8 +72,6 @@ function fieldsFor(dbType: DbType): Field[] {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-const SPINNER = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 
 type TestStatus  = 'idle' | 'testing' | 'ok' | 'error';
 type PaneFocus   = 'list' | 'form';

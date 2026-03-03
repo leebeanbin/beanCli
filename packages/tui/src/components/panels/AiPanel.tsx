@@ -2,6 +2,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { useAppContext } from '../../context/AppContext.js';
 import type { AiMessage } from '../../services/types.js';
+import { SPINNER } from '../../utils/constants.js';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -14,8 +15,6 @@ interface ChatMessage {
   ts:        Date;
   streaming: boolean;
 }
-
-const SPINNER = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 
 const SYSTEM_MSG =
   'You are beanllm, an expert database assistant integrated into beanCLI. ' +

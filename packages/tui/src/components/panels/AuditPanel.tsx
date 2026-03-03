@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { useAppContext } from '../../context/AppContext.js';
-
-const SPINNER = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+import { SPINNER } from '../../utils/constants.js';
 
 type Category = 'ALL' | 'AUTH' | 'CHANGE' | 'APPROVAL' | 'SYSTEM';
 const CATEGORIES: Category[] = ['ALL', 'AUTH', 'CHANGE', 'APPROVAL', 'SYSTEM'];

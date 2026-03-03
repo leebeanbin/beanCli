@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { useAppContext } from '../../context/AppContext.js';
 import type { UserRole } from '../../services/types.js';
+import { SPINNER } from '../../utils/constants.js';
 
 // ── ASCII logo ────────────────────────────────────────────────────────────────
 
@@ -13,8 +14,6 @@ const LOGO_LINES = [
   ' ██████╔╝███████╗██║  ██║██║ ╚████║╚██████╗███████╗██║ ',
   ' ╚═════╝ ╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝╚══════╝╚═╝ ',
 ];
-
-const SPINNER = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 
 type Field = 'username' | 'password';
 

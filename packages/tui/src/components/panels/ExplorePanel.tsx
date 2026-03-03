@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { useAppContext } from '../../context/AppContext.js';
 import { formatValue } from '../../utils/formatValue.js';
+import { quoteIdent, escStr, detectPk } from '../../utils/sql.js';
+import { SPINNER, PAGE_SIZE, COL_WINDOW } from '../../utils/constants.js';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -12,26 +14,6 @@ type EditOverlay =
   | { type: 'insert'; values: Record<string, string>; fieldIdx: number }
   | { type: 'delete'; pkValue: string }
   | null;
-
-const SPINNER  = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
-const PAGE_SIZE = 10;
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function detectPk(columns: string[]): string {
-  return columns.find(c => c === 'entity_id_hash' || c === 'id') ?? columns[0] ?? 'id';
-}
-
-function escStr(v: unknown): string {
-  if (v === null || v === undefined) return 'NULL';
-  return `'${String(v).replace(/'/g, "''")}'`;
-}
-
-function quoteIdent(name: string, dbType: string | undefined): string {
-  return dbType === 'mysql'
-    ? `\`${name.replace(/`/g, '``')}\``
-    : `"${name.replace(/"/g, '""')}"`;
-}
 
 // ── Edit Overlay Component ────────────────────────────────────────────────────
 
@@ -222,7 +204,6 @@ export const ExplorePanel: React.FC = () => {
   const pk          = detectPk(columns);
 
   // Sliding column window — show up to 6 columns centred on colCursor
-  const COL_WINDOW     = 6;
   const colWinStart    = Math.max(0, Math.min(colCursor - 2, columns.length - COL_WINDOW));
   const displayCols    = columns.slice(colWinStart, colWinStart + COL_WINDOW);
   const editableCols = columns.filter(c => c !== pk);
