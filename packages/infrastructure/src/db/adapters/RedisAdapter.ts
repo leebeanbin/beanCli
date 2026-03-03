@@ -24,6 +24,7 @@ export class RedisAdapter implements IDbAdapter {
         password: this.config.password,
         db: this.config.database ? Number(this.config.database) : 0,
         connectTimeout: 5000,
+        commandTimeout: 30_000,
         lazyConnect: true,
       });
       await client.connect();
