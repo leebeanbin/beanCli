@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Box, Text, useInput } from 'ink';
+import { Box, Text, useInput, useStdout } from 'ink';
 import { useAppContext } from '../../context/AppContext.js';
 import { formatValue } from '../../utils/formatValue.js';
-import { COL_WINDOW, PAGE_SIZE } from '../../utils/constants.js';
+import { COL_WINDOW } from '../../utils/constants.js';
+import { useCursor } from '../../hooks/useCursor.js';
 
 const TYPE_COLOR: Record<string, string> = {
   select: '#10b981',
@@ -45,7 +46,6 @@ export const ResultPanel: React.FC = () => {
     expandedMode, setExpandedMode,
   } = useAppContext();
 
-  const [cursor,    setCursor]    = useState(0);
   const [colCursor, setColCursor] = useState(0);
   const [search,    setSearch]    = useState('');
   const [searching, setSearching] = useState(false);
@@ -53,13 +53,7 @@ export const ResultPanel: React.FC = () => {
   const isActive = focusedPanel === 'result' && !overlay && !paletteOpen;
   const viewMode = expandedMode ? 'vertical' : 'table';
 
-  // Reset cursor when result changes
-  React.useEffect(() => {
-    setCursor(0);
-    setColCursor(0);
-  }, [queryResult]);
-
-  // Filter rows
+  // Filter rows (computed before useCursor so we can pass filteredRows.length)
   const allRows = queryResult?.rows ?? [];
   const filteredRows = search
     ? allRows.filter(row =>
@@ -69,17 +63,30 @@ export const ResultPanel: React.FC = () => {
       )
     : allRows;
 
+  const [cursor, setCursor] = useCursor(filteredRows.length, isActive && !searching);
+
+  // Reset cursor when result changes
+  React.useEffect(() => {
+    setCursor(0);
+    setColCursor(0);
+  }, [queryResult]);
+
   const columns      = queryResult?.columns ?? [];
-  const maxCursor    = Math.max(0, filteredRows.length - 1);
   const maxColCursor = Math.max(0, columns.length - 1);
 
   // Column sliding window — same logic as ExplorePanel
   const colWinStart = Math.max(0, Math.min(colCursor - 2, columns.length - COL_WINDOW));
   const displayCols = columns.slice(colWinStart, colWinStart + COL_WINDOW);
 
-  // Row viewport — cursor stays ~4 rows from top
-  const viewStart   = Math.max(0, Math.min(cursor - 4, Math.max(0, filteredRows.length - PAGE_SIZE)));
-  const visibleRows = filteredRows.slice(viewStart, viewStart + PAGE_SIZE);
+  // Dynamic row viewport — adapts to terminal height
+  const { stdout } = useStdout();
+  const termRows = stdout?.rows ?? 24;
+  // header(3) + statusbar(1) + col-header(1) + footer(2) = 7 reserved rows
+  const VISIBLE_ROWS = Math.max(5, termRows - 7);
+
+  // Row viewport — cursor stays centred
+  const viewStart   = Math.max(0, Math.min(cursor - Math.floor(VISIBLE_ROWS / 2), filteredRows.length - VISIBLE_ROWS));
+  const visibleRows = filteredRows.slice(viewStart, viewStart + VISIBLE_ROWS);
 
   // Column width
   const termCols   = process.stdout.columns ?? 80;
@@ -101,11 +108,9 @@ export const ResultPanel: React.FC = () => {
 
     // ── Table mode ────────────────────────────────────────────────────────────
     if (viewMode === 'table') {
-      // Row navigation
-      if (key.upArrow   || inp === 'k') { setCursor(c => Math.max(0, c - 1)); return; }
-      if (key.downArrow || inp === 'j') { setCursor(c => Math.min(maxCursor, c + 1)); return; }
+      // j/k/u/d/↑↓ row navigation handled by useCursor
       if (inp === 'g') { setCursor(0); return; }
-      if (inp === 'G') { setCursor(maxCursor); return; }
+      if (inp === 'G') { setCursor(Math.max(0, filteredRows.length - 1)); return; }
 
       // Column navigation
       if (key.leftArrow  || inp === 'h') { setColCursor(c => Math.max(0, c - 1)); return; }
@@ -126,9 +131,7 @@ export const ResultPanel: React.FC = () => {
 
     // ── Vertical mode ─────────────────────────────────────────────────────────
     if (viewMode === 'vertical') {
-      if (key.upArrow   || inp === 'k') { setCursor(c => Math.max(0, c - 1)); return; }
-      if (key.downArrow || inp === 'j') { setCursor(c => Math.min(maxCursor, c + 1)); return; }
-
+      // j/k/u/d/↑↓ row navigation handled by useCursor
       // Back to table
       if (inp === 'v' || inp === 'x' || key.escape) { setExpandedMode(false); return; }
     }
