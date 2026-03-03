@@ -1,5 +1,5 @@
 import { ConcurrencyController } from './ConcurrencyController.js';
-import type { IMetricsProvider } from './ports/IProjectorDb.js';
+import type { IMetricsProvider } from '@tfsdc/domain';
 
 describe('ConcurrencyController', () => {
   const createMockMetrics = (p95: number, poolPct: number): IMetricsProvider => ({

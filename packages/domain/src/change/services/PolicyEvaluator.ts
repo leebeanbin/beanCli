@@ -9,6 +9,22 @@ const POLICY_TABLE: Record<Environment, Record<RiskLevel, ExecutionMode>> = {
   PROD: { L0: 'CONFIRM', L1: 'CONFIRM', L2: 'MANUAL' },
 };
 
+/**
+ * Stateless policy evaluation — no exception thrown.
+ * Use for tooling, CLI, and tests.
+ */
+export function evaluatePolicy(
+  env: Environment,
+  _role: UserRole,
+  risk: RiskLevel,
+  isBulkChange = false,
+): { mode: ExecutionMode; requiresApproval: boolean } {
+  let mode = POLICY_TABLE[env][risk];
+  if (isBulkChange && mode === 'AUTO') mode = 'CONFIRM';
+  const requiresApproval = mode === 'MANUAL' || (mode === 'CONFIRM' && env === 'PROD');
+  return { mode, requiresApproval };
+}
+
 export class PolicyEvaluator {
   evaluate(params: {
     environment: Environment;

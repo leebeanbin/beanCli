@@ -18,7 +18,7 @@ export { ChangeReverted } from './domain-events/ChangeReverted.js';
 
 // Domain Services
 export { RiskScorer } from './services/RiskScorer.js';
-export { PolicyEvaluator } from './services/PolicyEvaluator.js';
+export { PolicyEvaluator, evaluatePolicy } from './services/PolicyEvaluator.js';
 
 // Repository Interfaces
 export type { IChangeRequestRepository } from './repositories/IChangeRequestRepository.js';

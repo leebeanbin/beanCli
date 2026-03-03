@@ -1,9 +1,9 @@
 import { ProcessEventUseCase } from './ProcessEventUseCase.js';
 import { EventDispatcher } from '../EventDispatcher.js';
-import type { RawEvent, IHasher, IEventHandler, DbTransaction } from '@tfsdc/domain';
-import type { IProjectorDb } from '../ports/IProjectorDb.js';
-import type { IKafkaConsumer } from '../ports/IKafkaConsumer.js';
-import type { IDlqPublisher } from '../ports/IDlqPublisher.js';
+import type {
+  RawEvent, IHasher, IEventHandler, DbTransaction,
+  IProjectorDb, IKafkaConsumer, IDlqPublisher,
+} from '@tfsdc/domain';
 
 describe('ProcessEventUseCase', () => {
   let useCase: ProcessEventUseCase;

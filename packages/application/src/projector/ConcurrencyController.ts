@@ -1,4 +1,4 @@
-import type { IMetricsProvider } from './ports/IProjectorDb.js';
+import type { IMetricsProvider } from '@tfsdc/domain';
 
 export class ConcurrencyController {
   private currentBatchSize: number;
