@@ -1,6 +1,14 @@
 import { Pool } from 'pg';
 import type { IDbAdapter } from './IDbAdapter.js';
 
+const MAX_ROWS_SENTINEL = 5001;
+function injectLimit(sql: string): string {
+  if (/^\s*SELECT\b/i.test(sql) && !/\bLIMIT\s+\d+/i.test(sql)) {
+    return `${sql} LIMIT ${MAX_ROWS_SENTINEL}`;
+  }
+  return sql;
+}
+
 export interface PgAdapterConfig {
   host?: string;
   port?: number;
@@ -36,7 +44,7 @@ export class PgAdapter implements IDbAdapter {
   }
 
   async queryRows(sql: string, params?: unknown[]): Promise<Record<string, unknown>[]> {
-    const res = await this.pool.query(sql, params);
+    const res = await this.pool.query(injectLimit(sql), params);
     return res.rows as Record<string, unknown>[];
   }
 

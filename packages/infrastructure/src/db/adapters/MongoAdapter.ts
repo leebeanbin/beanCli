@@ -59,7 +59,7 @@ export class MongoAdapter implements IDbAdapter {
     const match = /FROM\s+(\w+)/i.exec(sql);
     if (!match) return [];
     const limitMatch = /LIMIT\s+(\d+)/i.exec(sql);
-    const limit = limitMatch ? parseInt(limitMatch[1]!, 10) : 500;
+    const limit = limitMatch ? parseInt(limitMatch[1]!, 10) : 5001;
     const client = await this.getClient() as {
       db: (name?: string) => { collection: (name: string) => { find: () => { limit: (n: number) => { maxTimeMS: (ms: number) => { toArray: () => Promise<Record<string, unknown>[]> } } } } };
     };
