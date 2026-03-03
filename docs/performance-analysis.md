@@ -137,11 +137,20 @@
 ```
 cliConnectionService.ts:
   - Promise.race([adapter.queryRows(sql), timeout(30s)])
-  - 결과 5,000행 상한 (초과 시 ⚠ 경고 메시지)
+  - 결과 5,000행 상한 (초과 시 warning 필드 → ResultPanel amber UI)
   - rowCount는 실제 전체 행 수 유지 (UI가 truncation 감지 가능)
 
 PgAdapter.ts:
   - Pool 옵션: query_timeout: 30_000 (pg 드라이버 레벨 하드 킬)
+
+MySqlAdapter.ts (2026-03-03 추가):
+  - execute({ sql, timeout: 30_000, values }) — mysql2 옵션 객체
+
+MongoAdapter.ts (2026-03-03 추가):
+  - .find().limit(n).maxTimeMS(30_000) — 서버사이드 타임아웃
+
+RedisAdapter.ts (2026-03-03 추가):
+  - new Redis({ ..., commandTimeout: 30_000 }) — ioredis 생성자 옵션
 ```
 
 ### SEC-006 구현 세부사항
@@ -160,11 +169,12 @@ apps/cli/src/cliConnectionService.ts:
 
 ### 7-1. 성능 개선 (HIGH)
 
-#### AesEncryptor KeyStore 캐싱
+#### ~~AesEncryptor KeyStore 캐싱~~ ✅ 완료 (2026-03-03)
 ```
-현황: getActiveKey()가 encrypt/decrypt 호출마다 비동기 조회 → 3–10× 오버헤드
-개선: TTL=5min LRU 캐시 추가 → 저수준 crypto 수준(400K ops/s) 근접 가능
-영향: 암호화 처리량 3–10× 향상
+구현: CachedKeyStore Decorator (packages/infrastructure/src/security/CachedKeyStore.ts)
+  - TTL=5분 인메모리 캐시, __active__ 키로 active key 별도 관리
+  - IKeyStore 계약 불변 (PgKeyStore를 그대로 래핑)
+  - 예상 효과: 암호화 처리량 3–10× 향상
 ```
 
 #### SEC-005 — LIMIT 자동 주입
@@ -176,20 +186,20 @@ apps/cli/src/cliConnectionService.ts:
 
 ### 7-2. 보안 강화 (HIGH)
 
-#### MySQL/MongoDB/Redis 타임아웃 없음
+#### ~~MySQL/MongoDB/Redis 타임아웃 없음~~ ✅ 완료 (2026-03-03)
 ```
-현황: SEC-005는 cliConnectionService + PgAdapter만 적용
-미적용: MySqlAdapter, MongoAdapter, RedisAdapter — 무한 대기 가능
-개선: 각 어댑터에 query timeout 옵션 추가
-  mysql2: { connectTimeout: 5000, queryTimeout: 30000 }
-  mongodb: { serverSelectionTimeoutMS: 5000, maxTimeMS: 30000 }
-  ioredis: { commandTimeout: 30000 }
+구현: 각 어댑터에 30s 쿼리 타임아웃 적용
+  MySqlAdapter:  execute({ sql, timeout: 30_000, values })
+  MongoAdapter:  .find().limit(n).maxTimeMS(30_000)
+  RedisAdapter:  new Redis({ commandTimeout: 30_000 })
 ```
 
-#### API 엔드포인트 rate limiting 없음
+#### ~~API 엔드포인트 rate limiting 없음~~ ✅ 완료 (2026-03-03)
 ```
-현황: /api/v1/sql/execute, /api/v1/connections/test 등 무제한 요청 허용
-개선: @fastify/rate-limit 추가 (10 req/s per IP)
+구현: @fastify/rate-limit 설치 (apps/api)
+  전역:                 60 req/min per IP
+  /api/v1/auth/login:   5 req/min  (brute force 방지)
+  /api/v1/connections/test: 10 req/min
 ```
 
 #### JWT 만료 시간 검증 강화
@@ -238,16 +248,22 @@ apps/cli/src/cliConnectionService.ts:
 
 ### 7-4. 기능 보완 (MEDIUM)
 
-#### ResultPanel — 5000행 truncation UI 개선
+#### ~~ResultPanel — 5000행 truncation UI 개선~~ ✅ 완료 (2026-03-03)
 ```
-현황: ⚠ 경고가 error 필드에 담겨 빨간 배경으로 표시될 수 있음
-개선: QueryResult에 warning?: string 필드 추가, UI에서 별도 amber 배경 처리
+구현:
+  - QueryResult 인터페이스에 warning?: string 추가 (packages/tui/src/services/types.ts)
+  - cliConnectionService: truncation 시 error → warning 필드 사용
+  - ResultPanel: warning 존재 시 ⚠ amber(#f59e0b) 경고 박스 표시
+    (에러 빨간 UI와 명확히 구분)
 ```
 
-#### 쿼리 히스토리 persist
+#### ~~쿼리 히스토리 persist~~ ✅ 완료 (2026-03-03)
 ```
-현황: 세션 내 히스토리만 존재 (재시작 시 소실)
-개선: ~/.config/beanCli/history.json에 최근 200개 저장
+구현:
+  - apps/cli/src/historyStore.ts: loadHistory / appendHistory
+    저장 위치: ~/.config/beanCli/history.json (최대 200개, 중복 제거)
+  - useQuery.ts: initialHistory 초기화, 성공 실행 시 onHistoryAdd 콜백
+  - AppContext / start.tsx / index-ink.tsx: props 체인으로 연결
 ```
 
 ---
