@@ -1,5 +1,4 @@
-import type { RawEvent, IEncryptor } from '@tfsdc/domain';
-import type { IDlqPublisher } from '@tfsdc/application';
+import type { RawEvent, IEncryptor, IDlqPublisher } from '@tfsdc/domain';
 
 export interface IDbClient {
   query(sql: string, params?: unknown[]): Promise<{ rowCount: number | null }>;

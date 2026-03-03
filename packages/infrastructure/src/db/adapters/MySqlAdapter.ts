@@ -41,7 +41,8 @@ export class MySqlAdapter implements IDbAdapter {
     const db = this.config.database ?? '';
     const [rows] = await conn.query(
       `SELECT TABLE_NAME AS table_name FROM information_schema.TABLES
-       WHERE TABLE_SCHEMA = '${db.replace(/'/g, "''")}' AND TABLE_TYPE = 'BASE TABLE'
+       WHERE TABLE_SCHEMA = '${db.replace(/'/g, "''")}'
+       AND TABLE_TYPE IN ('BASE TABLE', 'VIEW')
        ORDER BY TABLE_NAME`,
     );
     return (rows as Array<{ table_name: string }>).map(r => r.table_name);

@@ -1,6 +1,5 @@
 import { Kafka, type Consumer, type EachMessagePayload } from 'kafkajs';
-import type { RawEvent } from '@tfsdc/domain';
-import type { IKafkaConsumer } from '@tfsdc/application';
+import type { RawEvent, IKafkaConsumer } from '@tfsdc/domain';
 
 const CONSUMER_CONFIG = {
   groupId: 'tfsdc-projector',
