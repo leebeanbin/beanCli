@@ -14,6 +14,7 @@
 import { start } from '@tfsdc/tui';
 import { createCliConnectionService } from './cliConnectionService.js';
 import { createMockConnectionService } from './mockConnectionService.js';
+import { loadHistory, appendHistory } from './historyStore.js';
 
 const isMock =
   process.argv.includes('--mock') ||
@@ -24,4 +25,6 @@ start({
   connectionService: isMock
     ? createMockConnectionService()
     : createCliConnectionService(),
+  initialHistory: loadHistory(),
+  onHistoryAdd:   appendHistory,
 });
