@@ -330,4 +330,8 @@ Base URL: `http://localhost:3100`
 | 쿼리 히스토리 파일 저장 (~/.config/beanCli/history.json) | ✅ Done |
 | ARCH-006: 구 ui-tui 패키지 삭제 | ✅ Done |
 | `beancli` 글로벌 커맨드 (`pnpm setup` → `beancli`) | ✅ Done |
-| Web Console (Next.js) | ⏳ Planned |
+| Web Console (Next.js) — State 테이블 뷰어, Changes, Approvals, Audit | ✅ Done |
+| Web Console — WebSocket LiveTableRefresh (router.refresh 자동 갱신) | ✅ Done |
+| Web Console — RBAC AccessGuard (parseRole + hasAccess 페이지 접근 제어) | ✅ Done |
+| Web Console — Recovery 페이지 개선 (Client Component, Clone 버튼, SQL 접기) | ✅ Done |
+| ui-web — WsEventManager + ApiClient + useAccessControl 단위 테스트 | ✅ Done |
