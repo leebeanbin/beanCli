@@ -83,12 +83,12 @@ function loadSession(): Session | null {
   } catch { return null; }
 }
 
-function saveSession(session: Session): void {
+function _saveSession(session: Session): void {
   mkdirSync(SESSION_DIR, { recursive: true });
   writeFileSync(SESSION_FILE, JSON.stringify(session, null, 2), { mode: 0o600 });
 }
 
-function clearSession(): void {
+function _clearSession(): void {
   try { writeFileSync(SESSION_FILE, '{}'); } catch { /* ignore */ }
 }
 
@@ -127,8 +127,8 @@ async function main() {
     _session = savedSession;
   }
 
-  let CLI_ACTOR = _session?.username ?? 'local';
-  let CLI_ROLE  = _session?.role ?? 'DBA';
+  const CLI_ACTOR = _session?.username ?? 'local';
+  const CLI_ROLE  = _session?.role ?? 'DBA';
 
   const appState = new AppState();
   const viewportState = new ViewportState();
