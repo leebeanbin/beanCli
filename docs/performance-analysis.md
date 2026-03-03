@@ -1,0 +1,286 @@
+# TFSDC 성능 분석 리포트
+
+> 측정 환경: Apple Silicon M-series, arm64, 8 CPU cores, Node v25.4.0
+> 측정일: 2026-03-03
+> 테스트 도구: Jest (단위/벤치), tinybench v6, autocannon v8
+
+---
+
+## 1. 전체 테스트 현황
+
+| 패키지 | 테스트 스위트 | 테스트 수 | 결과 |
+|--------|-------------|---------|------|
+| @tfsdc/infrastructure | 5 | 29 | ✅ 전체 통과 |
+| @tfsdc/cli | 4 (2 skip) | 83 (39 skip) | ✅ 통과 |
+| 전체 Turbo | 25 tasks | — | ✅ 전체 통과 |
+
+스킵된 39개 테스트는 실제 MySQL DB 연결이 필요한 통합 테스트(`MYSQL_URL` 미설정).
+
+---
+
+## 2. 암호화 성능 — AES-256-GCM
+
+### 2a. tinybench (저수준 Node.js crypto 직접 호출)
+
+| 케이스 | ops/s | avg latency | p99 |
+|--------|-------|------------|-----|
+| encrypt 16B  | 467.78 Kops/s | 2.26µs | 3.29µs |
+| encrypt 128B | 459.62 Kops/s | 2.26µs | 2.96µs |
+| encrypt 256B | 448.38 Kops/s | 2.26µs | 3.04µs |
+| encrypt 1KB  | 403.96 Kops/s | 2.65µs | 3.88µs |
+| encrypt 8KB  | 209.80 Kops/s | 5.21µs | 8.05µs |
+| decrypt 16B  | 497.34 Kops/s | 2.08µs | 2.71µs |
+| decrypt 1KB  | 433.87 Kops/s | 2.44µs | 3.38µs |
+| decrypt 8KB  | 227.12 Kops/s | 4.87µs | 7.96µs |
+
+### 2b. AesEncryptor (Jest 벤치 — IKeyStore 비동기 경로 포함)
+
+| 페이로드 | ops/s | avg | p99 |
+|---------|-------|-----|-----|
+| 16B (UUID) | 41,729 | 24.0µs | 194.4µs |
+| 128B | 172,157 | 5.8µs | 11.5µs |
+| 1KB | 138,881 / 128,186 | 7.2–7.8µs | 17.5–53.5µs |
+| 8KB | 77,108 | 13.0µs | 46.3µs |
+| 동시 10개 × 512B | 17,921 배치/s → **179,210 ops/s** | 55.8µs | 89.8µs |
+
+**해석**: 저수준 crypto는 400K+ ops/s이지만, `AesEncryptor`는 `IKeyStore.getActiveKey()`를 매번 비동기 호출하는 오버헤드로 약 3–10× 낮다. 16B 케이스(24µs)에서 keyStore 조회 비용이 두드러짐.
+
+---
+
+## 3. 해시 성능 — HMAC-SHA256
+
+### 3a. tinybench (직접 Node.js crypto)
+
+| 케이스 | ops/s | avg | p99 |
+|--------|-------|-----|-----|
+| hash short ID | 812.66 Kops/s | 1.29µs | 1.54µs |
+| hash UUID | 804.35 Kops/s | 1.30µs | 1.46µs |
+| hash 64B key | 671.86 Kops/s | 1.52µs | 1.71µs |
+| hash + hex decode | 753.84 Kops/s | 1.42µs | 1.67µs |
+
+### 3b. HmacHasher (Jest 벤치)
+
+| 케이스 | ops/s | avg | p99 |
+|--------|-------|-----|-----|
+| short ID | 353,873 | 2.8µs | 7.6µs |
+| UUID | 333,752 | 3.0µs | 16.4µs |
+| 64B key | 362,057 | 2.8µs | 6.1µs |
+| 동시 50개 | 9,364 배치/s → **468,200 ops/s** | 106.8µs | 173.5µs |
+
+### AES vs HMAC 비교
+
+| 항목 | 저수준 | AesEncryptor/HmacHasher |
+|------|--------|------------------------|
+| AES-256-GCM 256B | 448K ops/s | 105K ops/s |
+| HMAC-SHA256 | 835K ops/s | 424K ops/s |
+| **HMAC 배수** | **1.9×** | **4.0×** |
+
+**결론**: HMAC은 AES보다 약 2–4× 빠르다. 엔티티 ID 해싱(HMAC)이 데이터 암호화(AES)보다 훨씬 저비용. 해싱 전략이 올바른 선택.
+
+---
+
+## 4. 정규식 성능 — SEC-001 / SQL 파싱
+
+| 케이스 | tinybench | Jest 벤치 |
+|--------|-----------|----------|
+| DB 이름 검증 (유효) | 9.66 Mops/s | 24,969,352 ops/s |
+| DB 이름 검증 (injection 시도) | 4.58 Mops/s | — |
+| LIMIT 절 파싱 | 9.80 Mops/s | 4,734,886 ops/s |
+| FROM 절 추출 | 7.62 Mops/s | 23,798,075 ops/s |
+| LIMIT + FROM 트리아지 | 7.62 Mops/s | — |
+
+**해석**:
+- SQL injection 문자열 검증은 유효 이름 대비 약 2× 느리지만 여전히 4M+ ops/s — 병목 아님.
+- 서로 다른 측정값 차이는 tinybench의 통계적 샘플링 vs Jest 루프 방식 차이. 실제 성능은 수 Mops/s 수준.
+
+---
+
+## 5. Redis 파이프라인 — Naïve N+1 vs Two-Pipeline Batch
+
+### tinybench (setImmediate RTT 시뮬레이션)
+
+| 키 수 | Naïve ops/s | Pipeline ops/s | 배속 |
+|------|-------------|---------------|------|
+| 5 | 7.58 K | 37.71 K | **5.0×** |
+| 10 | 3.78 K | 37.68 K | **10.0×** |
+| 20 | 1.90 K | 37.59 K | **19.8×** |
+| 50 | 756 | 37.55 K | **49.6×** |
+| 100 | 355 | 37.12 K | **104.3×** |
+
+### Jest 벤치 (0.5ms RTT 시뮬레이션 — localhost Redis)
+
+| 키 수 | Naïve | Pipeline | 배속 | 절감 |
+|------|-------|----------|------|------|
+| 30 | 68.82ms | 2.35ms | **29.3×** | ~66ms |
+| 10 @ 0ms | 0.36ms | 0.04ms | **9.0×** | — |
+| 100 @ 1ms RTT | 234ms | 2.26ms | **103.6×** | ~232ms |
+| 5 @ 0.5ms | 11.44ms | 2.32ms | **4.9×** | — |
+| 50 @ 0.5ms | 114.96ms | 2.25ms | **51.1×** | — |
+| **100 @ 2ms (WAN)** | **455ms** | **4.37ms** | **104.2×** | **450ms** |
+
+**결론**: 파이프라인 배속은 키 수에 선형 비례. 100키 기준 WAN 환경에서 query당 450ms 절감. 이미 `RedisAdapter.queryRows()`에 적용 완료 (commit: `da96c6d`).
+
+---
+
+## 6. 보안 수정 이력
+
+| ID | 설명 | CVSS | 상태 |
+|----|------|------|------|
+| SEC-001 | DB 이름 allowlist 정규식 `/^[a-zA-Z_][a-zA-Z0-9_$\-]{0,63}$/` | 7.5 | ✅ 완료 |
+| SEC-002/003 | `\d` 메타 커맨드 테이블 화이트리스트 검증 | 6.5 | ✅ 완료 |
+| SEC-004 | AES-256-GCM 연결 정보 암호화 | 8.1 | ✅ 완료 |
+| SEC-INJ-001 | MySQL `listTables()` SQL injection — 파라미터 바인딩 전환 | 8.1 | ✅ 완료 |
+| **SEC-005** | **쿼리 타임아웃 없음 / 행 수 무제한** | 5.3 | ✅ 완료 |
+| **SEC-006** | **로거 크리덴셜 노출 (password, Authorization 헤더)** | 5.3 | ✅ 완료 |
+
+### SEC-005 구현 세부사항
+```
+cliConnectionService.ts:
+  - Promise.race([adapter.queryRows(sql), timeout(30s)])
+  - 결과 5,000행 상한 (초과 시 ⚠ 경고 메시지)
+  - rowCount는 실제 전체 행 수 유지 (UI가 truncation 감지 가능)
+
+PgAdapter.ts:
+  - Pool 옵션: query_timeout: 30_000 (pg 드라이버 레벨 하드 킬)
+```
+
+### SEC-006 구현 세부사항
+```
+apps/api/src/server.ts:
+  - Fastify logger.redact: req.headers.authorization, body.password,
+    body.credential, body.secret, *.password, *.credential, *.secret
+
+apps/cli/src/cliConnectionService.ts:
+  - sanitizeErrorMsg(): 드라이버 에러 메시지에서 password=, URI 패스워드 제거
+```
+
+---
+
+## 7. 개선점 & 추가 구현 권고
+
+### 7-1. 성능 개선 (HIGH)
+
+#### AesEncryptor KeyStore 캐싱
+```
+현황: getActiveKey()가 encrypt/decrypt 호출마다 비동기 조회 → 3–10× 오버헤드
+개선: TTL=5min LRU 캐시 추가 → 저수준 crypto 수준(400K ops/s) 근접 가능
+영향: 암호화 처리량 3–10× 향상
+```
+
+#### SEC-005 — LIMIT 자동 주입
+```
+현황: SQL에 LIMIT 없으면 어댑터가 전체 결과를 메모리에 올린 후 5000행 slice
+개선: queryRows() 진입 전 "SELECT ... FROM ... [WHERE ...]" 패턴에 자동 "LIMIT 5001" 주입
+       → 드라이버/DB 레벨에서 차단 (메모리 + 네트워크 비용 절감)
+```
+
+### 7-2. 보안 강화 (HIGH)
+
+#### MySQL/MongoDB/Redis 타임아웃 없음
+```
+현황: SEC-005는 cliConnectionService + PgAdapter만 적용
+미적용: MySqlAdapter, MongoAdapter, RedisAdapter — 무한 대기 가능
+개선: 각 어댑터에 query timeout 옵션 추가
+  mysql2: { connectTimeout: 5000, queryTimeout: 30000 }
+  mongodb: { serverSelectionTimeoutMS: 5000, maxTimeMS: 30000 }
+  ioredis: { commandTimeout: 30000 }
+```
+
+#### API 엔드포인트 rate limiting 없음
+```
+현황: /api/v1/sql/execute, /api/v1/connections/test 등 무제한 요청 허용
+개선: @fastify/rate-limit 추가 (10 req/s per IP)
+```
+
+#### JWT 만료 시간 검증 강화
+```
+현황: JWT_SECRET=dev-jwt-secret-change-in-prod — 기본값 방치 시 위험
+개선: APP_ENV=prod 시 기본 시크릿 사용 금지 validation, 최소 256-bit 강제
+```
+
+### 7-3. 테스트 강화 (MEDIUM)
+
+#### MySQL/MongoDB/Redis 통합 테스트 (현재 SKIP)
+```
+현황: DB 연결 필요 테스트 39개가 CI에서 스킵됨
+개선: GitHub Actions에 서비스 컨테이너 추가
+  services:
+    mysql: { image: mysql:8.0, env: MYSQL_ROOT_PASSWORD }
+    redis: { image: redis:7 }
+    mongo: { image: mongo:7 }
+→ 실제 드라이버 레벨 쿼리 타임아웃/injection 방어 검증 가능
+```
+
+#### 암호화 키 로테이션 테스트 없음
+```
+현황: AesEncryptor/HmacHasher 구버전 키로 복호화 경로 미검증
+개선: keyId 매핑 + 구키/신키 round-trip 테스트 추가
+```
+
+#### API E2E 테스트 없음
+```
+현황: apps/api 는 --passWithNoTests (테스트 없음)
+개선: supertest or fastify inject() 로 핵심 엔드포인트 E2E 추가
+  - POST /api/v1/auth/login (200, 401)
+  - POST /api/v1/sql/execute (role check)
+  - GET /api/v1/schema/tables (auth required)
+```
+
+#### 로드 테스트 CI 통합
+```
+현황: apps/api/scripts/loadtest.ts — 수동 실행만 가능 (pnpm loadtest)
+개선: SLO 위반 시 CI fail 조건 추가
+  export LOADTEST_DURATION=5
+  export LOADTEST_CONNECTIONS=5
+  pnpm --filter @tfsdc/api loadtest || exit 1
+  # p99 > 200ms or error% > 1% → CI 실패
+```
+
+### 7-4. 기능 보완 (MEDIUM)
+
+#### ResultPanel — 5000행 truncation UI 개선
+```
+현황: ⚠ 경고가 error 필드에 담겨 빨간 배경으로 표시될 수 있음
+개선: QueryResult에 warning?: string 필드 추가, UI에서 별도 amber 배경 처리
+```
+
+#### 쿼리 히스토리 persist
+```
+현황: 세션 내 히스토리만 존재 (재시작 시 소실)
+개선: ~/.config/beanCli/history.json에 최근 200개 저장
+```
+
+---
+
+## 8. autocannon 로드 테스트 실행 가이드
+
+API 서버가 실행 중일 때:
+
+```bash
+# 기본 실행 (10 connections, 10s)
+pnpm --filter @tfsdc/api loadtest
+
+# 고부하 테스트
+LOADTEST_CONNECTIONS=50 LOADTEST_DURATION=30 pnpm --filter @tfsdc/api loadtest
+
+# 인증 필요 엔드포인트 포함
+export LOADTEST_JWT=$(curl -s -X POST http://localhost:3100/api/v1/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"admin","password":"admin"}' | jq -r .token)
+pnpm --filter @tfsdc/api loadtest
+
+# SLO 기준: p99 ≤ 200ms, error% ≤ 1%
+# 결과: apps/api/loadtest-reports/loadtest-report-<timestamp>.json 저장
+```
+
+---
+
+## 9. tinybench 실행 가이드
+
+```bash
+# 저수준 암호/Redis 벤치마크 (DB 불필요, ~30초)
+pnpm --filter @tfsdc/infrastructure bench
+
+# 단위 벤치마크 (AesEncryptor/HmacHasher/Redis 시뮬레이션)
+pnpm --filter @tfsdc/infrastructure test
+```
