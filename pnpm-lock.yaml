@@ -99,9 +99,6 @@ importers:
       '@tfsdc/tui':
         specifier: workspace:*
         version: link:../../packages/tui
-      '@tfsdc/ui-tui':
-        specifier: workspace:*
-        version: link:../../packages/ui-tui
 
   apps/projector:
     dependencies:
@@ -265,9 +262,6 @@ importers:
       '@tfsdc/kernel':
         specifier: workspace:*
         version: link:../kernel
-      '@tfsdc/ui-tui':
-        specifier: workspace:*
-        version: link:../ui-tui
 
   packages/tui:
     dependencies:
@@ -284,22 +278,6 @@ importers:
       '@types/react':
         specifier: ^18.3.12
         version: 18.3.28
-
-  packages/ui-tui:
-    dependencies:
-      '@tfsdc/application':
-        specifier: workspace:*
-        version: link:../application
-      '@tfsdc/kernel':
-        specifier: workspace:*
-        version: link:../kernel
-      ws:
-        specifier: ^8.18.2
-        version: 8.19.0
-    devDependencies:
-      '@types/ws':
-        specifier: ^8.5.14
-        version: 8.18.1
 
   packages/ui-web:
     dependencies:
@@ -1160,9 +1138,6 @@ packages:
 
   '@types/whatwg-url@11.0.5':
     resolution: {integrity: sha512-coYR071JRaHa+xoEvvYqvnIHaVqaYrLPbsufM9BF63HkwI5Lgmy2QR8Q5K/lYDYo5AK82wOvSOS0UsLTpTG7uQ==}
-
-  '@types/ws@8.18.1':
-    resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
 
   '@types/yargs-parser@21.0.3':
     resolution: {integrity: sha512-I4q9QU9MQv4oEOz4tAHJtNz1cwuLxn2F3xcc2iV5WdqLPpUnj30aUuxt1mAxYTG+oe8CZMV/+6rU4S4gRDzqtQ==}
@@ -4209,10 +4184,6 @@ snapshots:
   '@types/whatwg-url@11.0.5':
     dependencies:
       '@types/webidl-conversions': 7.0.3
-
-  '@types/ws@8.18.1':
-    dependencies:
-      '@types/node': 25.3.0
 
   '@types/yargs-parser@21.0.3': {}
 

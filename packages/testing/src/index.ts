@@ -83,5 +83,3 @@ export function makeMockAuditWriter(): jest.Mocked<IAuditWriter> {
   };
 }
 
-// ── MockCanvas (TUI testing) ─────────────────────────────────
-export { MockCanvas } from './MockCanvas.js';
