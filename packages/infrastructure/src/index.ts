@@ -2,6 +2,7 @@
 export { HmacHasher } from './security/HmacHasher.js';
 export { AesEncryptor } from './security/AesEncryptor.js';
 export { PgKeyStore } from './security/PgKeyStore.js';
+export { CachedKeyStore } from './security/CachedKeyStore.js';
 export type { IDbQuery } from './security/PgKeyStore.js';
 
 // Kafka
