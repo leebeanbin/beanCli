@@ -1,0 +1,233 @@
+// ============================================================
+// seed-mongodb-dev.js
+// beanCLI 개발용 MongoDB 시드 데이터
+// DB: bean_dev
+// Run: mongosh mongodb://localhost:27017 scripts/seed-mongodb-dev.js
+//   or: mongosh "mongodb://localhost:27017/bean_dev" scripts/seed-mongodb-dev.js
+// ============================================================
+
+const DB_NAME = 'bean_dev';
+db = db.getSiblingDB(DB_NAME);
+
+// ── Drop existing collections ──────────────────────────────────────────────────
+
+['users', 'products', 'orders', 'order_items', 'payments', 'shipments', 'audit_log'].forEach(c => {
+  db[c].drop();
+  print(`Dropped collection: ${c}`);
+});
+
+// ── users ─────────────────────────────────────────────────────────────────────
+
+const now = new Date();
+const daysAgo = (n) => new Date(now - n * 86400000);
+
+db.users.insertMany([
+  { _id: 1, username: 'alice',   email: 'alice@bean.dev',   role: 'DBA',      balance_cents: 125000, is_active: true,  created_at: daysAgo(90) },
+  { _id: 2, username: 'bob',     email: 'bob@bean.dev',     role: 'MANAGER',  balance_cents:  89000, is_active: true,  created_at: daysAgo(85) },
+  { _id: 3, username: 'carol',   email: 'carol@bean.dev',   role: 'ANALYST',  balance_cents:  45000, is_active: true,  created_at: daysAgo(80) },
+  { _id: 4, username: 'dave',    email: 'dave@bean.dev',    role: 'ANALYST',  balance_cents:  67000, is_active: true,  created_at: daysAgo(75) },
+  { _id: 5, username: 'eve',     email: 'eve@bean.dev',     role: 'MANAGER',  balance_cents: 210000, is_active: true,  created_at: daysAgo(70) },
+  { _id: 6, username: 'frank',   email: 'frank@bean.dev',   role: 'ANALYST',  balance_cents:  31000, is_active: false, created_at: daysAgo(65) },
+  { _id: 7, username: 'grace',   email: 'grace@bean.dev',   role: 'DBA',      balance_cents: 175000, is_active: true,  created_at: daysAgo(60) },
+  { _id: 8, username: 'heidi',   email: 'heidi@bean.dev',   role: 'ANALYST',  balance_cents:  52000, is_active: true,  created_at: daysAgo(55) },
+  { _id: 9, username: 'ivan',    email: 'ivan@bean.dev',    role: 'ANALYST',  balance_cents:  18000, is_active: false, created_at: daysAgo(50) },
+  { _id:10, username: 'judy',    email: 'judy@bean.dev',    role: 'MANAGER',  balance_cents: 143000, is_active: true,  created_at: daysAgo(45) },
+  { _id:11, username: 'ken',     email: 'ken@bean.dev',     role: 'ANALYST',  balance_cents:  29000, is_active: true,  created_at: daysAgo(40) },
+  { _id:12, username: 'lara',    email: 'lara@bean.dev',    role: 'ANALYST',  balance_cents:  74000, is_active: true,  created_at: daysAgo(35) },
+  { _id:13, username: 'mallory', email: 'mallory@bean.dev', role: 'ANALYST',  balance_cents:  11000, is_active: false, created_at: daysAgo(30) },
+  { _id:14, username: 'nick',    email: 'nick@bean.dev',    role: 'ANALYST',  balance_cents:  88000, is_active: true,  created_at: daysAgo(25) },
+  { _id:15, username: 'olivia',  email: 'olivia@bean.dev',  role: 'MANAGER',  balance_cents: 196000, is_active: true,  created_at: daysAgo(20) },
+  { _id:16, username: 'peter',   email: 'peter@bean.dev',   role: 'ANALYST',  balance_cents:  43000, is_active: true,  created_at: daysAgo(18) },
+  { _id:17, username: 'quinn',   email: 'quinn@bean.dev',   role: 'ANALYST',  balance_cents:  60000, is_active: true,  created_at: daysAgo(15) },
+  { _id:18, username: 'rose',    email: 'rose@bean.dev',    role: 'DBA',      balance_cents: 230000, is_active: true,  created_at: daysAgo(12) },
+  { _id:19, username: 'sam',     email: 'sam@bean.dev',     role: 'ANALYST',  balance_cents:  37000, is_active: true,  created_at: daysAgo(8)  },
+  { _id:20, username: 'tina',    email: 'tina@bean.dev',    role: 'ANALYST',  balance_cents:  55000, is_active: true,  created_at: daysAgo(5)  },
+]);
+
+db.users.createIndex({ username: 1 }, { unique: true });
+db.users.createIndex({ email: 1 },    { unique: true });
+db.users.createIndex({ role: 1 });
+print(`Inserted ${db.users.countDocuments()} users`);
+
+// ── products ──────────────────────────────────────────────────────────────────
+
+db.products.insertMany([
+  { _id: 1, sku: 'BEAN-001', name: 'Mechanical Keyboard TKL',  category: 'peripherals', price_cents:  12900, stock: 142, is_active: true,  created_at: daysAgo(60) },
+  { _id: 2, sku: 'BEAN-002', name: 'USB-C Hub 7-Port',         category: 'accessories', price_cents:   4500, stock:  89, is_active: true,  created_at: daysAgo(58) },
+  { _id: 3, sku: 'BEAN-003', name: 'IPS Monitor 27"',          category: 'displays',    price_cents:  42000, stock:  23, is_active: true,  created_at: daysAgo(56) },
+  { _id: 4, sku: 'BEAN-004', name: 'Wireless Mouse Pro',       category: 'peripherals', price_cents:   6800, stock: 201, is_active: true,  created_at: daysAgo(54) },
+  { _id: 5, sku: 'BEAN-005', name: 'Webcam 4K',               category: 'peripherals', price_cents:  15900, stock:  55, is_active: true,  created_at: daysAgo(52) },
+  { _id: 6, sku: 'BEAN-006', name: 'NVMe SSD 1TB',            category: 'storage',     price_cents:  11900, stock: 178, is_active: true,  created_at: daysAgo(50) },
+  { _id: 7, sku: 'BEAN-007', name: 'RAM 32GB DDR5',           category: 'memory',      price_cents:  18500, stock:  67, is_active: true,  created_at: daysAgo(48) },
+  { _id: 8, sku: 'BEAN-008', name: 'USB-C Cable 2m',          category: 'accessories', price_cents:    900, stock: 500, is_active: true,  created_at: daysAgo(46) },
+  { _id: 9, sku: 'BEAN-009', name: 'Laptop Stand Aluminium',  category: 'accessories', price_cents:   3200, stock: 112, is_active: true,  created_at: daysAgo(44) },
+  { _id:10, sku: 'BEAN-010', name: 'Headphones ANC',          category: 'audio',       price_cents:  22000, stock:  44, is_active: true,  created_at: daysAgo(42) },
+  { _id:11, sku: 'BEAN-011', name: 'Microphone USB Cardioid', category: 'audio',       price_cents:   9900, stock:  36, is_active: true,  created_at: daysAgo(40) },
+  { _id:12, sku: 'BEAN-012', name: 'Desk Pad XL',            category: 'accessories', price_cents:   2500, stock: 320, is_active: true,  created_at: daysAgo(38) },
+  { _id:13, sku: 'BEAN-013', name: 'PCIe Wi-Fi 6E Card',     category: 'networking',  price_cents:   4800, stock:  71, is_active: true,  created_at: daysAgo(36) },
+  { _id:14, sku: 'BEAN-014', name: 'Thunderbolt 4 Dock',     category: 'accessories', price_cents:  34500, stock:   8, is_active: false, created_at: daysAgo(34) },
+  { _id:15, sku: 'BEAN-015', name: 'Ergonomic Chair Support', category: 'furniture',  price_cents:  12000, stock:  15, is_active: true,  created_at: daysAgo(32) },
+]);
+
+db.products.createIndex({ sku: 1 },      { unique: true });
+db.products.createIndex({ category: 1 });
+db.products.createIndex({ is_active: 1 });
+print(`Inserted ${db.products.countDocuments()} products`);
+
+// ── orders ────────────────────────────────────────────────────────────────────
+
+db.orders.insertMany([
+  { _id: 1, user_id: 1,  status: 'DELIVERED', total_cents:  12900, item_count: 1, note: null,                 created_at: daysAgo(20) },
+  { _id: 2, user_id: 2,  status: 'DELIVERED', total_cents:  51500, item_count: 3, note: 'Priority delivery', created_at: daysAgo(19) },
+  { _id: 3, user_id: 3,  status: 'SHIPPED',   total_cents:  22000, item_count: 1, note: null,                 created_at: daysAgo(18) },
+  { _id: 4, user_id: 4,  status: 'CONFIRMED', total_cents:   9400, item_count: 2, note: null,                 created_at: daysAgo(17) },
+  { _id: 5, user_id: 5,  status: 'DELIVERED', total_cents:  47700, item_count: 4, note: 'Gift wrap',         created_at: daysAgo(16) },
+  { _id: 6, user_id: 6,  status: 'CANCELLED', total_cents:   6800, item_count: 1, note: 'Out of stock',      created_at: daysAgo(15) },
+  { _id: 7, user_id: 7,  status: 'DELIVERED', total_cents:  30400, item_count: 2, note: null,                 created_at: daysAgo(14) },
+  { _id: 8, user_id: 8,  status: 'PENDING',   total_cents:  15900, item_count: 1, note: null,                 created_at: daysAgo(13) },
+  { _id: 9, user_id: 9,  status: 'SHIPPED',   total_cents:  11900, item_count: 1, note: null,                 created_at: daysAgo(12) },
+  { _id:10, user_id:10,  status: 'DELIVERED', total_cents:  44500, item_count: 3, note: null,                 created_at: daysAgo(11) },
+  { _id:11, user_id: 1,  status: 'CONFIRMED', total_cents:  18500, item_count: 1, note: 'Urgent',            created_at: daysAgo(10) },
+  { _id:12, user_id: 2,  status: 'SHIPPED',   total_cents:   3200, item_count: 1, note: null,                 created_at: daysAgo(9)  },
+  { _id:13, user_id: 3,  status: 'DELIVERED', total_cents:  22900, item_count: 2, note: null,                 created_at: daysAgo(8)  },
+  { _id:14, user_id:11,  status: 'PENDING',   total_cents:   4500, item_count: 1, note: null,                 created_at: daysAgo(7)  },
+  { _id:15, user_id:12,  status: 'CONFIRMED', total_cents:  37000, item_count: 2, note: null,                 created_at: daysAgo(6)  },
+  { _id:16, user_id:13,  status: 'CANCELLED', total_cents:  12000, item_count: 1, note: null,                 created_at: daysAgo(5)  },
+  { _id:17, user_id:14,  status: 'DELIVERED', total_cents:  19800, item_count: 2, note: null,                 created_at: daysAgo(4)  },
+  { _id:18, user_id:15,  status: 'SHIPPED',   total_cents:   9900, item_count: 1, note: null,                 created_at: daysAgo(4)  },
+  { _id:19, user_id:16,  status: 'DELIVERED', total_cents:  57400, item_count: 5, note: null,                 created_at: daysAgo(3)  },
+  { _id:20, user_id:17,  status: 'PENDING',   total_cents:   2500, item_count: 1, note: null,                 created_at: daysAgo(3)  },
+  { _id:21, user_id:18,  status: 'CONFIRMED', total_cents:  35300, item_count: 3, note: null,                 created_at: daysAgo(2)  },
+  { _id:22, user_id:19,  status: 'DELIVERED', total_cents:  44000, item_count: 2, note: null,                 created_at: daysAgo(2)  },
+  { _id:23, user_id:20,  status: 'SHIPPED',   total_cents:   6800, item_count: 1, note: null,                 created_at: daysAgo(1)  },
+  { _id:24, user_id: 5,  status: 'DELIVERED', total_cents:  22000, item_count: 1, note: null,                 created_at: daysAgo(1)  },
+  { _id:25, user_id: 7,  status: 'CONFIRMED', total_cents:   4800, item_count: 1, note: null,                 created_at: daysAgo(1)  },
+  { _id:26, user_id:10,  status: 'PENDING',   total_cents:  11900, item_count: 1, note: null,                 created_at: now         },
+  { _id:27, user_id: 1,  status: 'DELIVERED', total_cents:  25200, item_count: 2, note: null,                 created_at: now         },
+  { _id:28, user_id: 3,  status: 'CANCELLED', total_cents:   9900, item_count: 1, note: 'Damaged on arrival',created_at: now         },
+  { _id:29, user_id:15,  status: 'DELIVERED', total_cents:  42000, item_count: 1, note: null,                 created_at: now         },
+  { _id:30, user_id: 8,  status: 'CONFIRMED', total_cents:  18500, item_count: 1, note: null,                 created_at: now         },
+]);
+
+db.orders.createIndex({ user_id: 1 });
+db.orders.createIndex({ status: 1 });
+db.orders.createIndex({ created_at: -1 });
+print(`Inserted ${db.orders.countDocuments()} orders`);
+
+// ── order_items ───────────────────────────────────────────────────────────────
+
+db.order_items.insertMany([
+  { _id:  1, order_id:  1, product_id:  1, quantity: 1, unit_price_cents: 12900 },
+  { _id:  2, order_id:  2, product_id:  3, quantity: 1, unit_price_cents: 42000 },
+  { _id:  3, order_id:  2, product_id:  2, quantity: 1, unit_price_cents:  4500 },
+  { _id:  4, order_id:  2, product_id:  8, quantity: 5, unit_price_cents:   900 },
+  { _id:  5, order_id:  3, product_id:  5, quantity: 1, unit_price_cents: 15900 },
+  { _id:  6, order_id:  4, product_id:  2, quantity: 1, unit_price_cents:  4500 },
+  { _id:  7, order_id:  4, product_id:  9, quantity: 1, unit_price_cents:  3200 },
+  { _id:  8, order_id:  5, product_id: 10, quantity: 1, unit_price_cents: 22000 },
+  { _id:  9, order_id:  5, product_id:  4, quantity: 1, unit_price_cents:  6800 },
+  { _id: 10, order_id:  5, product_id:  9, quantity: 1, unit_price_cents:  3200 },
+  { _id: 11, order_id:  5, product_id: 11, quantity: 1, unit_price_cents:  9900 },
+  { _id: 12, order_id:  6, product_id:  4, quantity: 1, unit_price_cents:  6800 },
+  { _id: 13, order_id:  7, product_id:  1, quantity: 1, unit_price_cents: 12900 },
+  { _id: 14, order_id:  7, product_id: 12, quantity: 1, unit_price_cents:  2500 },
+  { _id: 15, order_id:  8, product_id:  5, quantity: 1, unit_price_cents: 15900 },
+  { _id: 16, order_id:  9, product_id:  6, quantity: 1, unit_price_cents: 11900 },
+  { _id: 17, order_id: 10, product_id:  7, quantity: 1, unit_price_cents: 18500 },
+  { _id: 18, order_id: 10, product_id:  2, quantity: 1, unit_price_cents:  4500 },
+  { _id: 19, order_id: 10, product_id: 12, quantity: 2, unit_price_cents:  2500 },
+  { _id: 20, order_id: 11, product_id:  7, quantity: 1, unit_price_cents: 18500 },
+  { _id: 21, order_id: 12, product_id:  9, quantity: 1, unit_price_cents:  3200 },
+  { _id: 22, order_id: 13, product_id:  1, quantity: 1, unit_price_cents: 12900 },
+  { _id: 23, order_id: 13, product_id:  8, quantity:10, unit_price_cents:   900 },
+  { _id: 24, order_id: 14, product_id:  2, quantity: 1, unit_price_cents:  4500 },
+  { _id: 25, order_id: 15, product_id:  3, quantity: 1, unit_price_cents: 42000 },
+  { _id: 26, order_id: 17, product_id:  4, quantity: 2, unit_price_cents:  6800 },
+  { _id: 27, order_id: 17, product_id: 11, quantity: 1, unit_price_cents:  9900 },
+  { _id: 28, order_id: 22, product_id:  5, quantity: 1, unit_price_cents: 22000 },
+  { _id: 29, order_id: 25, product_id: 13, quantity: 1, unit_price_cents:  4800 },
+  { _id: 30, order_id: 26, product_id:  6, quantity: 1, unit_price_cents: 11900 },
+  { _id: 31, order_id: 29, product_id:  3, quantity: 1, unit_price_cents: 42000 },
+]);
+
+db.order_items.createIndex({ order_id: 1 });
+db.order_items.createIndex({ product_id: 1 });
+print(`Inserted ${db.order_items.countDocuments()} order_items`);
+
+// ── payments ──────────────────────────────────────────────────────────────────
+
+db.payments.insertMany([
+  { _id: 1, order_id:  1, method: 'CARD',          status: 'COMPLETED', amount_cents: 12900, transaction_id: 'txn_mg_001', created_at: daysAgo(20) },
+  { _id: 2, order_id:  2, method: 'CARD',          status: 'COMPLETED', amount_cents: 51500, transaction_id: 'txn_mg_002', created_at: daysAgo(19) },
+  { _id: 3, order_id:  3, method: 'WALLET',        status: 'COMPLETED', amount_cents: 22000, transaction_id: 'txn_mg_003', created_at: daysAgo(18) },
+  { _id: 4, order_id:  4, method: 'BANK_TRANSFER', status: 'PENDING',   amount_cents:  9400, created_at: daysAgo(17) },
+  { _id: 5, order_id:  5, method: 'CARD',          status: 'COMPLETED', amount_cents: 47700, transaction_id: 'txn_mg_005', created_at: daysAgo(16) },
+  { _id: 6, order_id:  6, method: 'CARD',          status: 'REFUNDED',  amount_cents:  6800, transaction_id: 'txn_mg_006', created_at: daysAgo(15) },
+  { _id: 7, order_id:  7, method: 'WALLET',        status: 'COMPLETED', amount_cents: 30400, transaction_id: 'txn_mg_007', created_at: daysAgo(14) },
+  { _id: 8, order_id:  8, method: 'CASH',          status: 'PENDING',   amount_cents: 15900, created_at: daysAgo(13) },
+  { _id: 9, order_id:  9, method: 'CARD',          status: 'COMPLETED', amount_cents: 11900, transaction_id: 'txn_mg_009', created_at: daysAgo(12) },
+  { _id:10, order_id: 10, method: 'CARD',          status: 'COMPLETED', amount_cents: 44500, transaction_id: 'txn_mg_010', created_at: daysAgo(11) },
+  { _id:11, order_id: 11, method: 'BANK_TRANSFER', status: 'PENDING',   amount_cents: 18500, created_at: daysAgo(10) },
+  { _id:12, order_id: 12, method: 'CARD',          status: 'COMPLETED', amount_cents:  3200, transaction_id: 'txn_mg_012', created_at: daysAgo(9)  },
+  { _id:13, order_id: 13, method: 'WALLET',        status: 'COMPLETED', amount_cents: 22900, transaction_id: 'txn_mg_013', created_at: daysAgo(8)  },
+  { _id:14, order_id: 14, method: 'CARD',          status: 'PENDING',   amount_cents:  4500, created_at: daysAgo(7)  },
+  { _id:15, order_id: 15, method: 'CARD',          status: 'COMPLETED', amount_cents: 37000, transaction_id: 'txn_mg_015', created_at: daysAgo(6)  },
+  { _id:16, order_id: 16, method: 'CARD',          status: 'REFUNDED',  amount_cents: 12000, transaction_id: 'txn_mg_016', created_at: daysAgo(5)  },
+  { _id:17, order_id: 17, method: 'CARD',          status: 'COMPLETED', amount_cents: 19800, transaction_id: 'txn_mg_017', created_at: daysAgo(4)  },
+  { _id:18, order_id: 22, method: 'CARD',          status: 'COMPLETED', amount_cents: 44000, transaction_id: 'txn_mg_022', created_at: daysAgo(2)  },
+  { _id:19, order_id: 24, method: 'CARD',          status: 'COMPLETED', amount_cents: 22000, transaction_id: 'txn_mg_024', created_at: daysAgo(1)  },
+  { _id:20, order_id: 29, method: 'CARD',          status: 'COMPLETED', amount_cents: 42000, transaction_id: 'txn_mg_029', created_at: now         },
+]);
+
+db.payments.createIndex({ order_id: 1 });
+db.payments.createIndex({ status: 1 });
+// Partial filter: only index docs where transaction_id exists as a string (skips PENDING without txn)
+db.payments.createIndex({ transaction_id: 1 }, { unique: true, partialFilterExpression: { transaction_id: { $type: 'string' } } });
+print(`Inserted ${db.payments.countDocuments()} payments`);
+
+// ── shipments ─────────────────────────────────────────────────────────────────
+
+db.shipments.insertMany([
+  { _id: 1, order_id:  1, carrier: 'FedEx', tracking_no: 'FX-MG-100001', status: 'DELIVERED',  shipped_at: daysAgo(18), delivered_at: daysAgo(15) },
+  { _id: 2, order_id:  2, carrier: 'UPS',   tracking_no: 'UP-MG-100002', status: 'DELIVERED',  shipped_at: daysAgo(17), delivered_at: daysAgo(14) },
+  { _id: 3, order_id:  3, carrier: 'DHL',   tracking_no: 'DH-MG-100003', status: 'IN_TRANSIT', shipped_at: daysAgo(2)  },
+  { _id: 4, order_id:  5, carrier: 'FedEx', tracking_no: 'FX-MG-100005', status: 'DELIVERED',  shipped_at: daysAgo(14), delivered_at: daysAgo(11) },
+  { _id: 5, order_id:  7, carrier: 'UPS',   tracking_no: 'UP-MG-100007', status: 'DELIVERED',  shipped_at: daysAgo(12), delivered_at: daysAgo(9)  },
+  { _id: 6, order_id:  9, carrier: 'DHL',   tracking_no: 'DH-MG-100009', status: 'IN_TRANSIT', shipped_at: daysAgo(1)  },
+  { _id: 7, order_id: 10, carrier: 'FedEx', tracking_no: 'FX-MG-100010', status: 'DELIVERED',  shipped_at: daysAgo(9),  delivered_at: daysAgo(6)  },
+  { _id: 8, order_id: 12, carrier: 'UPS',   tracking_no: 'UP-MG-100012', status: 'IN_TRANSIT', shipped_at: daysAgo(3)  },
+  { _id: 9, order_id: 13, carrier: 'FedEx', tracking_no: 'FX-MG-100013', status: 'DELIVERED',  shipped_at: daysAgo(6),  delivered_at: daysAgo(3)  },
+  { _id:10, order_id: 17, carrier: 'UPS',   tracking_no: 'UP-MG-100017', status: 'DELIVERED',  shipped_at: daysAgo(3),  delivered_at: daysAgo(1)  },
+  { _id:11, order_id: 22, carrier: 'DHL',   tracking_no: 'DH-MG-100022', status: 'DELIVERED',  shipped_at: daysAgo(2),  delivered_at: now         },
+  { _id:12, order_id: 29, carrier: 'FedEx', tracking_no: 'FX-MG-100029', status: 'DELIVERED',  shipped_at: daysAgo(5),  delivered_at: daysAgo(2)  },
+]);
+
+db.shipments.createIndex({ order_id: 1 });
+db.shipments.createIndex({ tracking_no: 1 }, { unique: true });
+print(`Inserted ${db.shipments.countDocuments()} shipments`);
+
+// ── audit_log ─────────────────────────────────────────────────────────────────
+
+db.audit_log.insertMany([
+  { _id: 1, actor: 'alice', action: 'UPDATE', target_collection: 'users',     target_id:  3, detail: 'role changed to MANAGER',      created_at: daysAgo(10) },
+  { _id: 2, actor: 'grace', action: 'DELETE', target_collection: 'products',  target_id: 14, detail: 'discontinued product removed',  created_at: daysAgo(8)  },
+  { _id: 3, actor: 'bob',   action: 'INSERT', target_collection: 'orders',    target_id: 30, detail: 'manual order creation',         created_at: daysAgo(6)  },
+  { _id: 4, actor: 'alice', action: 'UPDATE', target_collection: 'orders',    target_id:  6, detail: 'status → CANCELLED',           created_at: daysAgo(5)  },
+  { _id: 5, actor: 'rose',  action: 'UPDATE', target_collection: 'users',     target_id: 13, detail: 'account deactivated',           created_at: daysAgo(4)  },
+  { _id: 6, actor: 'alice', action: 'DROP',   target_collection: 'audit_log', target_id: null, detail: 'monthly archive rotation',   created_at: daysAgo(3)  },
+  { _id: 7, actor: 'bob',   action: 'UPDATE', target_collection: 'products',  target_id:  1, detail: 'price adjustment +5%',          created_at: daysAgo(2)  },
+  { _id: 8, actor: 'grace', action: 'INSERT', target_collection: 'users',     target_id: null, detail: 'bulk import 5 new accounts', created_at: daysAgo(1)  },
+  { _id: 9, actor: 'alice', action: 'UPDATE', target_collection: 'shipments', target_id:  3, detail: 'tracking number corrected',     created_at: daysAgo(1)  },
+  { _id:10, actor: 'rose',  action: 'UPDATE', target_collection: 'payments',  target_id: 16, detail: 'refund processed',              created_at: now         },
+]);
+
+db.audit_log.createIndex({ actor: 1 });
+db.audit_log.createIndex({ created_at: -1 });
+print(`Inserted ${db.audit_log.countDocuments()} audit_log entries`);
+
+// ── Summary ───────────────────────────────────────────────────────────────────
+
+print('');
+print('✅ MongoDB bean_dev seed complete');
+print('   Collections: users, products, orders, order_items, payments, shipments, audit_log');
+print('   Run:  mongosh mongodb://localhost:27017/bean_dev --eval "show collections"');
