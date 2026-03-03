@@ -1,5 +1,6 @@
 import Fastify from 'fastify';
 import fastifyWebsocket from '@fastify/websocket';
+import fastifyRateLimit from '@fastify/rate-limit';
 import type { UserRole } from '@tfsdc/kernel';
 import {
   authenticate,
@@ -68,6 +69,15 @@ export async function buildServer(deps: ServerDeps) {
     },
   });
   const APP_ENV = (process.env.APP_ENV ?? 'dev').toLowerCase();
+
+  await app.register(fastifyRateLimit, {
+    max: 60,
+    timeWindow: '1 minute',
+    errorResponseBuilder: (_req: unknown, ctx: { max: number; after: string }) => ({
+      error: `Rate limit exceeded — max ${ctx.max} req/min`,
+      retryAfter: ctx.after,
+    }),
+  });
 
   await app.register(fastifyWebsocket);
 
@@ -148,7 +158,9 @@ export async function buildServer(deps: ServerDeps) {
   }
 
   // ─── Auth ────────────────────────────────────────
-  app.post('/api/v1/auth/login', async (request, reply) => {
+  app.post('/api/v1/auth/login', {
+    config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
+  }, async (request, reply) => {
     const body = request.body as { username?: string; password?: string };
     if (!body?.username || !body?.password) {
       return reply.status(400).send({ error: 'username and password are required' });
@@ -792,7 +804,9 @@ Provide brief explanations in Korean.`;
 
   // ─── Connection Test ─────────────────────────────
   // No auth required — CLI is on trusted local network
-  app.post('/api/v1/connections/test', async (request, reply) => {
+  app.post('/api/v1/connections/test', {
+    config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+  }, async (request, reply) => {
     const body = request.body as {
       type?: string;
       host?: string;
