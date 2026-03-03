@@ -40,6 +40,9 @@ export const Panel: React.FC<PanelProps> = ({
       width={width}
       height={height}
       flexGrow={flexGrow}
+      // minWidth=0 lets the box shrink below its content's intrinsic width
+      // (critical for flex-grow panels so long text doesn't blow out the layout)
+      minWidth={width === undefined ? 0 : undefined}
     >
       {/* Title row */}
       <Box>
@@ -52,7 +55,7 @@ export const Panel: React.FC<PanelProps> = ({
       </Box>
 
       {/* Content */}
-      <Box flexDirection={flexDirection} flexGrow={1} paddingX={1} paddingTop={0}>
+      <Box flexDirection={flexDirection} flexGrow={1} minWidth={0} paddingX={1} paddingTop={0}>
         {children}
       </Box>
     </Box>

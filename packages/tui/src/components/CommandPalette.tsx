@@ -9,19 +9,21 @@ interface Command {
 }
 
 const COMMANDS: Command[] = [
-  { id: 'connect',  label: 'Connect to Database',    group: 'Connection', key: 'c' },
-  { id: 'disconnect',label:'Disconnect',             group: 'Connection' },
-  { id: 'schema',   label: 'Browse Schema',           group: 'Navigation', key: 's' },
-  { id: 'query',    label: 'New Query Tab',           group: 'Query',      key: 'n' },
-  { id: 'history',  label: 'Query History',           group: 'Query',      key: 'h' },
-  { id: 'run',      label: 'Run Current Query',       group: 'Query',      key: 'r' },
-  { id: 'ai',       label: 'Ask AI (beanllm)',        group: 'AI',         key: 'a' },
-  { id: 'ai-explain',label:'Explain Current Query',  group: 'AI' },
-  { id: 'ai-fix',   label: 'Fix Last Error with AI', group: 'AI' },
-  { id: 'monitor',  label: 'Stream Monitor',          group: 'Tools',      key: 'm' },
-  { id: 'indexes',  label: 'Index Manager',           group: 'Tools',      key: 'i' },
-  { id: 'settings', label: 'Settings',                group: 'Tools' },
-  { id: 'quit',     label: 'Quit beanCLI',            group: 'App',        key: 'q' },
+  // Navigation
+  { id: 'schema',   label: 'Schema Panel',            group: 'Navigate',   key: '1' },
+  { id: 'query',    label: 'Query Editor',             group: 'Navigate',   key: '2' },
+  { id: 'ai',       label: 'AI Chat (beanllm)',        group: 'Navigate',   key: '4' },
+  { id: 'tables',   label: 'Table Picker',             group: 'Navigate',   key: 't' },
+  // Views
+  { id: 'monitor',  label: 'Stream Monitor',           group: 'Views',      key: 'm' },
+  { id: 'indexes',  label: 'Index Lab',                group: 'Views',      key: 'i' },
+  { id: 'audit',    label: 'Audit Log',                group: 'Views',      key: 'u' },
+  { id: 'recovery', label: 'DLQ Recovery',             group: 'Views',      key: 'd' },
+  // Connection
+  { id: 'create-table', label: 'Create Table (wizard)', group: 'Connection', key: 'c' },
+  { id: 'disconnect',   label: 'Disconnect DB',         group: 'Connection' },
+  // App
+  { id: 'quit',     label: 'Quit beanCLI',             group: 'App',        key: 'q' },
 ];
 
 interface CommandPaletteProps {

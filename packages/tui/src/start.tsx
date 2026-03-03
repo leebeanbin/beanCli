@@ -11,9 +11,30 @@ export interface StartOptions {
 
 /** Start the Ink TUI — call this from the CLI entry point. */
 export function start(options?: StartOptions): void {
-  render(
+  // Enter the terminal alternate screen buffer so renders don't accumulate.
+  // Mirrors what { fullscreen: true } did in Ink v4.
+  if (process.stdout.isTTY) {
+    process.stdout.write('\x1b[?1049h\x1b[H');
+  }
+
+  const restore = (): void => {
+    if (process.stdout.isTTY) {
+      process.stdout.write('\x1b[?1049l');
+    }
+  };
+
+  // Restore on unexpected exit (Ctrl+C, SIGTERM, etc.)
+  process.once('exit',    restore);
+  process.once('SIGINT',  () => { restore(); process.exit(0); });
+  process.once('SIGTERM', () => { restore(); process.exit(0); });
+
+  const instance = render(
     <AppContextProvider connectionService={options?.connectionService}>
       <App />
     </AppContextProvider>,
   );
+
+  void instance.waitUntilExit().then(() => {
+    restore();
+  });
 }
