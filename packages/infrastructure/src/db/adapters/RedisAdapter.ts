@@ -41,54 +41,72 @@ export class RedisAdapter implements IDbAdapter {
     return [...prefixes].sort();
   }
 
-  /** Returns key/value pairs matching the FROM clause prefix */
+  /** Returns key/value pairs matching the FROM clause prefix.
+   *  Uses two ioredis pipelines to avoid N+1 RTT:
+   *  pipeline-1 → TYPE all keys in one round-trip
+   *  pipeline-2 → fetch values in one round-trip based on types
+   */
   async queryRows(sql: string, _params?: unknown[]): Promise<Record<string, unknown>[]> {
     const match = /FROM\s+(\S+)/i.exec(sql);
     const prefix = match ? match[1] : '';
     const client = await this.getRedis() as {
       keys:     (p: string) => Promise<string[]>;
-      type:     (k: string) => Promise<string>;
-      get:      (k: string) => Promise<string | null>;
-      hgetall:  (k: string) => Promise<Record<string, string> | null>;
-      lrange:   (k: string, start: number, stop: number) => Promise<string[]>;
-      smembers: (k: string) => Promise<string[]>;
-      zrange:   (k: string, start: number, stop: number) => Promise<string[]>;
+      pipeline: () => {
+        type:     (k: string) => unknown;
+        get:      (k: string) => unknown;
+        hgetall:  (k: string) => unknown;
+        lrange:   (k: string, s: number, e: number) => unknown;
+        smembers: (k: string) => unknown;
+        zrange:   (k: string, s: number, e: number) => unknown;
+        exec:     () => Promise<[Error | null, unknown][]>;
+      };
     };
     const pattern = prefix ? `${prefix}:*` : '*';
     const keys = (await client.keys(pattern)).sort().slice(0, 100);
-    const rows: Record<string, unknown>[] = [];
-    for (const key of keys) {
-      const keyType = await client.type(key);
+    if (keys.length === 0) return [];
+
+    // Pipeline 1: fetch all types in one round-trip
+    const p1 = client.pipeline();
+    keys.forEach(k => p1.type(k));
+    const typeResults = await p1.exec();
+    const types = typeResults.map(r => (r[1] as string) ?? 'string');
+
+    // Pipeline 2: fetch all values in one round-trip based on types
+    const p2 = client.pipeline();
+    keys.forEach((k, i) => {
+      switch (types[i]) {
+        case 'hash':  p2.hgetall(k);           break;
+        case 'list':  p2.lrange(k, 0, -1);     break;
+        case 'set':   p2.smembers(k);           break;
+        case 'zset':  p2.zrange(k, 0, -1);     break;
+        default:      p2.get(k);               break;
+      }
+    });
+    const valResults = await p2.exec();
+
+    return keys.map((key, i) => {
+      const keyType = types[i] ?? 'string';
+      const val     = valResults[i]?.[1];
       switch (keyType) {
-        case 'hash': {
-          const fields = await client.hgetall(key);
+        case 'hash':
           // Spread hash fields as flat table columns for a proper row-like view
-          rows.push({ key, ...(fields ?? {}) });
-          break;
-        }
+          return { key, ...((val as Record<string, string> | null) ?? {}) };
         case 'list': {
-          const items = await client.lrange(key, 0, -1);
-          rows.push({ key, type: 'list', value: items.join(' | '), length: items.length });
-          break;
+          const items = (val as string[]) ?? [];
+          return { key, type: 'list', value: items.join(' | '), length: items.length };
         }
         case 'set': {
-          const members = await client.smembers(key);
-          rows.push({ key, type: 'set', value: members.join(' | '), length: members.length });
-          break;
+          const members = (val as string[]) ?? [];
+          return { key, type: 'set', value: members.join(' | '), length: members.length };
         }
         case 'zset': {
-          const members = await client.zrange(key, 0, -1);
-          rows.push({ key, type: 'zset', value: members.join(' | '), length: members.length });
-          break;
+          const members = (val as string[]) ?? [];
+          return { key, type: 'zset', value: members.join(' | '), length: members.length };
         }
-        default: {
-          // string or unknown
-          const val = await client.get(key);
-          rows.push({ key, type: keyType, value: val ?? '' });
-        }
+        default:
+          return { key, type: keyType, value: (val as string | null) ?? '' };
       }
-    }
-    return rows;
+    });
   }
 
   async close(): Promise<void> {
