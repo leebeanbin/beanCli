@@ -11,7 +11,7 @@ import {
   EventDispatcher,
   ConcurrencyController,
 } from '@tfsdc/application';
-import type { IMetricsProvider } from '@tfsdc/application';
+import type { IMetricsProvider } from '@tfsdc/domain';
 import {
   OrderCreatedHandler,
   PaymentCapturedHandler,
