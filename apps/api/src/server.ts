@@ -49,7 +49,24 @@ export async function buildServer(deps: ServerDeps) {
   // Register all DB adapters once at startup
   initDbAdapters();
 
-  const app = Fastify({ logger: true });
+  const app = Fastify({
+    logger: {
+      // SEC-006: redact sensitive fields from all pino log records
+      redact: {
+        paths: [
+          'req.headers.authorization',
+          'req.headers.cookie',
+          'body.password',
+          'body.credential',
+          'body.secret',
+          '*.password',
+          '*.credential',
+          '*.secret',
+        ],
+        censor: '[REDACTED]',
+      },
+    },
+  });
   const APP_ENV = (process.env.APP_ENV ?? 'dev').toLowerCase();
 
   await app.register(fastifyWebsocket);
