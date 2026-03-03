@@ -18,7 +18,9 @@ export function LiveTableRefresh({ table }: { table: string }) {
   return (
     <span
       title={connected ? 'Live updates active' : 'Connecting…'}
-      className={`inline-block w-2 h-2 rounded-full ml-2 ${connected ? 'bg-green-500' : 'bg-gray-400'}`}
-    />
+      className={`font-mono text-xs ml-1 ${connected ? 'text-ok' : 'text-fg-2'}`}
+    >
+      {connected ? '●' : '○'}
+    </span>
   );
 }
