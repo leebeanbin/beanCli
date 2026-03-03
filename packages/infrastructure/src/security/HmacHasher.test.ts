@@ -46,3 +46,32 @@ describe('HmacHasher', () => {
     expect(mockKeyStore.getKeyById).toHaveBeenCalledWith('key-002');
   });
 });
+
+describe('HmacHasher — key rotation', () => {
+  const oldKey: HmacKey = {
+    keyId: 'key-001',
+    value: Buffer.from('test-secret-key-32-bytes-long!!!'),
+  };
+  const newKey: HmacKey = {
+    keyId: 'key-002',
+    value: Buffer.from('new-secret-key-32-bytes-long!!!!'),
+  };
+
+  it('hash() uses active (new) key while hashWithKeyId() uses old key — results differ', async () => {
+    const rotationStore: IKeyStore = {
+      getActiveKey: jest.fn().mockResolvedValue(newKey),
+      getKeyById: jest.fn().mockImplementation(async (id: string) =>
+        id === 'key-001' ? oldKey : newKey,
+      ),
+      getActiveKeyId: jest.fn().mockResolvedValue('key-002'),
+    };
+    const h = new HmacHasher(rotationStore);
+
+    const hashWithNewKey = await h.hash('user', 'USR-001');
+    const hashWithOldKey = await h.hashWithKeyId('user', 'USR-001', 'key-001');
+
+    expect(hashWithNewKey).not.toBe(hashWithOldKey);
+    expect(rotationStore.getActiveKey).toHaveBeenCalledTimes(1);
+    expect(rotationStore.getKeyById).toHaveBeenCalledWith('key-001');
+  });
+});
