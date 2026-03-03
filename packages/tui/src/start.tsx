@@ -7,6 +7,10 @@ import type { IConnectionService } from './services/types.js';
 export interface StartOptions {
   /** Inject a connection service (filesystem + DB adapter access). */
   connectionService?: IConnectionService;
+  /** Pre-loaded query history entries (loaded from disk by the CLI entry point). */
+  initialHistory?: string[];
+  /** Called after each successful query to persist the entry (handled by CLI entry point). */
+  onHistoryAdd?: (sql: string) => void;
 }
 
 /** Start the Ink TUI — call this from the CLI entry point. */
@@ -29,7 +33,11 @@ export function start(options?: StartOptions): void {
   process.once('SIGTERM', () => { restore(); process.exit(0); });
 
   const instance = render(
-    <AppContextProvider connectionService={options?.connectionService}>
+    <AppContextProvider
+      connectionService={options?.connectionService}
+      initialHistory={options?.initialHistory}
+      onHistoryAdd={options?.onHistoryAdd}
+    >
       <App />
     </AppContextProvider>,
   );

@@ -70,6 +70,10 @@ interface AppState {
   dmlConfirm:    { sql: string; rowCount: number } | null;
   setDmlConfirm: (v: { sql: string; rowCount: number } | null) => void;
 
+  /** Persistent history: pre-loaded entries and callback to persist new ones */
+  initialHistory: string[];
+  onHistoryAdd:   ((sql: string) => void) | undefined;
+
   /** ResultPanel: toggle between horizontal table and vertical (psql \x) display */
   expandedMode:    boolean;
   setExpandedMode: (v: boolean | ((prev: boolean) => boolean)) => void;
@@ -81,13 +85,17 @@ interface AppState {
 const AppContext = createContext<AppState | null>(null);
 
 interface ProviderProps {
-  children:          React.ReactNode;
+  children:           React.ReactNode;
   connectionService?: IConnectionService;
+  initialHistory?:    string[];
+  onHistoryAdd?:      (sql: string) => void;
 }
 
 export const AppContextProvider: React.FC<ProviderProps> = ({
   children,
   connectionService = null,
+  initialHistory = [],
+  onHistoryAdd,
 }) => {
   const [startupPhase,     setStartupPhase]     = useState<StartupPhase>('connection-picker');
   const [userRole,         setUserRole]         = useState<UserRole | null>(null);
@@ -133,6 +141,8 @@ export const AppContextProvider: React.FC<ProviderProps> = ({
       pendingSql,      setPendingSql,
       expandedMode,    setExpandedMode,
       dmlConfirm,      setDmlConfirm,
+      initialHistory,
+      onHistoryAdd,
       env,
     }}>
       {children}

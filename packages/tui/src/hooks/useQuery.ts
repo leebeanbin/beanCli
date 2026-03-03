@@ -40,11 +40,12 @@ export function useQuery(): UseQueryReturn {
     setQueryResult, setQueryLoading, setQueryError,
     setFocusedPanel, pendingSql, setPendingSql,
     dmlConfirm, setDmlConfirm,
+    initialHistory, onHistoryAdd,
   } = useAppContext();
 
   const [input,     setInputRaw]  = useState('');
   const [cursorPos, setCursorPos] = useState(0);
-  const [history,   setHistory]   = useState<string[]>([]);
+  const [history,   setHistory]   = useState<string[]>(initialHistory);
   const [histIdx,   setHistIdx]   = useState(-1);
   const [loading,   setLoading]   = useState(false);
 
@@ -110,6 +111,7 @@ export function useQuery(): UseQueryReturn {
       setHistory(prev =>
         [query, ...prev.filter(h => h !== query)].slice(0, MAX_HISTORY),
       );
+      onHistoryAdd?.(query);
       setHistIdx(-1);
     }
   }, [connectionService, activeConnection,
