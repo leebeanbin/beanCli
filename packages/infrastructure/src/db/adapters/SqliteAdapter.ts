@@ -1,5 +1,13 @@
 import type { IDbAdapter } from './IDbAdapter.js';
 
+const MAX_ROWS_SENTINEL = 5001;
+function injectLimit(sql: string): string {
+  if (/^\s*SELECT\b/i.test(sql) && !/\bLIMIT\s+\d+/i.test(sql)) {
+    return `${sql} LIMIT ${MAX_ROWS_SENTINEL}`;
+  }
+  return sql;
+}
+
 export interface SqliteAdapterConfig {
   database?: string; // file path, or ':memory:'
 }
@@ -42,7 +50,7 @@ export class SqliteAdapter implements IDbAdapter {
 
   async queryRows(sql: string, params?: unknown[]): Promise<Record<string, unknown>[]> {
     const db = await this.getDb();
-    return db.prepare(sql).all(...(params ?? []));
+    return db.prepare(injectLimit(sql)).all(...(params ?? []));
   }
 
   async close(): Promise<void> {

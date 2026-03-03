@@ -1,5 +1,13 @@
 import type { IDbAdapter } from './IDbAdapter.js';
 
+const MAX_ROWS_SENTINEL = 5001;
+function injectLimit(sql: string): string {
+  if (/^\s*SELECT\b/i.test(sql) && !/\bLIMIT\s+\d+/i.test(sql)) {
+    return `${sql} LIMIT ${MAX_ROWS_SENTINEL}`;
+  }
+  return sql;
+}
+
 export interface MySqlAdapterConfig {
   host?: string;
   port?: number;
@@ -54,7 +62,7 @@ export class MySqlAdapter implements IDbAdapter {
     const conn = await this.getConnection() as {
       execute: (opts: { sql: string; timeout: number; values: unknown[] }) => Promise<[Array<Record<string, unknown>>, unknown]>;
     };
-    const [rows] = await conn.execute({ sql, timeout: 30_000, values: params ?? [] });
+    const [rows] = await conn.execute({ sql: injectLimit(sql), timeout: 30_000, values: params ?? [] });
     return rows as Record<string, unknown>[];
   }
 

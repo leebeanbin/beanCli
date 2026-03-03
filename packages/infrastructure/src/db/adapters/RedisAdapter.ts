@@ -63,7 +63,7 @@ export class RedisAdapter implements IDbAdapter {
       };
     };
     const pattern = prefix ? `${prefix}:*` : '*';
-    const keys = (await client.keys(pattern)).sort().slice(0, 100);
+    const keys = (await client.keys(pattern)).sort().slice(0, 5001);
     if (keys.length === 0) return [];
 
     // Pipeline 1: fetch all types in one round-trip
