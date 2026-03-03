@@ -23,11 +23,12 @@
     "dev:all": "bash scripts/dev-start.sh",
     "dev:api": "turbo run dev --filter=@tfsdc/api",
     "dev:projector": "turbo run dev --filter=@tfsdc/projector",
-    "dev:cli": "node --env-file=.env --watch --import tsx apps/cli/src/index.ts",
-    "dev:cli:ink": "node --env-file=.env --watch --import tsx/esm apps/cli/src/index-ink.tsx",
+    "dev:cli": "node --env-file=.env --watch --import tsx/esm apps/cli/src/index-ink.tsx",
     "dev:mock": "node --watch --import tsx/esm apps/cli/src/index-ink.tsx --mock",
-    "dev:cli:ink:filter": "turbo run dev:ink --filter=@tfsdc/cli",
     "dev:recovery": "turbo run dev --filter=@tfsdc/recovery-worker",
+    "beancli": "tsx apps/cli/src/index-ink.tsx",
+    "beancli:mock": "tsx apps/cli/src/index-ink.tsx --mock",
+    "link:global": "cd apps/cli && pnpm link --global",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "docker:reset": "docker compose down -v && docker compose up -d",
@@ -35,7 +36,7 @@
     "data:quality": "bash scripts/data-quality-report.sh",
     "data:quality:gate": "bash scripts/data-quality-gate.sh",
     "dev:stop": "bash scripts/dev-stop.sh",
-    "setup": "cp -n .env.example .env 2>/dev/null; pnpm install; pnpm docker:up; pnpm docker:wait; echo '✅ Ready! Run: pnpm dev:all'"
+    "setup": "cp -n .env.example .env 2>/dev/null; pnpm install; pnpm link:global; pnpm docker:up; pnpm docker:wait; echo '✅ Ready! Run: beancli --mock  (or beancli for real mode)'"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
