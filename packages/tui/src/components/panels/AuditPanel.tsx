@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { useAppContext } from '../../context/AppContext.js';
 import { SPINNER } from '../../utils/constants.js';
+import { useCursor } from '../../hooks/useCursor.js';
 
 type Category = 'ALL' | 'AUTH' | 'CHANGE' | 'APPROVAL' | 'SYSTEM';
 const CATEGORIES: Category[] = ['ALL', 'AUTH', 'CHANGE', 'APPROVAL', 'SYSTEM'];
@@ -39,7 +40,6 @@ export const AuditPanel: React.FC = () => {
 
   const [allRows,    setAllRows]    = useState<Record<string, unknown>[]>([]);
   const [catIdx,     setCatIdx]     = useState(0);
-  const [cursor,     setCursor]     = useState(0);
   const [loading,    setLoading]    = useState(false);
   const [error,      setError]      = useState<string | null>(null);
   const [filter,     setFilter]     = useState('');
@@ -49,15 +49,20 @@ export const AuditPanel: React.FC = () => {
   const isActive = (focusedPanel === 'query' || focusedPanel === 'result') && !overlay && !paletteOpen;
   const cat      = CATEGORIES[catIdx] ?? 'ALL';
 
-  const catFiltered = cat === 'ALL'
+  const catFiltered = useMemo(() => cat === 'ALL'
     ? allRows
-    : allRows.filter(r => String(r['category'] ?? '').toUpperCase() === cat);
+    : allRows.filter(r => String(r['category'] ?? '').toUpperCase() === cat),
+    [allRows, cat],
+  );
 
-  const filtered = filter
-    ? catFiltered.filter(r =>
-        Object.values(r).some(v => String(v ?? '').toLowerCase().includes(filter.toLowerCase())),
-      )
-    : catFiltered;
+  const filtered = useMemo(
+    () => filter
+      ? catFiltered.filter(r =>
+          Object.values(r).some(v => String(v ?? '').toLowerCase().includes(filter.toLowerCase())),
+        )
+      : catFiltered,
+    [catFiltered, filter],
+  );
 
   useEffect(() => {
     if (!loading) return;
@@ -73,14 +78,13 @@ export const AuditPanel: React.FC = () => {
     setLoading(false);
     if (res.error) { setError(res.error); return; }
     setAllRows(res.rows);
-    setCursor(0);
   }, [connectionService, activeConnection]);
 
   const fetchRef = useRef(fetchData);
   fetchRef.current = fetchData;
   useEffect(() => { void fetchRef.current(); }, []);
 
-  const maxCursor = Math.max(0, filtered.length - 1);
+  const [cursor, setCursor] = useCursor(filtered.length, isActive && !filtering);
 
   useInput((inp, key) => {
     if (!isActive) return;
@@ -90,8 +94,6 @@ export const AuditPanel: React.FC = () => {
       if (inp && inp >= ' ' && !key.ctrl) { setFilter(s => s + inp); }
       return;
     }
-    if (key.upArrow   || inp === 'k') { setCursor(c => Math.max(0, c - 1)); return; }
-    if (key.downArrow || inp === 'j') { setCursor(c => Math.min(maxCursor, c + 1)); return; }
     if (inp === 'f') { setCatIdx(i => (i + 1) % CATEGORIES.length); setCursor(0); return; }
     if (inp === '/')  { setFiltering(true); setFilter(''); return; }
     if (key.escape)  { setFilter(''); setFiltering(false); return; }
