@@ -177,11 +177,13 @@ apps/cli/src/cliConnectionService.ts:
   - 예상 효과: 암호화 처리량 3–10× 향상
 ```
 
-#### SEC-005 — LIMIT 자동 주입
+#### ~~SEC-005 — LIMIT 자동 주입~~ ✅ 완료 (2026-03-03)
 ```
-현황: SQL에 LIMIT 없으면 어댑터가 전체 결과를 메모리에 올린 후 5000행 slice
-개선: queryRows() 진입 전 "SELECT ... FROM ... [WHERE ...]" 패턴에 자동 "LIMIT 5001" 주입
-       → 드라이버/DB 레벨에서 차단 (메모리 + 네트워크 비용 절감)
+구현: 각 어댑터 queryRows() 에 injectLimit() 헬퍼 추가
+  PgAdapter / MySqlAdapter / SqliteAdapter: SELECT에 LIMIT 없으면 LIMIT 5001 자동 주입
+  MongoAdapter: 기본 limit 500 → 5001
+  RedisAdapter: keys slice 100 → 5001
+  → 드라이버/DB 레벨에서 차단 (메모리 + 네트워크 비용 절감)
 ```
 
 ### 7-2. 보안 강화 (HIGH)
@@ -202,48 +204,47 @@ apps/cli/src/cliConnectionService.ts:
   /api/v1/connections/test: 10 req/min
 ```
 
-#### JWT 만료 시간 검증 강화
+#### ~~JWT 만료 시간 검증 강화~~ ✅ 완료 (2026-03-03)
 ```
-현황: JWT_SECRET=dev-jwt-secret-change-in-prod — 기본값 방치 시 위험
-개선: APP_ENV=prod 시 기본 시크릿 사용 금지 validation, 최소 256-bit 강제
+구현: apps/api/src/index.ts — main() 진입 직후 APP_ENV=prod 검사
+  1. JWT_SECRET 미설정 또는 기본값 → FATAL + process.exit(1)
+  2. 32 bytes 미만 → FATAL + process.exit(1)
 ```
 
 ### 7-3. 테스트 강화 (MEDIUM)
 
-#### MySQL/MongoDB/Redis 통합 테스트 (현재 SKIP)
+#### ~~MySQL/MongoDB/Redis 통합 테스트~~ ✅ 완료 (2026-03-03)
 ```
-현황: DB 연결 필요 테스트 39개가 CI에서 스킵됨
-개선: GitHub Actions에 서비스 컨테이너 추가
-  services:
-    mysql: { image: mysql:8.0, env: MYSQL_ROOT_PASSWORD }
-    redis: { image: redis:7 }
-    mongo: { image: mongo:7 }
-→ 실제 드라이버 레벨 쿼리 타임아웃/injection 방어 검증 가능
+구현: .github/workflows/ci.yml
+  services: postgres:15, mysql:8, mongo:7, redis:7 (각 헬스체크 포함)
+  steps: checkout → pnpm setup → node 20 → install → build → test
+  → push/PR on master 자동 실행
 ```
 
-#### 암호화 키 로테이션 테스트 없음
+#### ~~암호화 키 로테이션 테스트 없음~~ ✅ 완료 (2026-03-03)
 ```
-현황: AesEncryptor/HmacHasher 구버전 키로 복호화 경로 미검증
-개선: keyId 매핑 + 구키/신키 round-trip 테스트 추가
-```
-
-#### API E2E 테스트 없음
-```
-현황: apps/api 는 --passWithNoTests (테스트 없음)
-개선: supertest or fastify inject() 로 핵심 엔드포인트 E2E 추가
-  - POST /api/v1/auth/login (200, 401)
-  - POST /api/v1/sql/execute (role check)
-  - GET /api/v1/schema/tables (auth required)
+구현:
+  AesEncryptor.test.ts — 'key rotation' describe 블록
+    - old key 암호화 → keyId 라우팅 복호화 성공
+    - wrong key 복호화 시 throw
+  HmacHasher.test.ts — 'key rotation' describe 블록
+    - hash() (active=new key) vs hashWithKeyId('key-001') → 결과 다름
 ```
 
-#### 로드 테스트 CI 통합
+#### ~~API E2E 테스트 없음~~ ✅ 완료 (2026-03-03)
 ```
-현황: apps/api/scripts/loadtest.ts — 수동 실행만 가능 (pnpm loadtest)
-개선: SLO 위반 시 CI fail 조건 추가
-  export LOADTEST_DURATION=5
-  export LOADTEST_CONNECTIONS=5
-  pnpm --filter @tfsdc/api loadtest || exit 1
-  # p99 > 200ms or error% > 1% → CI 실패
+구현: apps/api/jest.config.cjs + src/__tests__/server.test.ts
+  7개 케이스: GET /health, 로그인 valid/invalid, /audit no-auth,
+  /schema/tables public, /sql/execute ANALYST→403, rate-limit 429
+  (전 @tfsdc/* 패키지 mock — 실제 DB 불필요)
+```
+
+#### ~~로드 테스트 CI 통합~~ ✅ 완료 (2026-03-03)
+```
+구현: apps/api/scripts/loadtest.ts
+  printSummary() 반환 타입: void → number (SLO 위반 수 반환)
+  main(): violations = printSummary(results) → violations > 0 시 process.exit(1)
+  → pnpm --filter @tfsdc/api loadtest 가 CI에서 non-zero exit 반환
 ```
 
 ### 7-4. 기능 보완 (MEDIUM)
