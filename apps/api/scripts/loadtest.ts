@@ -200,7 +200,7 @@ async function runEndpoint(ep: EndpointDef): Promise<BenchResult> {
 
 // ── Summary table ─────────────────────────────────────────────────────────────
 
-function printSummary(results: BenchResult[]): void {
+function printSummary(results: BenchResult[]): number {
   console.log(`\n${C.bold}${C.magenta}╔══════════════════════════════════════════════════════════════════════════╗`);
   console.log(`║                   LOAD TEST SUMMARY REPORT                            ║`);
   console.log(`╚══════════════════════════════════════════════════════════════════════════╝${C.reset}`);
@@ -252,6 +252,7 @@ function printSummary(results: BenchResult[]): void {
       console.log(`    ${C.red}• ${r.label}: ${reasons.join(', ')}${C.reset}`);
     }
   }
+  return failed.length;
 }
 
 // ── Save JSON report ──────────────────────────────────────────────────────────
@@ -306,8 +307,12 @@ async function main(): Promise<void> {
     console.log('');
   }
 
-  printSummary(results);
+  const violations = printSummary(results);
   saveReport(results);
+  if (violations > 0) {
+    console.error(`\n[loadtest] ✗ ${violations} SLO violation(s) — exit 1`);
+    process.exit(1);
+  }
 }
 
 main().catch(err => {
