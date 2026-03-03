@@ -1,18 +1,20 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { ChangeTable } from '../../components/ChangeTable';
 import { apiClient, getToken } from '../../lib/api';
 import type { ChangeRow } from '../../components/ChangeTable';
 
 export default function ChangesPage() {
+  const searchParams = useSearchParams();
   const [changes, setChanges] = useState<ChangeRow[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // New change form
-  const [sql, setSql] = useState('');
+  // New change form — pre-fill from ?sql= param if provided
+  const [sql, setSql] = useState(() => searchParams.get('sql') ?? '');
   const [environment, setEnvironment] = useState('DEV');
   const [submitting, setSubmitting] = useState(false);
 
