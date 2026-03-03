@@ -44,17 +44,49 @@ export class RedisAdapter implements IDbAdapter {
   /** Returns key/value pairs matching the FROM clause prefix */
   async queryRows(sql: string, _params?: unknown[]): Promise<Record<string, unknown>[]> {
     const match = /FROM\s+(\S+)/i.exec(sql);
-    const prefix = match ? match[1] : '*';
+    const prefix = match ? match[1] : '';
     const client = await this.getRedis() as {
-      keys: (p: string) => Promise<string[]>;
-      get: (k: string) => Promise<string | null>;
+      keys:     (p: string) => Promise<string[]>;
+      type:     (k: string) => Promise<string>;
+      get:      (k: string) => Promise<string | null>;
+      hgetall:  (k: string) => Promise<Record<string, string> | null>;
+      lrange:   (k: string, start: number, stop: number) => Promise<string[]>;
+      smembers: (k: string) => Promise<string[]>;
+      zrange:   (k: string, start: number, stop: number) => Promise<string[]>;
     };
-    const keys = await client.keys(`${prefix!}*`);
-    const limited = keys.slice(0, 100);
+    const pattern = prefix ? `${prefix}:*` : '*';
+    const keys = (await client.keys(pattern)).sort().slice(0, 100);
     const rows: Record<string, unknown>[] = [];
-    for (const key of limited) {
-      const val = await client.get(key);
-      rows.push({ key, value: val });
+    for (const key of keys) {
+      const keyType = await client.type(key);
+      switch (keyType) {
+        case 'hash': {
+          const fields = await client.hgetall(key);
+          // Spread hash fields as flat table columns for a proper row-like view
+          rows.push({ key, ...(fields ?? {}) });
+          break;
+        }
+        case 'list': {
+          const items = await client.lrange(key, 0, -1);
+          rows.push({ key, type: 'list', value: items.join(' | '), length: items.length });
+          break;
+        }
+        case 'set': {
+          const members = await client.smembers(key);
+          rows.push({ key, type: 'set', value: members.join(' | '), length: members.length });
+          break;
+        }
+        case 'zset': {
+          const members = await client.zrange(key, 0, -1);
+          rows.push({ key, type: 'zset', value: members.join(' | '), length: members.length });
+          break;
+        }
+        default: {
+          // string or unknown
+          const val = await client.get(key);
+          rows.push({ key, type: keyType, value: val ?? '' });
+        }
+      }
     }
     return rows;
   }

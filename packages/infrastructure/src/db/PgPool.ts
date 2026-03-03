@@ -1,6 +1,5 @@
 import { Pool, type PoolConfig, type PoolClient } from 'pg';
-import type { DbTransaction } from '@tfsdc/domain';
-import type { IProjectorDb, IMetricsProvider } from '@tfsdc/application';
+import type { DbTransaction, IProjectorDb, IMetricsProvider } from '@tfsdc/domain';
 import type { IDbSession } from '@tfsdc/application';
 
 export class PgPool implements IProjectorDb, IMetricsProvider {

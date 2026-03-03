@@ -43,6 +43,19 @@ export class MongoAdapter implements IDbAdapter {
 
   async queryRows(sql: string, _params?: unknown[]): Promise<Record<string, unknown>[]> {
     // MongoDB doesn't use SQL — parse a minimal "SELECT * FROM <collection>" pattern
+    // Special case: SHOW DATABASES → list all databases via admin interface
+    if (/SHOW\s+DATABASES/i.test(sql)) {
+      const client = await this.getClient() as {
+        db: (name?: string) => {
+          admin: () => {
+            listDatabases: () => Promise<{ databases: Array<{ name: string; sizeOnDisk?: number }> }>;
+          };
+        };
+      };
+      const result = await client.db().admin().listDatabases();
+      return result.databases.map(db => ({ name: db.name, sizeOnDisk: db.sizeOnDisk ?? 0 }));
+    }
+
     const match = /FROM\s+(\w+)/i.exec(sql);
     if (!match) return [];
     const client = await this.getClient() as {
