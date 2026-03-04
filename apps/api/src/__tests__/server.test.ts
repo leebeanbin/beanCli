@@ -54,7 +54,7 @@ import {
 const mockAuthenticate  = authenticate  as jest.Mock;
 const mockCheckRole     = checkRole     as jest.Mock;
 const mockHealthHandler = healthHandler as jest.Mock;
-const mockListAuditLogs = listAuditLogs as jest.Mock;
+const _mockListAuditLogs = listAuditLogs as jest.Mock;
 
 // ── JWT helper (matches the token format used in server/index.ts) ──────────
 const TEST_SECRET = 'test-secret-32-bytes-padding!!!!';

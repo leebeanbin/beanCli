@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useWsEvents } from '../hooks/useWsEvents';
 
-const WS_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000')
+const WS_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3100')
   .replace(/^https?/, 'ws') + '/ws';
 
 export function LiveTableRefresh({ table }: { table: string }) {
@@ -13,7 +13,7 @@ export function LiveTableRefresh({ table }: { table: string }) {
 
   useEffect(() => {
     if (lastEvent) router.refresh();
-  }, [lastEvent]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [lastEvent]); // router is stable (Next.js guarantee)
 
   return (
     <span
