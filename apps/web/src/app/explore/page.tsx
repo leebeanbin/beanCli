@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiClient, getToken } from '../../lib/api';
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3100';
+
 interface TableRow {
   table_name: string;
   row_count?: number;
@@ -80,7 +82,11 @@ export default function ExplorePage() {
     if (!selected) return;
     const id = row['id'] ?? row['entity_id_hash'];
     if (!id) return;
-    await apiClient.post(`/api/v1/state/${selected}/${String(id)}/delete`, {});
+    const token = getToken();
+    await fetch(`${API_BASE}/api/v1/state/${selected}/${String(id)}`, {
+      method: 'DELETE',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
     void loadRows(selected, page);
   }
 

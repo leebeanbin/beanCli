@@ -54,24 +54,29 @@ export default function SchemaPage() {
     setAnalyzeResult(null);
     setLoading(true);
     const [colRes, idxRes] = await Promise.all([
-      apiClient.get<ColumnMeta[]>(`/api/v1/schema/tables/${name}/columns`),
-      apiClient.get<IndexMeta[]>('/api/v1/schema/indexes'),
+      // /api/v1/state/:table/schema returns column info
+      apiClient.get<ColumnMeta[]>(`/api/v1/state/${name}/schema`),
+      apiClient.get<{ indexes: IndexMeta[]; usage: IndexMeta[] }>('/api/v1/schema/indexes'),
     ]);
-    if (colRes.ok && colRes.data) setColumns(colRes.data);
+    if (colRes.ok && colRes.data) setColumns(Array.isArray(colRes.data) ? colRes.data : []);
     if (idxRes.ok && idxRes.data) {
-      const all = idxRes.data;
-      setIndexes(Array.isArray(all) ? all.filter((i) => i.table_name === name) : []);
+      const all = idxRes.data.indexes ?? [];
+      setIndexes(all.filter((i) => i.table_name === name));
     }
     setLoading(false);
   }
 
   async function analyze() {
     if (!selected) return;
-    const res = await apiClient.post<{ plan?: string; error?: string }>('/api/v1/schema/analyze', {
-      table: selected,
-    });
+    // analyze endpoint expects { sql: string }
+    const res = await apiClient.post<{ plan?: string | string[]; error?: string }>(
+      '/api/v1/schema/analyze',
+      { sql: `SELECT * FROM "${selected}" LIMIT 1` },
+    );
     if (res.ok && res.data) {
-      setAnalyzeResult(res.data.plan ?? res.data.error ?? 'No result');
+      const plan = res.data.plan;
+      const planStr = Array.isArray(plan) ? plan.join('\n') : (plan ?? res.data.error ?? 'No result');
+      setAnalyzeResult(planStr);
     } else {
       setAnalyzeResult(res.error ?? 'Analyze failed');
     }
