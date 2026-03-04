@@ -1,337 +1,435 @@
-# beanCLI — Terminal-First Database Console
-
-> 터미널에서 PostgreSQL · MySQL · SQLite · MongoDB · Redis 를 하나의 인터페이스로 탐색하고, SQL 변경을 심사·실행·감사하는 개발자 도구.
+<div align="center">
 
 ```
-╔══ beanCLI v0.1.2 ═══════════════════════════════════════════════════╗
-║ Schema [1]     ║  Query Editor [2]                                  ║
-║────────────────║────────────────────────────────────────────────────║
-║ > state_users  ║  1 │ SELECT *                                      ║
-║   state_orders ║  2 │   FROM "state_orders"                        ║
-║   state_prod.. ║  3 │  WHERE status = 'EXECUTING'                  ║
-║   payments     ║  4 │  LIMIT 50;                    Enter: execute ║
-║   shipments    ╠════════════════════════════════════════════════════╣
-║   audit_events ║  Results [3]                                       ║
-║   dlq_events   ║  entity_id_hash    status       total_cents        ║
-║                ║  > a3f7c2...       EXECUTING    $1,249.00          ║
-║                ║    b8e1d4...       DONE         $89.99             ║
-╠════════════════╬════════════════════════════════════════════════════╣
-║ AI · beanllm[4]║  PG  leebeanbin (pg) › state_orders   DBA   dev   ║
-╚════════════════╩════════════════════════════════════════════════════╝
+╔══════════════════════════════════════════════════════════════════╗
+║  ◈ BeanCLI  —  Terminal-First Database Console                  ║
+╚══════════════════════════════════════════════════════════════════╝
+```
+
+[![Node](https://img.shields.io/badge/Node-%3E%3D20.0-339933?style=flat-square&logo=nodedotjs&logoColor=white)](https://nodejs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![pnpm](https://img.shields.io/badge/pnpm-10.28.1-F69220?style=flat-square&logo=pnpm&logoColor=white)](https://pnpm.io)
+[![Turbo](https://img.shields.io/badge/Turbo-2.8-EF4444?style=flat-square&logo=turborepo&logoColor=white)](https://turbo.build)
+[![Next.js](https://img.shields.io/badge/Next.js-15-000000?style=flat-square&logo=nextdotjs&logoColor=white)](https://nextjs.org)
+[![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
+[![Last Commit](https://img.shields.io/github/last-commit/leebeanbin/beanCli?style=flat-square&color=brightgreen)](https://github.com/leebeanbin/beanCli/commits/master)
+
+**One console for every database. Terminal & Web.**
+
+[한국어 →](README.ko.md)
+
+</div>
+
+---
+
+## What is BeanCLI?
+
+BeanCLI is a **developer-first database management platform** with two interfaces:
+
+- **TUI** — A full-featured terminal UI (Ink/React) with 3-panel layout, multi-line SQL editor, AI assistant, and psql-style meta-commands.
+- **Web Console** — A retro Game Boy–styled Next.js dashboard with the same feature set, accessible from any browser.
+
+Both interfaces support **9 database types**, role-based access control, immutable audit logging, and an integrated AI assistant.
+
+---
+
+## Preview
+
+```
+╔══ BeanCLI v0.1.2 ════════════════════════════════════════════════╗
+║ Schema [1]      ║  Query Editor [2]                              ║
+║─────────────────║──────────────────────────────────────────────  ║
+║ > state_users   ║  1 │ SELECT u.entity_id_hash,                  ║
+║   state_orders  ║  2 │        o.status, o.total_cents            ║
+║   state_prod..  ║  3 │   FROM state_users u                      ║
+║   payments      ║  4 │   JOIN state_orders o USING (user_id)     ║
+║   shipments     ║  5 │  WHERE o.status = 'EXECUTING'             ║
+║   audit_events  ║  6 │  LIMIT 50;               Enter: execute   ║
+║   dlq_events    ╠════════════════════════════════════════════════╣
+║                 ║  Results [3]          6 rows · 12ms            ║
+║                 ║  entity_id_hash    status       total_cents     ║
+║                 ║  > a3f7c2...       EXECUTING    $1,249.00       ║
+║                 ║    b8e1d4...        DONE         $89.99         ║
+╠═════════════════╬════════════════════════════════════════════════╣
+║ ◈ AI [4]        ║  PG  leebeanbin › state_orders   DBA   dev     ║
+╚═════════════════╩════════════════════════════════════════════════╝
 ```
 
 ---
 
-## 특징
+## Features
 
-|                   |                                                  |
-| ----------------- | ------------------------------------------------ |
-| **5개 DB 지원**   | PostgreSQL · MySQL · SQLite · MongoDB · Redis    |
-| **3-패널 TUI**    | Schema 트리 / SQL 에디터 / 결과 뷰어             |
-| **CRUD**          | 행 탐색·편집·삽입·삭제 (역할 기반)               |
-| **변경 심사**     | SQL → 위험도 평가 → AUTO / CONFIRM / MANUAL 실행 |
-| **AI 어시스턴트** | beanllm SSE 스트리밍 (자연어 → SQL)              |
-| **감사 로그**     | 모든 변경 이력 불변 기록                         |
-| **Mock 모드**     | DB 없이 즉시 실행 (개발·데모용)                  |
+| | |
+|---|---|
+| **9 Database Types** | PostgreSQL · MySQL · SQLite · MongoDB · Redis · Kafka · RabbitMQ · Elasticsearch · NATS |
+| **TUI (Terminal UI)** | 3-panel Ink layout — Schema tree / SQL editor / Results viewer |
+| **Web Console** | Game Boy–styled Next.js app — 14 pages, dark/light theme |
+| **Multi-line SQL Editor** | Line numbers, cursor movement, history, psql meta-commands (`\dt`, `\d`, `\x`) |
+| **Role-Based CRUD** | Row browse · edit · insert · delete (DBA / MANAGER / ANALYST) |
+| **Change Review** | SQL → AST parse → risk score → AUTO / CONFIRM / MANUAL workflow |
+| **AI Assistant** | SSE streaming chat — natural language → SQL, schema analysis |
+| **Audit Log** | Immutable `audit_events` table — every change recorded |
+| **Mock Mode** | Full demo with no DB or API — ideal for development & demos |
+| **Connection Manager** | GUI form for registering, testing, and saving DB connections |
+| **Security** | AES-256-GCM encrypted credentials, rate limiting, logger redact |
 
 ---
 
-## 빠른 시작
+## Quick Start
 
-### 요구사항
+### Requirements
 
 ```
-Node.js ≥ 20   |   pnpm 10.28.1   |   Docker (인프라용, Mock 모드는 불필요)
+Node.js ≥ 20   ·   pnpm 10.28.1   ·   Docker (for infrastructure; not needed in Mock mode)
 ```
 
-### 설치 & 실행
+### Install & Run
 
 ```bash
-# 1. 최초 셋업 (설치 + 글로벌 등록 + Docker 시작)
+# 1. First-time setup (install + global link + start Docker services)
 pnpm setup
 
-# 2a. Mock 모드 — DB/API 없이 즉시 실행 (권장: 첫 실행)
+# 2a. Mock mode — no DB or API needed (recommended for first run)
 beancli --mock
 
-# 2b. 실제 모드 — Docker 인프라 필요
+# 2b. Real mode — requires Docker infrastructure
 beancli
 
-# 전체 스택 (API + Projector + Worker + TUI)
+# 2c. Web console only
+pnpm dev:web          # → http://localhost:3000
+
+# Full stack (API + Projector + Recovery Worker + TUI)
 pnpm dev:all
 ```
 
-> `**beancli`를 처음 등록할 때\*\*: `pnpm setup` 이후 새 터미널을 열면 바로 사용 가능.
-> 이미 설치된 경우: `pnpm link:global` 한 번만 실행하면 됩니다.
+> **First time?** After `pnpm setup`, open a new terminal and `beancli` is ready.
+> **Already installed?** Run `pnpm link:global` once.
 
 ---
 
-## 부팅 흐름
+## Supported Databases
 
-```
-앱 시작
-  └─ ConnectionPicker (저장된 연결 목록 또는 새 연결 추가)
-       └─ 연결 성공
-            └─ DatabasePicker (서버의 데이터베이스 선택)
-                 └─ TablePicker (테이블 선택)
-                      └─ 메인 3-패널 UI
-```
-
----
-
-## 키보드 단축키
-
-### 글로벌
-
-| 키                  | 동작               |
-| ------------------- | ------------------ |
-| `Ctrl+P`            | 커맨드 팔레트      |
-| `?`                 | 전체 단축키 도움말 |
-| `Tab` / `Shift+Tab` | 패널 이동          |
-| `q`                 | 종료               |
-
-### 패널 포커스
-
-| 키  | 패널                 |
-| --- | -------------------- |
-| `1` | Schema (테이블 목록) |
-| `2` | Query Editor         |
-| `3` | Results              |
-| `4` | AI 어시스턴트        |
-
-### 모드 전환
-
-| 키  | 모드                  |
-| --- | --------------------- |
-| `t` | 테이블 피커           |
-| `b` | Browse (행 탐색)      |
-| `m` | Monitor (스트림 상태) |
-| `A` | Audit 로그            |
-| `R` | DLQ Recovery          |
-| `I` | Index Lab             |
-
-### SQL 에디터
-
-| 키                  | 동작               |
-| ------------------- | ------------------ |
-| `Enter`             | SQL 실행           |
-| `Shift+Enter`       | 줄 바꿈            |
-| `↑` / `↓` (빈 버퍼) | 히스토리           |
-| `Ctrl+A` / `Ctrl+E` | 줄 처음/끝         |
-| `\dt`               | 테이블 목록        |
-| `\d <table>`        | 스키마 조회        |
-| `\x`                | Expanded mode 토글 |
-
-### Browse / Explore 모드
-
-| 키        | 동작                              |
-| --------- | --------------------------------- |
-| `j` / `k` | 행 이동                           |
-| `h` / `l` | 컬럼 이동                         |
-| `Enter`   | 행 상세                           |
-| `e`       | 편집 (DBA/MANAGER)                |
-| `i`       | 삽입 (DBA/MANAGER)                |
-| `D`       | 삭제 (DBA)                        |
-| `Q`       | 현재 테이블 SELECT → Query Editor |
-| `r`       | 새로고침                          |
-| `f`       | 필터                              |
+| Type | Default Port | Notes |
+|---|---|---|
+| `postgresql` | 5432 | Full support. Pool max=2 |
+| `mysql` | 3306 | MariaDB compatible. Backtick quoting |
+| `sqlite` | — | Uses Node.js built-in `node:sqlite` |
+| `mongodb` | 27017 | Collections treated as tables |
+| `redis` | 6379 | Key prefix = table. HASH · LIST · SET · ZSET |
+| `kafka` | 9092 | Topic listing + ephemeral consumer message fetch |
+| `rabbitmq` | 5672 | Management API + AMQP channel queue browse |
+| `elasticsearch` | 9200 | Index listing + native JSON query |
+| `nats` | 4222 | JetStream streams + pull consumer |
 
 ---
 
-## 지원 DB
+## Web Console Pages
 
-| 타입         | 기본 포트 | 특이사항                                    |
-| ------------ | --------- | ------------------------------------------- |
-| `postgresql` | 5432      | 완전 지원. Pool max=2                       |
-| `mysql`      | 3306      | MariaDB 호환. 백틱 인용                     |
-| `sqlite`     | —         | `node:sqlite` 내장 모듈 사용                |
-| `mongodb`    | 27017     | 컬렉션 = 테이블                             |
-| `redis`      | 6379      | 키 접두어 = 테이블. HASH·LIST·SET·ZSET 지원 |
+| Page | Path | Description |
+|---|---|---|
+| Dashboard | `/` | API health · saved DB connections overview |
+| Query | `/query` | SQL editor with results table |
+| Explore | `/explore` | Data browser — row CRUD, detail modal |
+| Schema | `/schema` | Table structure viewer + query analyzer |
+| Monitor | `/monitor` | Stream stats, SSE live updates |
+| Indexes | `/indexes` | Index listing, create, drop |
+| Audit | `/audit` | Immutable audit log with category filter |
+| Recovery | `/recovery` | DLQ failed-change re-submission |
+| AI | `/ai` | Full-page AI chat with quick prompts |
+| Changes | `/changes` | Change request list and submission |
+| Approvals | `/approvals` | Pending approval queue |
+| Auth | `/auth` | Login / logout |
+| Connections | `/connections` | DB connection registration & test |
 
 ---
 
-## 프로젝트 구조
+## Architecture
 
 ```
 apps/
-  cli/              ← TUI 진입점 (index-ink.tsx)
+  cli/              ← TUI entry point (index-ink.tsx)
   api/              ← Fastify REST + WebSocket (port 3100)
+  web/              ← Next.js 15 web console (port 3000)
   projector/        ← Kafka → PostgreSQL state projector
-  recovery-worker/  ← DLQ 재처리기
+  recovery-worker/  ← DLQ re-processor
 
 packages/
-  tui/              ← Ink 기반 TUI (현재 개발 중심)
-  kernel/           ← 공유 타입, Result<T,E>, ErrorCode
-  domain/           ← DDD 집합체 (ChangeRequest 등)
-  application/      ← 유스케이스, 포트 인터페이스
-  infrastructure/   ← DB 어댑터 (PG, MySQL, SQLite, MongoDB, Redis)
-  policy/           ← ExecutionMode × RiskScore 정책
-  audit/            ← 불변 감사 로그
-  dsl/              ← SQL AST 파서 + WHERE 강제
-  sql/              ← DDL 마이그레이션 001–010
-  ui-tui/           ← (구 canvas TUI — 삭제 예정)
+  tui/              ← Ink-based TUI (active development)
+  kernel/           ← Shared types, Result<T,E>, ErrorCode
+  domain/           ← DDD aggregates (ChangeRequest state machine)
+  application/      ← Use cases, port interfaces
+  infrastructure/   ← DB adapters (9 types), OCP registry pattern
+  policy/           ← ExecutionMode × RiskScore policy matrix
+  audit/            ← Immutable audit event writer
+  dsl/              ← SQL AST parser + WHERE enforcement
+  sql/              ← DDL migrations 001–006
+  ui-web/           ← Shared React components for web console
+```
+
+### Dependency Direction
+
+```
+kernel → domain → application → infrastructure
+                              ↗
+               policy · audit · dsl (leaf packages)
+```
+
+Apps sit at the top and depend on packages. No cycles.
+
+---
+
+## Startup Flow (TUI)
+
+```
+Launch
+  └─ ConnectionPicker (saved connections list or add new)
+       └─ Connected
+            └─ DatabasePicker (select database on server)
+                 └─ TablePicker (select table)
+                      └─ Main 3-panel UI
 ```
 
 ---
 
-## 변경 심사 흐름
+## Keyboard Shortcuts
+
+### Global
+
+| Key | Action |
+|---|---|
+| `Ctrl+P` | Command palette |
+| `?` | Full shortcuts help overlay |
+| `Tab` / `Shift+Tab` | Move between panels |
+| `q` | Quit |
+
+### Panel Focus
+
+| Key | Panel |
+|---|---|
+| `1` | Schema (table list) |
+| `2` | Query Editor |
+| `3` | Results |
+| `4` | AI Assistant |
+
+### Mode Switching
+
+| Key | Mode |
+|---|---|
+| `t` | Table Picker |
+| `b` | Browse (row navigation) |
+| `m` | Monitor (stream stats) |
+| `A` | Audit log |
+| `R` | DLQ Recovery |
+| `I` | Index Lab |
+
+### SQL Editor
+
+| Key | Action |
+|---|---|
+| `Enter` | Execute SQL |
+| `Shift+Enter` | New line |
+| `↑` / `↓` (empty buffer) | History |
+| `Ctrl+A` / `Ctrl+E` | Line start / end |
+| `\dt` | List tables |
+| `\d <table>` | Describe table |
+| `\x` | Toggle expanded mode |
+
+### Browse / Explore Mode
+
+| Key | Action |
+|---|---|
+| `j` / `k` | Move rows |
+| `h` / `l` | Move columns |
+| `Enter` | Row detail |
+| `e` | Edit row (DBA/MANAGER) |
+| `i` | Insert row (DBA/MANAGER) |
+| `D` | Delete row (DBA) |
+| `Q` | SELECT current table → Query Editor |
+| `r` | Refresh |
+| `f` | Filter |
+
+---
+
+## Change Review Workflow
 
 ```
-SQL 제출
-  └─ AST 파서 (WHERE 절 없는 UPDATE/DELETE 차단)
-       └─ 위험도 평가
-            ├─ L0: rows < 10   → AUTO 즉시 실행
-            ├─ L1: 10 ≤ rows < 1000 → CONFIRM 사용자 확인
-            └─ L2: rows ≥ 1000 또는 DDL → MANUAL 승인 워크플로
-                 └─ 실행 → 감사 로그 기록 → Kafka 이벤트
+SQL submitted
+  └─ AST parser (blocks UPDATE/DELETE without WHERE)
+       └─ Risk assessment
+            ├─ L0: rows < 10        → AUTO   immediate execution
+            ├─ L1: 10 ≤ rows < 1000 → CONFIRM user confirmation
+            └─ L2: rows ≥ 1000 or DDL → MANUAL approval workflow
+                 └─ Execute → audit log → Kafka event
 ```
 
-### 환경별 실행 정책
+### Execution Policy by Environment
 
-| 환경        | L0      | L1      | L2      |
-| ----------- | ------- | ------- | ------- |
-| LOCAL / DEV | AUTO    | AUTO    | CONFIRM |
-| PROD        | CONFIRM | CONFIRM | MANUAL  |
-
----
-
-## 역할 (RBAC)
-
-| 역할             | SELECT | INSERT | UPDATE | DELETE | DDL |
-| ---------------- | ------ | ------ | ------ | ------ | --- |
-| `ANALYST`        | ✅     |        |        |        |     |
-| `MANAGER`        | ✅     | ✅     | ✅     |        |     |
-| `DBA`            | ✅     | ✅     | ✅     | ✅     | ✅  |
-| `SECURITY_ADMIN` | ✅     |        |        |        |     |
+| Env | L0 | L1 | L2 |
+|---|---|---|---|
+| LOCAL / DEV | AUTO | AUTO | CONFIRM |
+| PROD | CONFIRM | CONFIRM | MANUAL |
 
 ---
 
-## 보안
+## Role-Based Access Control
 
-- **연결 파일**: `~/.config/beanCli/connections.json` — AES-256-GCM 암호화, chmod 600
-- **엔티티 ID**: HMAC-SHA256 해시 (평문 ID 저장 안 함 — `ENTITY_ID_PLAIN_ENABLED` 제어)
-- **SQL 인젝션**: 파라미터화 쿼리 + quoteIdent() 식별자 인용
-- **감사 로그**: `audit_events` 테이블 — 애플리케이션 레이어에서 UPDATE/DELETE 권한 없음
-- **쿼리 타임아웃**: 전 어댑터 30s 하드 킬 (PG·MySQL·MongoDB·Redis), 결과 5,000행 상한
-- **Rate Limiting**: `@fastify/rate-limit` — 전역 60 req/min, `/auth/login` 5/min, `/connections/test` 10/min
-- **로거 redact**: Fastify pino — `authorization`, `password`, `credential`, `secret` 필드 자동 마스킹
-- **KeyStore 캐시**: `CachedKeyStore` — DB 조회 없이 TTL 5분 인메모리 캐시 (3–10× 처리량 향상)
+| Role | SELECT | INSERT | UPDATE | DELETE | DDL |
+|---|---|---|---|---|---|
+| `ANALYST` | ✅ | | | | |
+| `MANAGER` | ✅ | ✅ | ✅ | | |
+| `DBA` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `SECURITY_ADMIN` | ✅ | | | | |
 
 ---
 
-## 개발 커맨드
+## Security
 
-```bash
-# ── TUI 실행 ─────────────────────────────────────────────────
-beancli               # 실제 모드 (API + DB 필요)
-beancli --mock        # Mock 모드 (외부 서비스 불필요)
-MOCK=true beancli     # 환경변수로 mock 지정
-
-# ── 개발 watch 모드 (소스 변경 시 자동 재시작) ─────────────
-pnpm dev:cli          # TUI watch (실제 모드)
-pnpm dev:mock         # TUI watch (Mock 모드)
-pnpm dev:all          # 전체 스택 watch
-
-# ── 빌드 & 타입 체크 ────────────────────────────────────────
-pnpm build                                    # Turbo 전체 빌드
-pnpm --filter @tfsdc/tui exec tsc --noEmit    # TUI 타입 체크
-pnpm --filter @tfsdc/cli exec tsc --noEmit    # CLI 타입 체크
-
-# ── 테스트 ──────────────────────────────────────────────────
-pnpm test                                     # 전체
-pnpm test:watch                               # TDD watch 모드
-pnpm test -- --testPathPattern="ExplorePanel"
-
-# ── Lint / Format ────────────────────────────────────────────
-pnpm lint && pnpm lint:fix
-pnpm format
-
-# ── DB / Docker ──────────────────────────────────────────────
-pnpm docker:up && pnpm docker:wait
-pnpm db:migrate
-pnpm docker:reset                     # 볼륨 초기화 + 재시작
-
-# ── 글로벌 커맨드 등록 ───────────────────────────────────────
-pnpm link:global                      # beancli를 전역 PATH에 등록
-```
+| Layer | Implementation |
+|---|---|
+| **Credentials at rest** | `~/.config/beanCli/connections.json` — AES-256-GCM, `chmod 600` |
+| **Entity IDs** | HMAC-SHA256 hash (plain IDs not stored; controlled by `ENTITY_ID_PLAIN_ENABLED`) |
+| **SQL injection** | Parameterized queries + `quoteIdent()` identifier quoting |
+| **Audit log** | `audit_events` — no UPDATE/DELETE at application layer |
+| **Query safety** | 30s hard kill + 5,000 row cap on all adapters |
+| **Rate limiting** | `@fastify/rate-limit` — 60 req/min global · 5/min `/auth/login` · 10/min `/connections/test` |
+| **Logger** | Fastify pino redacts `authorization`, `password`, `credential`, `secret` |
+| **Key cache** | `CachedKeyStore` — 5 min TTL in-memory (3–10× throughput) |
+| **DB name guard** | Allowlist regex `/^[a-zA-Z_][a-zA-Z0-9_$\-]{0,63}$/` |
 
 ---
 
-## Claude Code 커스텀 커맨드
-
-`.claude/commands/` 에 등록된 슬래시 커맨드:
-
-| 커맨드       | 설명                      |
-| ------------ | ------------------------- |
-| `/commit`    | 테마별 커밋 가이드라인    |
-| `/typecheck` | 전 패키지 TypeScript 검사 |
-| `/test`      | 테스트 실행 가이드        |
-| `/issue`     | GitHub Issue/PR 생성      |
-| `/seed`      | DB 시드 데이터 투입       |
-| `/perf`      | 성능 점검                 |
-
----
-
-## API (앱 api)
+## API Reference
 
 Base URL: `http://localhost:3100`
 
-| Method | Path                          | 설명                 |
-| ------ | ----------------------------- | -------------------- |
-| `POST` | `/api/v1/changes`             | SQL 변경 제출        |
-| `GET`  | `/api/v1/changes`             | 변경 목록            |
-| `POST` | `/api/v1/changes/:id/execute` | 승인된 변경 실행     |
-| `GET`  | `/api/v1/audit`               | 감사 로그            |
-| `GET`  | `/api/v1/health`              | 헬스체크             |
-| `GET`  | `/api/v1/monitoring/metrics`  | DB 지연·풀 상태      |
-| `WS`   | `/ws`                         | 실시간 이벤트 스트림 |
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/health` | Health check |
+| `POST` | `/api/v1/changes` | Submit SQL change |
+| `GET` | `/api/v1/changes` | List changes |
+| `POST` | `/api/v1/changes/:id/execute` | Execute approved change |
+| `GET` | `/api/v1/audit` | Audit log |
+| `GET` | `/api/v1/schema/tables` | List tables |
+| `GET` | `/api/v1/state/:table` | Browse table rows |
+| `POST` | `/api/v1/sql/execute` | Direct SQL execution |
+| `GET` | `/api/v1/monitoring/stream-stats` | Stream statistics |
+| `POST` | `/api/v1/connections/test` | Test a DB connection |
+| `POST` | `/api/v1/ai/stream` | AI SSE stream |
+| `WS` | `/ws` | Real-time event stream |
 
 ---
 
-## 환경 변수
+## Environment Variables
 
-| 변수                      | 기본값                  | 설명                     |
-| ------------------------- | ----------------------- | ------------------------ |
-| `APP_ENV`                 | `dev`                   | `local` / `dev` / `prod` |
-| `DATABASE_URL`            | —                       | PostgreSQL 연결 문자열   |
-| `KAFKA_BROKER`            | `localhost:9092`        | Kafka 부트스트랩         |
-| `JWT_SECRET`              | —                       | HS256 서명 키            |
-| `ENTITY_ID_PLAIN_ENABLED` | `true` (dev)            | 평문 ID 저장 여부        |
-| `API_URL`                 | `http://localhost:3100` | TUI → API 주소           |
-| `MOCK`                    | —                       | `true` 설정 시 Mock 모드 |
-
----
-
-## Docker 인프라
-
-| 서비스        | 포트 | 설명                 |
-| ------------- | ---- | -------------------- |
-| PostgreSQL 15 | 5432 | 주 데이터베이스      |
-| Kafka         | 9092 | 이벤트 스트리밍      |
-| Kafka UI      | 8080 | Kafka 브라우저 (dev) |
-| Zookeeper     | 2181 | Kafka 코디네이션     |
+| Variable | Default | Description |
+|---|---|---|
+| `APP_ENV` | `dev` | `local` / `dev` / `prod` |
+| `DATABASE_URL` | — | PostgreSQL connection string |
+| `KAFKA_BROKER` | `localhost:9092` | Kafka bootstrap server |
+| `JWT_SECRET` | — | HS256 signing key |
+| `ENTITY_ID_PLAIN_ENABLED` | `true` (dev) | Store plain entity IDs |
+| `API_URL` | `http://localhost:3100` | TUI → API address |
+| `NEXT_PUBLIC_API_URL` | `http://localhost:3100` | Web console → API address |
+| `MOCK` | — | Set `true` for mock mode |
 
 ---
 
-## 로드맵
+## Docker Infrastructure
 
-| 항목                                                                        | 상태    |
-| --------------------------------------------------------------------------- | ------- |
-| Ink TUI 3-패널 레이아웃                                                     | ✅ Done |
-| 5개 DB 어댑터                                                               | ✅ Done |
-| CRUD (e/i/D) + 역할 제어                                                    | ✅ Done |
-| 멀티라인 SQL 에디터                                                         | ✅ Done |
-| AI 패널 (beanllm SSE)                                                       | ✅ Done |
-| ConnectionPicker → DatabasePicker 흐름                                      | ✅ Done |
-| SEC-005: 쿼리 타임아웃 + 행 수 제한 (전 어댑터)                             | ✅ Done |
-| SEC-006: Fastify 로거 자격증명 redact                                       | ✅ Done |
-| CachedKeyStore: AES/HMAC KeyStore TTL 캐시 (5분)                            | ✅ Done |
-| API rate limiting: 전역 60/min + 민감 엔드포인트 강화                       | ✅ Done |
-| QueryResult.warning + ResultPanel amber 경고 UI                             | ✅ Done |
-| 쿼리 히스토리 파일 저장 (~/.config/beanCli/history.json)                    | ✅ Done |
-| ARCH-006: 구 ui-tui 패키지 삭제                                             | ✅ Done |
-| `beancli` 글로벌 커맨드 (`pnpm setup` → `beancli`)                          | ✅ Done |
-| Web Console (Next.js) — State 테이블 뷰어, Changes, Approvals, Audit        | ✅ Done |
-| Web Console — WebSocket LiveTableRefresh (router.refresh 자동 갱신)         | ✅ Done |
-| Web Console — RBAC AccessGuard (parseRole + hasAccess 페이지 접근 제어)     | ✅ Done |
-| Web Console — Recovery 페이지 개선 (Client Component, Clone 버튼, SQL 접기) | ✅ Done |
-| ui-web — WsEventManager + ApiClient + useAccessControl 단위 테스트          | ✅ Done |
+| Service | Port | Description |
+|---|---|---|
+| PostgreSQL 15 | 5432 | Primary database |
+| Kafka | 9092 | Event streaming |
+| Kafka UI | 8080 | Kafka browser (dev) |
+| Zookeeper | 2181 | Kafka coordination |
+
+```bash
+pnpm docker:up       # Start all services
+pnpm docker:wait     # Wait until healthy
+pnpm db:migrate      # Apply SQL migrations
+pnpm docker:reset    # Wipe volumes + restart
+```
+
+---
+
+## Development Commands
+
+```bash
+# ── TUI ──────────────────────────────────────────────────────────
+beancli               # Real mode (API + DB required)
+beancli --mock        # Mock mode (no external services)
+pnpm dev:mock         # Watch mode, mock
+pnpm dev:cli          # Watch mode, real
+
+# ── Web Console ──────────────────────────────────────────────────
+pnpm dev:web          # Next.js dev server → http://localhost:3000
+
+# ── Full Stack ───────────────────────────────────────────────────
+pnpm dev:all          # All apps in watch mode
+
+# ── Build & Type Check ───────────────────────────────────────────
+pnpm build
+pnpm --filter @tfsdc/tui exec tsc --noEmit
+pnpm --filter @tfsdc/cli exec tsc --noEmit
+
+# ── Test / Lint / Format ─────────────────────────────────────────
+pnpm test
+pnpm test:watch
+pnpm lint && pnpm lint:fix
+pnpm format
+
+# ── Global Command ───────────────────────────────────────────────
+pnpm link:global      # Register beancli in global PATH
+```
+
+---
+
+## Roadmap
+
+| Item | Status |
+|---|---|
+| Ink TUI 3-panel layout | ✅ Done |
+| 9 DB adapters (PG · MySQL · SQLite · MongoDB · Redis · Kafka · RabbitMQ · ES · NATS) | ✅ Done |
+| CRUD + role control | ✅ Done |
+| Multi-line SQL editor + psql meta-commands | ✅ Done |
+| AI assistant (SSE streaming) | ✅ Done |
+| ConnectionPicker → DatabasePicker boot flow | ✅ Done |
+| Query timeout + row limit (all adapters) | ✅ Done |
+| AES-256-GCM credential encryption | ✅ Done |
+| API rate limiting + logger redact | ✅ Done |
+| Query history persistence | ✅ Done |
+| Web Console — 14 pages (Query, Explore, Schema, Monitor, Indexes, Audit, Recovery, AI …) | ✅ Done |
+| Web Console — Game Boy retro shell UI (light/dark theme) | ✅ Done |
+| Web Console — Connections page (DB registration, test, manage) | ✅ Done |
+| Web Console — NavBar dropdown groups + back navigation | ✅ Done |
+| Web Console — Floating AI chat widget (all pages) | ✅ Done |
+| Web Console — WebSocket LiveTableRefresh | ✅ Done |
+| Web Console — RBAC AccessGuard | ✅ Done |
+| Plugin adapter API for custom DB types | 🔜 Planned |
+| Query explain visualizer | 🔜 Planned |
+| Export to CSV / JSON | 🔜 Planned |
+
+---
+
+## Claude Code Custom Commands
+
+Registered slash commands under `.claude/commands/`:
+
+| Command | Description |
+|---|---|
+| `/commit` | Thematic commit guidelines |
+| `/typecheck` | TypeScript check across all packages |
+| `/test` | Test runner guide |
+| `/issue` | Create GitHub Issue / PR |
+| `/seed` | Seed DB with sample data |
+| `/perf` | Performance audit |
+
+---
+
+<div align="center">
+
+Built with ❤️ using [Ink](https://github.com/vadimdemedes/ink) · [Fastify](https://fastify.dev) · [Next.js](https://nextjs.org) · [kafkajs](https://kafka.js.org)
+
+[Report an issue](https://github.com/leebeanbin/beanCli/issues) · [한국어](README.ko.md)
+
+</div>
