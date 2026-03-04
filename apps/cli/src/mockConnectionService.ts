@@ -448,6 +448,73 @@ function executeMockSql(sql: string): QueryResult {
   };
 }
 
+// ── Mock streaming service data ────────────────────────────────────────────────
+
+const KAFKA_TOPICS = ['orders', 'payments', 'shipments', 'users', 'audit', 'dlq'];
+const RABBITMQ_QUEUES = ['task_queue', 'email_queue', 'notify_queue', 'retry_queue'];
+const ES_INDICES = ['events-2025', 'audit-2025', 'logs-app', 'metrics-perf'];
+const NATS_STREAMS = ['ORDERS', 'PAYMENTS', 'EVENTS', 'AUDIT'];
+
+const KAFKA_ROWS: Record<string, unknown>[] = Array.from({ length: 20 }, (_, i) => ({
+  offset: i,
+  partition: i % 3,
+  key: `key-${i}`,
+  timestamp: String(ts(0) + i * 1000),
+  value: JSON.stringify({ id: i + 1, event: EVENT_TYPES[i % EVENT_TYPES.length], ts: ts(0) }),
+}));
+
+const RABBITMQ_ROWS: Record<string, unknown>[] = Array.from({ length: 15 }, (_, i) => ({
+  delivery_tag: i + 1,
+  routing_key: RABBITMQ_QUEUES[i % RABBITMQ_QUEUES.length],
+  message_id: `msg-${i + 1}`,
+  timestamp: ts(0) + i * 500,
+  content_type: 'application/json',
+  body: JSON.stringify({ task: `task_${i + 1}`, priority: i % 3 }),
+}));
+
+const ES_ROWS: Record<string, unknown>[] = Array.from({ length: 20 }, (_, i) => ({
+  _id: `doc-${i + 1}`,
+  _index: ES_INDICES[i % ES_INDICES.length],
+  entity_type: ['user', 'order', 'product'][i % 3],
+  event_type: EVENT_TYPES[i % EVENT_TYPES.length],
+  '@timestamp': new Date(ts(0) + i * 60_000).toISOString(),
+  level: ['INFO', 'WARN', 'ERROR'][i % 3],
+  message: `Event #${i + 1} processed successfully`,
+}));
+
+const NATS_ROWS: Record<string, unknown>[] = Array.from({ length: 15 }, (_, i) => ({
+  seq: i + 1,
+  subject: `${NATS_STREAMS[i % NATS_STREAMS.length]}.event`,
+  timestamp: String(ts(0) + i * 2000),
+  data: JSON.stringify({ seq: i + 1, type: EVENT_TYPES[i % EVENT_TYPES.length] }),
+}));
+
+// Add streaming stores
+const STREAMING_STORES: Record<string, Record<string, unknown>[]> = {
+  // Kafka topics
+  orders: KAFKA_ROWS.slice(0, 8),
+  payments: KAFKA_ROWS.slice(5, 15),
+  shipments: KAFKA_ROWS.slice(3, 12),
+  users: KAFKA_ROWS.slice(0, 6),
+  audit: KAFKA_ROWS.slice(10, 20),
+  dlq: KAFKA_ROWS.slice(15, 20),
+  // RabbitMQ queues
+  task_queue: RABBITMQ_ROWS.slice(0, 5),
+  email_queue: RABBITMQ_ROWS.slice(3, 9),
+  notify_queue: RABBITMQ_ROWS.slice(7, 12),
+  retry_queue: RABBITMQ_ROWS.slice(10, 15),
+  // ES indices
+  'events-2025': ES_ROWS.slice(0, 8),
+  'audit-2025': ES_ROWS.slice(5, 13),
+  'logs-app': ES_ROWS.slice(10, 18),
+  'metrics-perf': ES_ROWS.slice(12, 20),
+  // NATS streams
+  ORDERS: NATS_ROWS.slice(0, 5),
+  PAYMENTS: NATS_ROWS.slice(4, 9),
+  EVENTS: NATS_ROWS.slice(8, 13),
+  AUDIT: NATS_ROWS.slice(10, 15),
+};
+
 // ── Mock saved connection ─────────────────────────────────────────────────────
 
 const MOCK_CONNECTION: DbConnection = {
@@ -461,11 +528,45 @@ const MOCK_CONNECTION: DbConnection = {
   isDefault: true,
 };
 
+const MOCK_CONNECTIONS: DbConnection[] = [
+  MOCK_CONNECTION,
+  {
+    id: 'mock-kafka-001',
+    label: 'kafka-local (mock)',
+    type: 'kafka',
+    host: 'localhost',
+    port: 9092,
+  },
+  {
+    id: 'mock-rabbit-001',
+    label: 'rabbit-local (mock)',
+    type: 'rabbitmq',
+    host: 'localhost',
+    port: 5672,
+    username: 'guest',
+    password: 'guest',
+  },
+  {
+    id: 'mock-es-001',
+    label: 'elastic-local (mock)',
+    type: 'elasticsearch',
+    host: 'localhost',
+    port: 9200,
+  },
+  {
+    id: 'mock-nats-001',
+    label: 'nats-local (mock)',
+    type: 'nats',
+    host: 'localhost',
+    port: 4222,
+  },
+];
+
 // ── MockConnectionService ─────────────────────────────────────────────────────
 
 export function createMockConnectionService(): IConnectionService {
   return {
-    loadConnections: () => [MOCK_CONNECTION],
+    loadConnections: () => MOCK_CONNECTIONS,
 
     saveConnection: (_conn) => {
       /* no-op in mock */
@@ -484,11 +585,29 @@ export function createMockConnectionService(): IConnectionService {
 
     async testConnection(_conn): Promise<ConnectResult> {
       await new Promise((r) => setTimeout(r, 800));
-      return { error: null, tables: TABLE_NAMES };
+      const type = _conn.type;
+      let tables: string[] = TABLE_NAMES;
+      if (type === 'kafka') tables = KAFKA_TOPICS;
+      else if (type === 'rabbitmq') tables = RABBITMQ_QUEUES;
+      else if (type === 'elasticsearch') tables = ES_INDICES;
+      else if (type === 'nats') tables = NATS_STREAMS;
+      return { error: null, tables };
     },
 
     async executeQuery(sql): Promise<QueryResult> {
       await new Promise((r) => setTimeout(r, Math.random() * 80 + 20));
+      // Check if FROM target is a streaming table
+      const fromMatch = sql.match(/FROM\s+"?(\S+)"?/i);
+      if (fromMatch) {
+        const tbl = fromMatch[1]!.replace(/"/g, '');
+        const streamRows = STREAMING_STORES[tbl];
+        if (streamRows) {
+          const limitMatch = sql.match(/LIMIT\s+(\d+)/i);
+          const rows = limitMatch ? streamRows.slice(0, Number(limitMatch[1])) : streamRows;
+          const columns = rows.length > 0 ? Object.keys(rows[0]!) : [];
+          return { columns, rows, rowCount: rows.length, duration: 5, type: 'select' };
+        }
+      }
       return executeMockSql(sql);
     },
 

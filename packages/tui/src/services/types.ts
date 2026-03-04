@@ -12,7 +12,16 @@ export interface LoginResult {
 
 // ── DB connection types ──────────────────────────────────────────────────────
 
-export type DbType = 'postgresql' | 'mysql' | 'sqlite' | 'mongodb' | 'redis';
+export type DbType =
+  | 'postgresql'
+  | 'mysql'
+  | 'sqlite'
+  | 'mongodb'
+  | 'redis'
+  | 'kafka'
+  | 'rabbitmq'
+  | 'elasticsearch'
+  | 'nats';
 
 export interface DbConnection {
   id: string;

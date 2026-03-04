@@ -177,6 +177,21 @@ export function createCliConnectionService(): IConnectionService {
           return rows.map((r) => String(r['name'] ?? '')).filter(Boolean);
         } else if (activeConnType === 'redis') {
           return Array.from({ length: 16 }, (_, i) => String(i));
+        } else if (
+          activeConnType === 'kafka' ||
+          activeConnType === 'elasticsearch' ||
+          activeConnType === 'nats'
+        ) {
+          // Topics / indices / streams are the "databases" for these services
+          return await activeAdapter.listTables();
+        } else if (activeConnType === 'rabbitmq') {
+          // List vhosts via management API (best-effort)
+          try {
+            const rows = await activeAdapter.queryRows('SHOW VHOSTS');
+            return rows.map((r) => String(Object.values(r)[0] ?? '')).filter(Boolean);
+          } catch {
+            return ['/'];
+          }
         }
         return [];
       } catch {

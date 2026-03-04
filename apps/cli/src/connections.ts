@@ -3,7 +3,16 @@ import { homedir, hostname } from 'os';
 import { join } from 'path';
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypto';
 
-export type DbType = 'postgresql' | 'mysql' | 'sqlite' | 'mongodb' | 'redis';
+export type DbType =
+  | 'postgresql'
+  | 'mysql'
+  | 'sqlite'
+  | 'mongodb'
+  | 'redis'
+  | 'kafka'
+  | 'rabbitmq'
+  | 'elasticsearch'
+  | 'nats';
 
 export interface DbConnection {
   id: string;
@@ -131,7 +140,13 @@ export function getEnvConnection(): DbConnection | null {
               ? 'redis'
               : scheme === 'sqlite'
                 ? 'sqlite'
-                : 'postgresql';
+                : scheme === 'kafka'
+                  ? 'kafka'
+                  : scheme === 'amqp' || scheme === 'amqps'
+                    ? 'rabbitmq'
+                    : scheme === 'nats'
+                      ? 'nats'
+                      : 'postgresql';
 
     const database = u.pathname.replace(/^\//, '') || undefined;
     const label = database ?? u.hostname ?? 'local-db';
