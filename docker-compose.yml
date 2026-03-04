@@ -1,4 +1,5 @@
 services:
+  # ── Infrastructure (always on) ────────────────────────────────
   postgres:
     image: postgres:15-alpine
     container_name: tfsdc-postgres
@@ -70,6 +71,115 @@ services:
       KAFKA_CLUSTERS_0_NAME: tfsdc-local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+
+  # ── One-shot migration (app profile) ─────────────────────────
+  migrate:
+    image: postgres:15-alpine
+    container_name: tfsdc-migrate
+    profiles: [app]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGPORT: 5432
+      PGUSER: ${POSTGRES_USER:-postgres}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      PGDATABASE: ${POSTGRES_DB:-tfsdc}
+    volumes:
+      - ./packages/sql/migrations:/migrations:ro
+      - ./docker/migrate-entrypoint.sh:/entrypoint.sh:ro
+    entrypoint: ['/bin/sh', '/entrypoint.sh']
+    restart: 'no'
+
+  # ── App services (app profile) ────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: api
+    image: tfsdc-api
+    container_name: tfsdc-api
+    profiles: [app]
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_healthy
+    ports:
+      - '${API_PORT:-3100}:3100'
+    environment:
+      NODE_ENV: production
+      APP_ENV: ${APP_ENV:-prod}
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-tfsdc}
+      KAFKA_BROKER: kafka:29092
+      KAFKA_GROUP_ID: ${KAFKA_GROUP_ID:-tfsdc-projector}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-prod}
+      PORT: 3100
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:3100/health || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  projector:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: projector
+    image: tfsdc-projector
+    container_name: tfsdc-projector
+    profiles: [app]
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-tfsdc}
+      KAFKA_BROKER: kafka:29092
+      KAFKA_GROUP_ID: ${KAFKA_GROUP_ID:-tfsdc-projector}
+
+  recovery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: recovery-worker
+    image: tfsdc-recovery-worker
+    container_name: tfsdc-recovery-worker
+    profiles: [app]
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-tfsdc}
+      KAFKA_BROKER: kafka:29092
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: web
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3100}
+    image: tfsdc-web
+    container_name: tfsdc-web
+    profiles: [app]
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - '${WEB_PORT:-3000}:3000'
+    environment:
+      NODE_ENV: production
 
 volumes:
   pgdata:

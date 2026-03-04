@@ -1,0 +1,50 @@
+# Dependencies
+node_modules
+**/node_modules
+
+# Build outputs
+dist
+**/dist
+.next
+**/.next
+*.tsbuildinfo
+
+# CLI / TUI (not containerized)
+apps/cli
+packages/tui
+packages/ui-tui
+
+# Git & IDE
+.git
+.gitignore
+.vscode
+.idea
+
+# Env files (inject at runtime via docker-compose env)
+.env
+.env.*
+!.env.example
+
+# Docs / media (not needed in images)
+docs
+*.gif
+*.png
+*.jpg
+*.md
+!README.md
+
+# Test & lint
+coverage
+**/__tests__
+**/*.test.ts
+**/*.spec.ts
+.eslintrc*
+.prettierrc*
+jest.config*
+
+# Turbo cache
+.turbo
+
+# Misc
+Makefile
+*.log
