@@ -46,7 +46,6 @@ export function NavBar() {
         { href: '/approvals', label: 'Approvals', desc: t('nav.approvals.desc') },
       ],
     },
-    { label: 'AI',          href: '/ai' },
     { label: 'Auth',        href: '/auth' },
     { label: 'Connections', href: '/connections', desc: t('nav.connections.desc') },
   ];
