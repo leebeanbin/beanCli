@@ -35,6 +35,10 @@ Both interfaces support **9 database types**, role-based access control, immutab
 
 ## Preview
 
+<div align="center">
+  <img src="docs/perform_beancli.gif" alt="BeanCLI TUI demo" width="720" />
+</div>
+
 ```
 ╔══ BeanCLI v0.1.2 ════════════════════════════════════════════════╗
 ║ Schema [1]      ║  Query Editor [2]                              ║
@@ -102,6 +106,30 @@ pnpm dev:web          # → http://localhost:3000
 # Full stack (API + Projector + Recovery Worker + TUI)
 pnpm dev:all
 ```
+
+### Docker (Production)
+
+```bash
+# Build all images and start everything in one command
+make up
+
+# Infra only (Postgres + Kafka, without app containers)
+make infra
+
+# Tail logs
+make logs
+
+# Stop all containers
+make down
+```
+
+| Service | URL |
+|---------|-----|
+| Web Console | http://localhost:3000 |
+| API Server | http://localhost:3100 |
+| Kafka UI | http://localhost:8080 |
+| PostgreSQL | localhost:5432 |
+
 
 > **First time?** After `pnpm setup`, open a new terminal and `beancli` is ready.
 > **Already installed?** Run `pnpm link:global` once.
