@@ -197,7 +197,7 @@ describe('SQL LIMIT parsing — MongoAdapter regex performance', () => {
 // ── DB name validation benchmark (SEC-001 regex) ─────────────────────────────
 
 describe('DB name allowlist regex — SEC-001 performance', () => {
-  const VALID_NAME_RE = /^[a-zA-Z_][a-zA-Z0-9_$\-]{0,63}$/;
+  const VALID_NAME_RE = /^[a-zA-Z_][a-zA-Z0-9_$-]{0,63}$/;
   const ITERS = 200_000;
 
   const validNames   = ['tfsdc', 'my_db', 'prod-db', 'db$v2', 'a_very_long_database_name_here'];

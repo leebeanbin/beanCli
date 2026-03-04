@@ -1,4 +1,4 @@
-import { Pool, type PoolConfig, type PoolClient } from 'pg';
+import { Pool, type PoolConfig } from 'pg';
 import type { DbTransaction, IProjectorDb, IMetricsProvider } from '@tfsdc/domain';
 import type { IDbSession } from '@tfsdc/application';
 

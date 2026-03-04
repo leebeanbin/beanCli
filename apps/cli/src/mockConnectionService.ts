@@ -461,7 +461,7 @@ export function createMockConnectionService(): IConnectionService {
     async dropDatabase(name: string) {
       await new Promise(r => setTimeout(r, 600));
       if (!name.trim()) return { error: 'Database name cannot be empty' };
-      if (!/^[a-zA-Z_][a-zA-Z0-9_$\-]{0,63}$/.test(name.trim())) {
+      if (!/^[a-zA-Z_][a-zA-Z0-9_$-]{0,63}$/.test(name.trim())) {
         return { error: 'Invalid database name — use letters, numbers, _, - or $ only' };
       }
       const PROTECTED = ['mock_db', 'tfsdc_demo'];

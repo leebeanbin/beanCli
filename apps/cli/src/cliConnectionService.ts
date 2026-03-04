@@ -174,7 +174,7 @@ export function createCliConnectionService(): IConnectionService {
       if (!activeAdapter || !activeConnType) return { error: 'Not connected' };
       const safeName = name.trim();
       if (!safeName) return { error: 'Database name cannot be empty' };
-      if (!/^[a-zA-Z_][a-zA-Z0-9_$\-]{0,63}$/.test(safeName)) {
+      if (!/^[a-zA-Z_][a-zA-Z0-9_$-]{0,63}$/.test(safeName)) {
         return { error: 'Invalid database name — use letters, numbers, _, - or $ only' };
       }
       try {
@@ -195,7 +195,7 @@ export function createCliConnectionService(): IConnectionService {
       if (!activeAdapter || !activeConnType) return { error: 'Not connected' };
       const safeName = name.trim();
       if (!safeName) return { error: 'Database name cannot be empty' };
-      if (!/^[a-zA-Z_][a-zA-Z0-9_$\-]{0,63}$/.test(safeName)) {
+      if (!/^[a-zA-Z_][a-zA-Z0-9_$-]{0,63}$/.test(safeName)) {
         return { error: 'Invalid database name — use letters, numbers, _, - or $ only' };
       }
       try {

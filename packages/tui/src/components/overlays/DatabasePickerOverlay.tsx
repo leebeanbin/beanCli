@@ -72,7 +72,7 @@ export const DatabasePickerOverlay: React.FC = () => {
       setError(e instanceof Error ? e.message : 'Failed to list databases');
       setLoading(false);
     });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // intentionally run once on mount
 
   // Spinner tick
   useEffect(() => {

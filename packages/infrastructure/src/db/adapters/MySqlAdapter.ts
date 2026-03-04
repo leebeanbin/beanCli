@@ -28,7 +28,6 @@ export class MySqlAdapter implements IDbAdapter {
   private async getConnection(): Promise<unknown> {
     if (!this.connection) {
       // Dynamic import — mysql2 is an optional peer dependency
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const mysql = await import('mysql2/promise');
       this.connection = await (mysql as { createConnection: (cfg: unknown) => Promise<unknown> }).createConnection({
         host: this.config.host ?? 'localhost',

@@ -8,7 +8,6 @@ export function useWsEvents(wsUrl: string, tables: string[]) {
   const [connected, setConnected] = useState(false);
   const [lastEvent, setLastEvent] = useState<unknown>(null);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const manager = new WsEventManager();
     managerRef.current = manager;
@@ -20,7 +19,8 @@ export function useWsEvents(wsUrl: string, tables: string[]) {
       unsub();
       manager.disconnect();
     };
-  }, [wsUrl, tables.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
+    // tables.join(',') used as stable primitive dep — intentional
+  }, [wsUrl, tables.join(',')]); // deps: primitive join avoids array referential instability
 
   return { connected, lastEvent };
 }

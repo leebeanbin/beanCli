@@ -214,7 +214,7 @@ async function runRegexBench(): Promise<void> {
 
   const bench = new Bench({ time: 1500, warmupTime: 300, warmupIterations: 500 });
 
-  const DB_NAME_RE = /^[a-zA-Z_][a-zA-Z0-9_$\-]{0,63}$/;
+  const DB_NAME_RE = /^[a-zA-Z_][a-zA-Z0-9_$-]{0,63}$/;
   const LIMIT_RE   = /LIMIT\s+(\d+)/i;
   const FROM_RE    = /FROM\s+(\w+)/i;
 
