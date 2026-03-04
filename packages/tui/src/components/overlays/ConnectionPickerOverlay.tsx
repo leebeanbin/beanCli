@@ -21,7 +21,17 @@ import type { Field, FormVals, TestStatus } from './ConnectionFormPane.js';
 
 // ── DB type metadata ──────────────────────────────────────────────────────────
 
-const DB_TYPES: DbType[] = ['postgresql', 'mysql', 'sqlite', 'mongodb', 'redis'];
+const DB_TYPES: DbType[] = [
+  'postgresql',
+  'mysql',
+  'sqlite',
+  'mongodb',
+  'redis',
+  'kafka',
+  'rabbitmq',
+  'elasticsearch',
+  'nats',
+];
 
 const DB_META: Record<
   DbType,
@@ -32,6 +42,10 @@ const DB_META: Record<
   sqlite: { color: '#10b981', icon: 'SQ', label: 'SQLite' },
   mongodb: { color: '#22c55e', icon: 'MG', label: 'MongoDB', defaultPort: 27017 },
   redis: { color: '#ef4444', icon: 'RD', label: 'Redis', defaultPort: 6379 },
+  kafka: { color: '#231F20', icon: 'KF', label: 'Kafka', defaultPort: 9092 },
+  rabbitmq: { color: '#FF6600', icon: 'RB', label: 'RabbitMQ', defaultPort: 5672 },
+  elasticsearch: { color: '#005571', icon: 'ES', label: 'Elasticsearch', defaultPort: 9200 },
+  nats: { color: '#27AEE0', icon: 'NT', label: 'NATS', defaultPort: 4222 },
 };
 
 // ── Form field types ──────────────────────────────────────────────────────────
@@ -43,15 +57,27 @@ const URL_PREFIX: Record<DbType, string> = {
   sqlite: 'sqlite:',
   mongodb: 'mongodb://',
   redis: 'redis://',
+  kafka: 'kafka://',
+  rabbitmq: 'amqp://',
+  elasticsearch: 'http://',
+  nats: 'nats://',
 };
 
 const ALL_FIELDS: Field[] = ['label', 'type', 'host', 'port', 'database', 'username', 'password'];
 const SQLITE_FIELDS: Field[] = ['label', 'type', 'database'];
 const REDIS_FIELDS: Field[] = ['label', 'type', 'host', 'port', 'database', 'password'];
+const KAFKA_FIELDS: Field[] = ['label', 'type', 'host', 'port'];
+const NATS_FIELDS: Field[] = ['label', 'type', 'host', 'port'];
+const ES_FIELDS: Field[] = ['label', 'type', 'host', 'port', 'username', 'password'];
+const RABBITMQ_FIELDS: Field[] = ['label', 'type', 'host', 'port', 'database', 'username', 'password'];
 
 function fieldsFor(dbType: DbType): Field[] {
   if (dbType === 'sqlite') return SQLITE_FIELDS;
   if (dbType === 'redis') return REDIS_FIELDS;
+  if (dbType === 'kafka') return KAFKA_FIELDS;
+  if (dbType === 'nats') return NATS_FIELDS;
+  if (dbType === 'elasticsearch') return ES_FIELDS;
+  if (dbType === 'rabbitmq') return RABBITMQ_FIELDS;
   return ALL_FIELDS;
 }
 
@@ -236,8 +262,14 @@ export const ConnectionPickerOverlay: React.FC = () => {
         setPane('form');
       } else {
         setActiveConnection(conn);
-        // sqlite / redis skip the DB picker (database = file path or index)
-        const skipDbPicker = conn.type === 'sqlite' || conn.type === 'redis';
+        // sqlite / redis / streaming services skip the DB picker
+        const skipDbPicker =
+          conn.type === 'sqlite' ||
+          conn.type === 'redis' ||
+          conn.type === 'kafka' ||
+          conn.type === 'rabbitmq' ||
+          conn.type === 'elasticsearch' ||
+          conn.type === 'nats';
         if (skipDbPicker) {
           setTables(result.tables);
           setConnection(conn.label);
