@@ -1,3 +1,6 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import { apiClient } from '../lib/api';
 
 interface HealthData {
@@ -8,13 +11,17 @@ interface HealthData {
   uptime?: number;
 }
 
-async function getHealth(): Promise<HealthData | null> {
-  const res = await apiClient.get<HealthData>('/health');
-  return res.ok ? (res.data ?? null) : null;
-}
+export default function DashboardPage() {
+  const [health, setHealth] = useState<HealthData | null>(null);
+  const [loading, setLoading] = useState(true);
 
-export default async function DashboardPage() {
-  const health = await getHealth();
+  useEffect(() => {
+    void (async () => {
+      const res = await apiClient.get<HealthData>('/health');
+      setHealth(res.ok ? (res.data ?? null) : null);
+      setLoading(false);
+    })();
+  }, []);
 
   return (
     <div>
@@ -24,22 +31,30 @@ export default async function DashboardPage() {
         <div className="bg-bg-2 border border-rim shadow-px p-4">
           <div className="font-pixel text-xl text-fg-2 mb-1">API Status</div>
           <div
-            className={`font-pixel text-2xl ${health?.status === 'ok' ? 'text-ok' : 'text-danger'}`}
+            className={`font-pixel text-2xl ${
+              loading
+                ? 'text-fg-2'
+                : health?.status === 'ok'
+                  ? 'text-ok'
+                  : 'text-danger'
+            }`}
           >
-            {health?.status ?? 'unreachable'}
+            {loading ? '…' : (health?.status ?? 'unreachable')}
           </div>
         </div>
 
         <div className="bg-bg-2 border border-rim shadow-px p-4">
           <div className="font-pixel text-xl text-fg-2 mb-1">DB p95 Latency</div>
           <div className="font-pixel text-2xl text-fg">
-            {health?.db?.p95LatencyMs != null ? `${health.db.p95LatencyMs}ms` : '—'}
+            {loading ? '…' : health?.db?.p95LatencyMs != null ? `${health.db.p95LatencyMs}ms` : '—'}
           </div>
         </div>
 
         <div className="bg-bg-2 border border-rim shadow-px p-4">
           <div className="font-pixel text-xl text-fg-2 mb-1">WS Connections</div>
-          <div className="font-pixel text-2xl text-fg">{health?.wsConnections ?? '—'}</div>
+          <div className="font-pixel text-2xl text-fg">
+            {loading ? '…' : (health?.wsConnections ?? '—')}
+          </div>
         </div>
       </div>
 
@@ -47,10 +62,14 @@ export default async function DashboardPage() {
         <div className="font-pixel text-xl text-fg-2 mb-3">[ System Info ]</div>
         <dl className="grid grid-cols-2 gap-2 text-xs font-mono">
           <dt className="text-fg-2">Kafka Consumer Lag</dt>
-          <dd className="text-fg">{health?.kafka?.consumerLag ?? '—'}</dd>
+          <dd className="text-fg">{loading ? '…' : (health?.kafka?.consumerLag ?? '—')}</dd>
           <dt className="text-fg-2">Uptime</dt>
           <dd className="text-fg">
-            {health?.uptime != null ? `${Math.floor(health.uptime / 1000)}s` : '—'}
+            {loading
+              ? '…'
+              : health?.uptime != null
+                ? `${Math.floor(health.uptime / 1000)}s`
+                : '—'}
           </dd>
         </dl>
       </div>
