@@ -17,6 +17,13 @@ interface ModelsData {
   models?: string[];
 }
 
+const QUICK_PROMPTS = [
+  { label: '테이블 목록', sql: '전체 테이블 목록과 각 레코드 수를 알려줘' },
+  { label: '에러 조회', sql: '최근 24시간 에러 이벤트를 조회하는 SQL 작성해줘' },
+  { label: '인덱스 제안', sql: '현재 테이블 구조에서 인덱스 최적화 제안해줘' },
+  { label: '느린 쿼리', sql: '느린 쿼리를 찾는 방법과 개선 방법 설명해줘' },
+];
+
 export default function AiPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -25,6 +32,7 @@ export default function AiPage() {
   const [health, setHealth] = useState<HealthData | null>(null);
   const [streaming, setStreaming] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3100';
 
   useEffect(() => {
@@ -45,30 +53,38 @@ export default function AiPage() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  async function send() {
-    if (!input.trim() || streaming) return;
-    const userMsg: Message = { role: 'user', content: input.trim() };
-    setMessages((prev) => [...prev, userMsg]);
+  async function send(text?: string) {
+    const msg = (text ?? input).trim();
+    if (!msg || streaming) return;
     setInput('');
+    const userMsg: Message = { role: 'user', content: msg };
+    setMessages((prev) => [...prev, userMsg, { role: 'assistant', content: '' }]);
     setStreaming(true);
 
     const allMsgs = [...messages, userMsg];
     let aiContent = '';
     const aiIdx = allMsgs.length;
 
-    setMessages((prev) => [...prev, { role: 'assistant', content: '…' }]);
-
     try {
+      const token =
+        typeof window !== 'undefined' ? localStorage.getItem('tfsdc_token') : null;
       const res = await fetch(`${apiBase}/api/v1/ai/stream`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: allMsgs, model: model || undefined, includeSchema: true }),
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          messages: allMsgs,
+          model: model || undefined,
+          includeSchema: true,
+        }),
       });
 
       if (!res.ok) {
         setMessages((prev) => {
           const next = [...prev];
-          next[aiIdx] = { role: 'assistant', content: `Error: HTTP ${res.status}` };
+          next[aiIdx] = { role: 'assistant', content: `⚠ API error: HTTP ${res.status}` };
           return next;
         });
         setStreaming(false);
@@ -77,10 +93,7 @@ export default function AiPage() {
 
       const reader = res.body?.getReader();
       const decoder = new TextDecoder();
-      if (!reader) {
-        setStreaming(false);
-        return;
-      }
+      if (!reader) { setStreaming(false); return; }
 
       let buf = '';
       while (true) {
@@ -104,22 +117,19 @@ export default function AiPage() {
                 return next;
               });
             } else if (evt.type === 'done') {
-              const final = evt.content ?? aiContent;
               setMessages((prev) => {
                 const next = [...prev];
-                next[aiIdx] = { role: 'assistant', content: final };
+                next[aiIdx] = { role: 'assistant', content: evt.content ?? aiContent };
                 return next;
               });
             } else if (evt.type === 'error') {
               setMessages((prev) => {
                 const next = [...prev];
-                next[aiIdx] = { role: 'assistant', content: `Error: ${evt.content ?? 'AI error'}` };
+                next[aiIdx] = { role: 'assistant', content: `⚠ ${evt.content ?? 'AI error'}` };
                 return next;
               });
             }
-          } catch {
-            /* skip */
-          }
+          } catch { /* skip */ }
         }
       }
     } catch (err) {
@@ -127,112 +137,172 @@ export default function AiPage() {
         const next = [...prev];
         next[aiIdx] = {
           role: 'assistant',
-          content: `Error: ${err instanceof Error ? err.message : 'Network error'}`,
+          content: `⚠ ${err instanceof Error ? err.message : 'Network error'}`,
         };
         return next;
       });
     }
-
     setStreaming(false);
+    setTimeout(() => inputRef.current?.focus(), 0);
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      void send();
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(); }
   }
 
   return (
-    <div>
-      <h1 className="font-pixel text-3xl text-fg mb-4">[ AI Assistant ]</h1>
-
-      {/* Status bar */}
-      <div className="flex items-center gap-4 mb-4">
-        {health && (
-          <span
-            className={`font-pixel text-lg ${health.status === 'ok' ? 'text-ok' : 'text-danger'}`}
-          >
-            ● Sidecar: {health.status ?? '?'}
-          </span>
-        )}
-        {models.length > 0 && (
-          <div className="flex items-center gap-2">
-            <span className="font-pixel text-lg text-fg-2">Model:</span>
+    <div className="max-w-4xl mx-auto">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="font-pixel text-3xl text-fg">[ AI Assistant ]</h1>
+        <div className="flex items-center gap-3">
+          {/* Sidecar status */}
+          <div className="flex items-center gap-2 bg-bg-2 border border-rim shadow-px px-3 py-1">
+            <span
+              className={`font-mono text-xs ${
+                health === null
+                  ? 'text-fg-2'
+                  : health.status === 'ok'
+                    ? 'text-ok'
+                    : 'text-danger'
+              }`}
+            >
+              {health === null ? '◌ connecting' : health.status === 'ok' ? '● online' : '○ offline'}
+            </span>
+            {health?.model && (
+              <span className="font-mono text-xs text-fg-2 border-l border-rim pl-2">
+                {health.model}
+              </span>
+            )}
+          </div>
+          {/* Model selector */}
+          {models.length > 0 && (
             <select
               value={model}
               onChange={(e) => setModel(e.target.value)}
-              className="font-mono text-sm bg-bg border border-rim text-fg px-2 py-0.5 focus:outline-none focus:border-accent"
+              className="font-mono text-xs bg-bg border border-rim text-fg px-2 py-1 focus:outline-none focus:border-accent"
             >
               {models.map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
+                <option key={m} value={m}>{m}</option>
               ))}
             </select>
-          </div>
-        )}
-        {messages.length > 0 && (
-          <button
-            onClick={() => setMessages([])}
-            className="font-pixel text-lg text-fg-2 hover:text-danger ml-auto"
-          >
-            Clear
-          </button>
-        )}
+          )}
+          {messages.length > 0 && (
+            <button
+              onClick={() => setMessages([])}
+              className="font-pixel text-lg text-fg-2 hover:text-danger border border-rim hover:border-danger px-2 py-0.5 transition-none"
+            >
+              Clear
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Chat area */}
-      <div className="bg-bg-2 border border-rim shadow-px p-4 mb-3 min-h-64 max-h-[60vh] overflow-y-auto">
-        {messages.length === 0 ? (
-          <div className="font-pixel text-xl text-fg-2 py-8 text-center">
-            Ask anything about your data…
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {messages.map((msg, i) => (
-              <div
-                key={i}
-                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-[80%] px-3 py-2 font-mono text-sm ${
-                    msg.role === 'user'
-                      ? 'bg-accent text-bg border border-accent'
-                      : 'bg-bg border border-rim text-fg'
-                  }`}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        {/* Quick prompts sidebar */}
+        <div className="lg:col-span-1">
+          <div className="bg-bg-2 border border-rim shadow-px p-3">
+            <div className="font-pixel text-xl text-fg-2 mb-2">[ Quick Prompts ]</div>
+            <div className="space-y-1">
+              {QUICK_PROMPTS.map((p) => (
+                <button
+                  key={p.label}
+                  onClick={() => void send(p.sql)}
+                  disabled={streaming}
+                  className="w-full text-left font-pixel text-lg text-fg-2 hover:text-accent hover:bg-bg border border-rim hover:border-accent px-2 py-1.5 transition-none disabled:opacity-40"
                 >
-                  <div className="font-pixel text-lg mb-1 opacity-60">
-                    {msg.role === 'user' ? 'You' : 'AI'}
-                  </div>
-                  <pre className="whitespace-pre-wrap break-words font-mono text-sm">
-                    {msg.content}
-                  </pre>
+                  &gt; {p.label}
+                </button>
+              ))}
+            </div>
+            <div className="mt-3 border-t border-rim pt-2">
+              <div className="font-pixel text-lg text-fg-2 mb-1">[ 위젯 ]</div>
+              <div className="font-mono text-xs text-fg-2 leading-relaxed">
+                우하단{' '}
+                <span className="text-accent font-bold">◈ AI</span>{' '}
+                버튼으로 모든 페이지에서 AI를 사용할 수 있습니다.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Chat area */}
+        <div className="lg:col-span-3 flex flex-col" style={{ minHeight: '60vh' }}>
+          {/* Messages */}
+          <div className="flex-1 bg-bg-2 border border-rim shadow-px p-3 mb-3 overflow-y-auto" style={{ minHeight: '50vh', maxHeight: '65vh' }}>
+            {messages.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center gap-2 text-center py-8">
+                <div className="font-pixel text-4xl text-accent">◈</div>
+                <div className="font-pixel text-2xl text-fg">AI Assistant</div>
+                <div className="font-pixel text-lg text-fg-2 max-w-xs">
+                  데이터베이스에 대한 질문, SQL 생성, 성능 분석을 도와드립니다
                 </div>
               </div>
-            ))}
-            <div ref={bottomRef} />
+            ) : (
+              <div className="space-y-3">
+                {messages.map((msg, i) => (
+                  <div
+                    key={i}
+                    className={`flex gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    {msg.role === 'assistant' && (
+                      <div className="shrink-0 font-pixel text-xl text-accent mt-0.5">◈</div>
+                    )}
+                    <div
+                      className={`max-w-[85%] px-3 py-2 ${
+                        msg.role === 'user'
+                          ? 'bg-accent text-bg border border-accent'
+                          : 'bg-bg border border-rim text-fg'
+                      }`}
+                    >
+                      <pre className="whitespace-pre-wrap break-words font-mono text-sm leading-relaxed">
+                        {msg.content ||
+                          (i === messages.length - 1 && streaming ? (
+                            <span className="text-fg-2 animate-pulse">▋ 생성 중...</span>
+                          ) : (
+                            ''
+                          ))}
+                      </pre>
+                    </div>
+                    {msg.role === 'user' && (
+                      <div className="shrink-0 font-pixel text-xl text-fg-2 mt-0.5">›</div>
+                    )}
+                  </div>
+                ))}
+                <div ref={bottomRef} />
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      {/* Input */}
-      <div className="flex gap-2">
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          disabled={streaming}
-          className="flex-1 font-mono text-sm bg-bg border border-rim text-fg px-3 py-2 focus:outline-none focus:border-accent disabled:opacity-50"
-          placeholder="Ask about your data… (Enter to send)"
-        />
-        <button
-          onClick={() => void send()}
-          disabled={streaming || !input.trim()}
-          className="px-3 py-2 font-pixel text-xl border border-accent text-accent hover:bg-accent hover:text-bg shadow-px-a disabled:opacity-40 transition-none whitespace-nowrap"
-        >
-          {streaming ? 'Thinking…' : '[ Send ]'}
-        </button>
+          {/* Input bar */}
+          <div className="bg-bg-2 border border-rim shadow-px p-3">
+            <div className="flex gap-2">
+              <div className="font-pixel text-xl text-accent mt-1.5 shrink-0">›</div>
+              <input
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={streaming}
+                autoFocus
+                className="flex-1 font-mono text-sm bg-bg border border-rim text-fg px-3 py-2 focus:outline-none focus:border-accent disabled:opacity-50"
+                placeholder="SQL 작성, 데이터 분석, 최적화 제안 등… (Enter)"
+              />
+              <button
+                onClick={() => void send()}
+                disabled={streaming || !input.trim()}
+                className="px-4 py-2 font-pixel text-xl border-2 border-accent text-accent hover:bg-accent hover:text-bg shadow-px-a disabled:opacity-40 transition-none"
+              >
+                {streaming ? '▋' : '▶ Send'}
+              </button>
+            </div>
+            <div className="flex items-center gap-3 mt-2 px-5">
+              <span className="font-mono text-xs text-fg-2">Enter: 전송</span>
+              <span className="font-mono text-xs text-fg-2">·</span>
+              <span className="font-mono text-xs text-fg-2">좌측 Quick Prompts 클릭으로 빠른 시작</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
