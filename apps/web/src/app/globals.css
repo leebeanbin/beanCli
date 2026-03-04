@@ -4,68 +4,285 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Light mode (default) ─────────────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════════════
+   CSS CUSTOM PROPERTIES
+   Screen content vars scoped to #gb-screen — shell uses its own hardcoded values
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Light mode ───────────────────────────────────────────────────────────── */
 :root {
-  --c-bg: #f0f2f8;
-  --c-bg2: #ffffff;
-  --c-fg: #1a1a2e;
-  --c-fg2: #64748b;
-  --c-rim: #cbd5e1;
-  --c-accent: #0099bb;
-  --c-ok: #059669;
-  --c-warn: #d97706;
-  --c-danger: #dc2626;
+  --c-bg:      #f0f2f8;
+  --c-bg2:     #ffffff;
+  --c-fg:      #1a1a2e;
+  --c-fg2:     #64748b;
+  --c-rim:     #c0cedd;
+  --c-accent:  #0099bb;
+  --c-ok:      #059669;
+  --c-warn:    #d97706;
+  --c-danger:  #dc2626;
   --c-special: #7c3aed;
+  --c-desk:    #5a6878;
 }
 
-/* ── Dark mode ────────────────────────────────────────────────────────────── */
-.dark {
-  --c-bg: #0a0e1a;
-  --c-bg2: #0f1929;
-  --c-fg: #e0e0e0;
-  --c-fg2: #4a5568;
-  --c-rim: #1e3a5f;
-  --c-accent: #00d4ff;
-  --c-ok: #10b981;
-  --c-warn: #f59e0b;
-  --c-danger: #ef4444;
-  --c-special: #a855f7;
+/* ── Dark mode — screen content only ─────────────────────────────────────── */
+html.dark #gb-screen {
+  --c-bg:      #080d1a;
+  --c-bg2:     #172340;
+  --c-fg:      #f2f4ff;
+  --c-fg2:     #8aa0c8;
+  --c-rim:     #2e508a;
+  --c-accent:  #00e0ff;
+  --c-ok:      #22d3a0;
+  --c-warn:    #fbbf24;
+  --c-danger:  #f87171;
+  --c-special: #c084fc;
 }
+
+/* ── Dark mode — body desk ────────────────────────────────────────────────── */
+.dark { --c-desk: #010205; }
 
 /* ── Base reset ───────────────────────────────────────────────────────────── */
 body {
-  background: var(--c-bg);
+  background-color: var(--c-desk);
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px),
+    linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.15) 100%);
+  background-size: 22px 22px, 100% 100%;
   color: var(--c-fg);
   font-family: 'JetBrains Mono', 'Fira Code', Menlo, monospace;
+  min-height: 100vh;
 }
 
-/* 모든 폼 요소도 monospace 상속 */
-input,
-button,
-select,
-textarea,
-option {
-  font-family: inherit;
+input, button, select, textarea, option { font-family: inherit; }
+
+/* ── Global pixel reset ───────────────────────────────────────────────────── */
+*, *::before, *::after { border-radius: 0 !important; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   GAME BOY CONSOLE SHELL  —  responds to light/dark theme
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Plastic body (light mode = classic gray, dark mode = stealth navy) ──── */
+.gb-shell {
+  background: linear-gradient(158deg, #cdd5e0 0%, #bec6d2 30%, #b2bcc8 65%, #a8b4c0 100%);
+  border-radius: 24px 24px 40px 40px !important;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.55),
+    0 32px 80px rgba(0,0,0,0.28),
+    0 8px 24px rgba(0,0,0,0.16),
+    inset 0 1px 0 rgba(255,255,255,0.85),
+    inset 0 -3px 0 rgba(0,0,0,0.08),
+    inset 2px 0 0 rgba(255,255,255,0.30),
+    inset -2px 0 0 rgba(0,0,0,0.05);
+  position: relative;
+}
+.dark .gb-shell {
+  background: linear-gradient(158deg, #16202e 0%, #0e1624 30%, #09101c 65%, #060c16 100%);
+  box-shadow:
+    0 0 0 1px rgba(0,200,255,0.07),
+    0 40px 120px rgba(0,0,0,0.95),
+    0 12px 40px rgba(0,0,0,0.80),
+    inset 0 1px 0 rgba(255,255,255,0.06),
+    inset 0 -3px 0 rgba(0,0,0,0.60),
+    inset 2px 0 0 rgba(255,255,255,0.03),
+    inset -2px 0 0 rgba(0,0,0,0.30);
 }
 
-/* 전역 픽셀 리셋 — rounded-* 클래스를 무효화 */
-*,
-*::before,
-*::after {
-  border-radius: 0 !important;
+/* ── Screen bezel (always dark plastic — makes screen pop in both modes) ──── */
+.gb-bezel {
+  background: #191a1c;
+  border-radius: 12px 12px 8px 8px !important;
+  padding: 16px 16px 12px;
+  box-shadow:
+    inset 0 8px 24px rgba(0,0,0,0.80),
+    inset 0 0 0 2px rgba(0,0,0,0.65),
+    inset 1px 1px 0 rgba(255,255,255,0.04),
+    0 2px 0 rgba(255,255,255,0.06);
+}
+.dark .gb-bezel {
+  background: #03050a;
+  box-shadow:
+    inset 0 10px 32px rgba(0,0,0,0.99),
+    inset 0 0 0 2px rgba(0,0,0,0.90),
+    inset 1px 1px 0 rgba(0,200,255,0.03);
 }
 
-/* scrollbar 미니멀 */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* ── Screen surface ───────────────────────────────────────────────────────── */
+.gb-screen {
+  border-radius: 6px !important;
+  overflow: hidden;
+  box-shadow: inset 0 3px 12px rgba(0,0,0,0.40);
 }
-::-webkit-scrollbar-track {
-  background: var(--c-bg);
+.dark .gb-screen {
+  box-shadow:
+    inset 0 3px 12px rgba(0,0,0,0.70),
+    0 0 50px rgba(0,180,255,0.07),
+    0 0 100px rgba(0,100,200,0.04);
 }
-::-webkit-scrollbar-thumb {
-  background: var(--c-rim);
+
+/* ── LED indicators ───────────────────────────────────────────────────────── */
+@keyframes led-blink {
+  0%, 100% { opacity: 1; filter: brightness(1); }
+  50%       { opacity: 0.20; filter: brightness(0.4); }
 }
-::-webkit-scrollbar-thumb:hover {
-  background: var(--c-accent);
+
+.gb-led {
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 50% !important;
+  display: inline-block;
+  flex-shrink: 0;
 }
+
+.gb-led-ok {
+  background: #059669;
+  box-shadow: 0 0 4px #059669;
+  animation: led-blink 3.5s ease-in-out infinite;
+}
+.dark .gb-led-ok {
+  background: #10b981;
+  box-shadow: 0 0 6px #10b981, 0 0 14px #10b98155;
+}
+
+.gb-led-net {
+  background: #0099bb;
+  box-shadow: 0 0 4px #0099bb;
+  animation: led-blink 2s ease-in-out infinite;
+  animation-delay: 0.8s;
+}
+.dark .gb-led-net {
+  background: #00d4ff;
+  box-shadow: 0 0 6px #00d4ff, 0 0 14px #00d4ff55;
+}
+
+/* ── Controls ridge ───────────────────────────────────────────────────────── */
+.gb-ridge {
+  height: 3px;
+  background: linear-gradient(180deg,
+    rgba(0,0,0,0.12) 0px,
+    rgba(255,255,255,0.22) 1px,
+    rgba(0,0,0,0.08) 2px,
+    transparent 3px
+  );
+}
+.dark .gb-ridge {
+  background: linear-gradient(180deg,
+    rgba(0,0,0,0.60) 0px,
+    rgba(255,255,255,0.05) 1px,
+    rgba(0,0,0,0.40) 2px,
+    transparent 3px
+  );
+}
+
+/* ── A / B round buttons ─────────────────────────────────────────────────── */
+.gb-btn-ab {
+  width: 52px;
+  height: 52px;
+  border-radius: 50% !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 15px;
+  font-weight: 800;
+  user-select: none;
+  cursor: default;
+  border: none !important;
+  outline: none !important;
+}
+.gb-btn-ab:active { transform: translateY(2px) scale(0.97); }
+
+.gb-btn-b {
+  background: radial-gradient(circle at 40% 28%, #d44848 0%, #a02020 40%, #4a0a0a 100%);
+  color: #ffbbbb;
+  box-shadow:
+    0 0 0 3px rgba(200,40,40,0.20),
+    0 8px 0 #100202,
+    0 10px 28px rgba(0,0,0,0.55),
+    0 0 16px rgba(200,50,50,0.10),
+    inset 0 2px 3px rgba(255,160,160,0.30),
+    inset 0 -3px 6px rgba(0,0,0,0.50);
+}
+.dark .gb-btn-b {
+  box-shadow:
+    0 0 0 3px rgba(200,40,40,0.20),
+    0 8px 0 #100202,
+    0 10px 28px rgba(0,0,0,0.80),
+    0 0 16px rgba(200,50,50,0.14),
+    inset 0 2px 3px rgba(255,160,160,0.30),
+    inset 0 -3px 6px rgba(0,0,0,0.60);
+}
+
+.gb-btn-a {
+  background: radial-gradient(circle at 40% 28%, #30e888 0%, #12804a 40%, #062e16 100%);
+  color: #b0ffe0;
+  box-shadow:
+    0 0 0 3px rgba(20,200,120,0.20),
+    0 8px 0 #010e04,
+    0 10px 28px rgba(0,0,0,0.55),
+    0 0 16px rgba(30,200,120,0.10),
+    inset 0 2px 3px rgba(120,255,200,0.30),
+    inset 0 -3px 6px rgba(0,0,0,0.50);
+}
+.dark .gb-btn-a {
+  box-shadow:
+    0 0 0 3px rgba(20,200,120,0.20),
+    0 8px 0 #010e04,
+    0 10px 28px rgba(0,0,0,0.80),
+    0 0 16px rgba(30,200,120,0.14),
+    inset 0 2px 3px rgba(120,255,200,0.30),
+    inset 0 -3px 6px rgba(0,0,0,0.60);
+}
+
+/* ── SELECT / START oval buttons ─────────────────────────────────────────── */
+.gb-btn-sm {
+  border-radius: 14px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 16px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  user-select: none;
+  cursor: default;
+  border: none !important;
+  /* light mode */
+  background: linear-gradient(175deg, #a8b4c0 0%, #8090a0 100%);
+  color: #2a3445;
+  box-shadow:
+    0 4px 0 #5a6878,
+    0 6px 12px rgba(0,0,0,0.25),
+    inset 0 1px 0 rgba(255,255,255,0.55),
+    inset 0 -2px 0 rgba(0,0,0,0.18);
+}
+.dark .gb-btn-sm {
+  background: linear-gradient(175deg, #243050 0%, #16203a 100%);
+  color: #6a7a98;
+  box-shadow:
+    0 4px 0 #0a0e1e,
+    0 6px 14px rgba(0,0,0,0.65),
+    inset 0 1px 0 rgba(255,255,255,0.07),
+    inset 0 -2px 0 rgba(0,0,0,0.50);
+}
+
+/* ── Speaker grille ───────────────────────────────────────────────────────── */
+.gb-speaker {
+  border-radius: 6px !important;
+  background-image: radial-gradient(circle, #8898a8 1.2px, transparent 1.2px);
+  background-size: 5px 5px;
+  opacity: 0.55;
+}
+.dark .gb-speaker {
+  background-image: radial-gradient(circle, #1e3050 1.2px, transparent 1.2px);
+  opacity: 0.75;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SCROLLBAR
+   ══════════════════════════════════════════════════════════════════════════ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--c-bg); }
+::-webkit-scrollbar-thumb { background: var(--c-rim); }
+::-webkit-scrollbar-thumb:hover { background: var(--c-accent); }

@@ -15,6 +15,8 @@ module.exports = {
         warn: 'var(--c-warn)',
         danger: 'var(--c-danger)',
         special: 'var(--c-special)',
+        shell: 'var(--c-shell)',
+        desk: 'var(--c-desk)',
       },
       fontFamily: {
         pixel: ['"VT323"', 'monospace'],
