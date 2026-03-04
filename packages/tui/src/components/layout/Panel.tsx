@@ -2,9 +2,9 @@ import React from 'react';
 import { Box, Text } from 'ink';
 
 // Brand palette (mirrors existing TUI theme)
-const COLOR_BRAND  = '#00d4ff';
-const COLOR_MUTED  = '#4a5568';
-const COLOR_DIM    = '#2a3a4a';
+const COLOR_BRAND = '#00d4ff';
+const COLOR_MUTED = '#4a5568';
+const COLOR_DIM = '#2a3a4a';
 
 interface PanelProps {
   title: string;
@@ -29,8 +29,8 @@ export const Panel: React.FC<PanelProps> = ({
   children,
 }) => {
   const borderColor = isFocused ? COLOR_BRAND : COLOR_DIM;
-  const titleColor  = isFocused ? COLOR_BRAND : COLOR_MUTED;
-  const marker      = isFocused ? '▶ ' : '  ';
+  const titleColor = isFocused ? COLOR_BRAND : COLOR_MUTED;
+  const marker = isFocused ? '▶ ' : '  ';
 
   return (
     <Box
@@ -47,11 +47,10 @@ export const Panel: React.FC<PanelProps> = ({
       {/* Title row */}
       <Box>
         <Text color={titleColor} bold={isFocused}>
-          {marker}{title}
+          {marker}
+          {title}
         </Text>
-        {hint && (
-          <Text color={COLOR_MUTED}> [{hint}]</Text>
-        )}
+        {hint && <Text color={COLOR_MUTED}> [{hint}]</Text>}
       </Box>
 
       {/* Content */}

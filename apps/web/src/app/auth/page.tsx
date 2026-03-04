@@ -62,13 +62,15 @@ export default function AuthPage() {
     <div className="max-w-xl mx-auto">
       <h1 className="font-pixel text-3xl text-fg mb-2">[ Dev JWT Generator ]</h1>
       <p className="text-xs font-mono text-fg-2 mb-6">
-        Development-only tool. Generates a HS256-signed JWT stored in localStorage.
-        Must match <code className="text-accent">JWT_SECRET</code> in .env.
+        Development-only tool. Generates a HS256-signed JWT stored in localStorage. Must match{' '}
+        <code className="text-accent">JWT_SECRET</code> in .env.
       </p>
 
       <div className="bg-bg-2 border border-rim shadow-px p-6 space-y-4">
         <div>
-          <label className="block text-xs font-mono text-fg-2 uppercase tracking-widest mb-1">Subject (actor)</label>
+          <label className="block text-xs font-mono text-fg-2 uppercase tracking-widest mb-1">
+            Subject (actor)
+          </label>
           <input
             type="text"
             value={sub}
@@ -78,20 +80,26 @@ export default function AuthPage() {
         </div>
 
         <div>
-          <label className="block text-xs font-mono text-fg-2 uppercase tracking-widest mb-1">Role</label>
+          <label className="block text-xs font-mono text-fg-2 uppercase tracking-widest mb-1">
+            Role
+          </label>
           <select
             value={role}
             onChange={(e) => setRole(e.target.value)}
             className="w-full bg-bg border border-rim text-fg font-mono text-sm px-3 py-2 focus:outline-none focus:border-accent"
           >
             {ROLES.map((r) => (
-              <option key={r} value={r}>{r}</option>
+              <option key={r} value={r}>
+                {r}
+              </option>
             ))}
           </select>
         </div>
 
         <div>
-          <label className="block text-xs font-mono text-fg-2 uppercase tracking-widest mb-1">JWT Secret</label>
+          <label className="block text-xs font-mono text-fg-2 uppercase tracking-widest mb-1">
+            JWT Secret
+          </label>
           <input
             type="password"
             value={secret}
@@ -111,7 +119,9 @@ export default function AuthPage() {
 
       {token && (
         <div className="mt-6 bg-bg-2 border border-rim shadow-px p-6 space-y-4">
-          <div className="text-xs font-mono text-fg-2 uppercase tracking-widest">Generated Token</div>
+          <div className="text-xs font-mono text-fg-2 uppercase tracking-widest">
+            Generated Token
+          </div>
           <textarea
             readOnly
             value={token}

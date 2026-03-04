@@ -21,10 +21,10 @@ export function isValidStateTable(table: string): boolean {
 
 // Per-table server-side writable field whitelist (prevents arbitrary column injection)
 const WRITABLE_FIELDS: Record<string, Set<string>> = {
-  state_users:     new Set(['username', 'status', 'tier', 'country_code', 'email_hash']),
-  state_products:  new Set(['name', 'status', 'category', 'price_cents', 'stock_quantity', 'sku']),
-  state_orders:    new Set(['status', 'total_amount_cents', 'item_count', 'currency_code']),
-  state_payments:  new Set(['status', 'amount_cents', 'payment_method', 'currency_code']),
+  state_users: new Set(['username', 'status', 'tier', 'country_code', 'email_hash']),
+  state_products: new Set(['name', 'status', 'category', 'price_cents', 'stock_quantity', 'sku']),
+  state_orders: new Set(['status', 'total_amount_cents', 'item_count', 'currency_code']),
+  state_payments: new Set(['status', 'amount_cents', 'payment_method', 'currency_code']),
   state_shipments: new Set(['status', 'carrier', 'destination_country']),
 };
 
@@ -56,9 +56,33 @@ export interface FieldSchemaMeta {
 const UPPERCASE_STATUSES = {
   state_users: new Set(['ACTIVE', 'INACTIVE']),
   state_products: new Set(['ACTIVE', 'INACTIVE', 'DISCONTINUED']),
-  state_orders: new Set(['CREATED', 'PAYMENT_PENDING', 'PAID', 'FULFILLING', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'REFUNDED']),
-  state_payments: new Set(['PENDING', 'AUTHORIZED', 'CAPTURED', 'FAILED', 'REFUNDED', 'PARTIALLY_REFUNDED']),
-  state_shipments: new Set(['PREPARING', 'DISPATCHED', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERED', 'FAILED', 'RETURNED']),
+  state_orders: new Set([
+    'CREATED',
+    'PAYMENT_PENDING',
+    'PAID',
+    'FULFILLING',
+    'SHIPPED',
+    'DELIVERED',
+    'CANCELLED',
+    'REFUNDED',
+  ]),
+  state_payments: new Set([
+    'PENDING',
+    'AUTHORIZED',
+    'CAPTURED',
+    'FAILED',
+    'REFUNDED',
+    'PARTIALLY_REFUNDED',
+  ]),
+  state_shipments: new Set([
+    'PREPARING',
+    'DISPATCHED',
+    'IN_TRANSIT',
+    'OUT_FOR_DELIVERY',
+    'DELIVERED',
+    'FAILED',
+    'RETURNED',
+  ]),
 } as const;
 
 const CATEGORY_CANONICAL = new Map<string, string>([
@@ -74,7 +98,11 @@ const STATE_SCHEMA_META: Record<string, Record<string, FieldSchemaMeta>> = {
   state_users: {
     username: { maxLen: 64, hint: 'max 64 chars' },
     email_hash: { maxLen: 128, hint: 'max 128 chars' },
-    status: { enum: Array.from(UPPERCASE_STATUSES.state_users), uppercase: true, hint: 'ACTIVE|INACTIVE' },
+    status: {
+      enum: Array.from(UPPERCASE_STATUSES.state_users),
+      uppercase: true,
+      hint: 'ACTIVE|INACTIVE',
+    },
     tier: { enum: ['STANDARD', 'PREMIUM', 'VIP'], uppercase: true, hint: 'STANDARD|PREMIUM|VIP' },
     country_code: { pattern: '^[A-Z]{2}$', uppercase: true, hint: 'ISO-3166 alpha-2' },
   },
@@ -82,7 +110,10 @@ const STATE_SCHEMA_META: Record<string, Record<string, FieldSchemaMeta>> = {
     sku: { maxLen: 64, hint: 'max 64 chars' },
     name: { maxLen: 128, hint: 'max 128 chars' },
     status: { enum: Array.from(UPPERCASE_STATUSES.state_products), uppercase: true },
-    category: { enum: Array.from(CATEGORY_CANONICAL.values()), hint: 'Electronics|Fashion|Food|Furniture|Lifestyle|Sports' },
+    category: {
+      enum: Array.from(CATEGORY_CANONICAL.values()),
+      hint: 'Electronics|Fashion|Food|Furniture|Lifestyle|Sports',
+    },
     price_cents: { min: 0, hint: 'integer >= 0' },
     stock_quantity: { min: 0, hint: 'integer >= 0' },
   },
@@ -114,7 +145,8 @@ function upper(value: unknown): string {
 }
 
 function validateEnum(label: string, set: Set<string>): Validator {
-  return (value: unknown) => (set.has(String(value)) ? null : `${label} must be one of: ${Array.from(set).join(', ')}`);
+  return (value: unknown) =>
+    set.has(String(value)) ? null : `${label} must be one of: ${Array.from(set).join(', ')}`;
 }
 
 function validatePattern(label: string, regex: RegExp, hint: string): Validator {
@@ -132,7 +164,8 @@ function validateIntRange(label: string, min: number, max?: number): Validator {
 }
 
 function validateMaxLen(label: string, maxLen: number): Validator {
-  return (value: unknown) => (String(value).length <= maxLen ? null : `${label} length must be <= ${maxLen}`);
+  return (value: unknown) =>
+    String(value).length <= maxLen ? null : `${label} length must be <= ${maxLen}`;
 }
 
 const FIELD_RULES: Record<string, Record<string, FieldRule>> = {
@@ -140,13 +173,22 @@ const FIELD_RULES: Record<string, Record<string, FieldRule>> = {
     username: { normalize: toTrimmedString, validate: validateMaxLen('username', 64) },
     email_hash: { normalize: toTrimmedString, validate: validateMaxLen('email_hash', 128) },
     status: { normalize: upper, validate: validateEnum('status', UPPERCASE_STATUSES.state_users) },
-    tier: { normalize: upper, validate: validateEnum('tier', new Set(['STANDARD', 'PREMIUM', 'VIP'])) },
-    country_code: { normalize: upper, validate: validatePattern('country_code', /^[A-Z]{2}$/, 'ISO-3166 alpha-2') },
+    tier: {
+      normalize: upper,
+      validate: validateEnum('tier', new Set(['STANDARD', 'PREMIUM', 'VIP'])),
+    },
+    country_code: {
+      normalize: upper,
+      validate: validatePattern('country_code', /^[A-Z]{2}$/, 'ISO-3166 alpha-2'),
+    },
   },
   state_products: {
     sku: { normalize: toTrimmedString, validate: validateMaxLen('sku', 64) },
     name: { normalize: toTrimmedString, validate: validateMaxLen('name', 128) },
-    status: { normalize: upper, validate: validateEnum('status', UPPERCASE_STATUSES.state_products) },
+    status: {
+      normalize: upper,
+      validate: validateEnum('status', UPPERCASE_STATUSES.state_products),
+    },
     category: {
       normalize: (v) => {
         const s = toTrimmedString(v);
@@ -155,24 +197,48 @@ const FIELD_RULES: Record<string, Record<string, FieldRule>> = {
       validate: validateEnum('category', new Set(Array.from(CATEGORY_CANONICAL.values()))),
     },
     price_cents: { normalize: (v) => Number(v), validate: validateIntRange('price_cents', 0) },
-    stock_quantity: { normalize: (v) => Number(v), validate: validateIntRange('stock_quantity', 0) },
+    stock_quantity: {
+      normalize: (v) => Number(v),
+      validate: validateIntRange('stock_quantity', 0),
+    },
   },
   state_orders: {
     status: { normalize: upper, validate: validateEnum('status', UPPERCASE_STATUSES.state_orders) },
-    total_amount_cents: { normalize: (v) => Number(v), validate: validateIntRange('total_amount_cents', 0) },
+    total_amount_cents: {
+      normalize: (v) => Number(v),
+      validate: validateIntRange('total_amount_cents', 0),
+    },
     item_count: { normalize: (v) => Number(v), validate: validateIntRange('item_count', 0) },
-    currency_code: { normalize: upper, validate: validatePattern('currency_code', /^[A-Z]{3}$/, 'ISO-4217 alpha-3') },
+    currency_code: {
+      normalize: upper,
+      validate: validatePattern('currency_code', /^[A-Z]{3}$/, 'ISO-4217 alpha-3'),
+    },
   },
   state_payments: {
-    status: { normalize: upper, validate: validateEnum('status', UPPERCASE_STATUSES.state_payments) },
+    status: {
+      normalize: upper,
+      validate: validateEnum('status', UPPERCASE_STATUSES.state_payments),
+    },
     amount_cents: { normalize: (v) => Number(v), validate: validateIntRange('amount_cents', 0) },
-    payment_method: { normalize: upper, validate: validateEnum('payment_method', new Set(['CARD', 'BANK_TRANSFER', 'WALLET'])) },
-    currency_code: { normalize: upper, validate: validatePattern('currency_code', /^[A-Z]{3}$/, 'ISO-4217 alpha-3') },
+    payment_method: {
+      normalize: upper,
+      validate: validateEnum('payment_method', new Set(['CARD', 'BANK_TRANSFER', 'WALLET'])),
+    },
+    currency_code: {
+      normalize: upper,
+      validate: validatePattern('currency_code', /^[A-Z]{3}$/, 'ISO-4217 alpha-3'),
+    },
   },
   state_shipments: {
-    status: { normalize: upper, validate: validateEnum('status', UPPERCASE_STATUSES.state_shipments) },
+    status: {
+      normalize: upper,
+      validate: validateEnum('status', UPPERCASE_STATUSES.state_shipments),
+    },
     carrier: { normalize: toTrimmedString, validate: validateMaxLen('carrier', 64) },
-    destination_country: { normalize: upper, validate: validatePattern('destination_country', /^[A-Z]{2}$/, 'ISO-3166 alpha-2') },
+    destination_country: {
+      normalize: upper,
+      validate: validatePattern('destination_country', /^[A-Z]{2}$/, 'ISO-3166 alpha-2'),
+    },
   },
 };
 
@@ -212,10 +278,7 @@ export async function deleteStateRow(
 ): Promise<{ deleted: boolean }> {
   if (!isValidStateTable(table)) throw new Error(`Invalid state table: ${table}`);
 
-  const result = await db.query(
-    `DELETE FROM "${table}" WHERE entity_id_hash = $1`,
-    [id],
-  );
+  const result = await db.query(`DELETE FROM "${table}" WHERE entity_id_hash = $1`, [id]);
   return { deleted: (result.rowCount ?? 0) > 0 };
 }
 
@@ -233,7 +296,8 @@ export async function insertStateRow(
   const filtered: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(data)) {
     if (k === 'entity_id_hash' || allowed.has(k)) {
-      filtered[k] = k === 'entity_id_hash' ? toTrimmedString(v) : normalizeAndValidateField(table, k, v);
+      filtered[k] =
+        k === 'entity_id_hash' ? toTrimmedString(v) : normalizeAndValidateField(table, k, v);
     }
   }
   if (!filtered['entity_id_hash']) throw new Error('entity_id_hash is required');
@@ -247,7 +311,7 @@ export async function insertStateRow(
   const placeholders = vals.map((_, i) => `$${i + 1}`).join(', ');
 
   await db.query(
-    `INSERT INTO "${table}" (${cols.map(c => `"${c}"`).join(', ')}) VALUES (${placeholders})`,
+    `INSERT INTO "${table}" (${cols.map((c) => `"${c}"`).join(', ')}) VALUES (${placeholders})`,
     vals,
   );
   return { inserted: true };
@@ -294,15 +358,18 @@ export async function getStateById(
     throw new Error(`Invalid state table: ${table}`);
   }
 
-  const result = await db.query(
-    `SELECT * FROM "${table}" WHERE entity_id_hash = $1`,
-    [entityIdHash],
-  );
+  const result = await db.query(`SELECT * FROM "${table}" WHERE entity_id_hash = $1`, [
+    entityIdHash,
+  ]);
 
   return result.rows[0] ?? null;
 }
 
-export function getStateSchema(table: string): { table: string; writableFields: string[]; fieldMeta: Record<string, FieldSchemaMeta> } {
+export function getStateSchema(table: string): {
+  table: string;
+  writableFields: string[];
+  fieldMeta: Record<string, FieldSchemaMeta>;
+} {
   if (!isValidStateTable(table)) {
     throw new Error(`Invalid state table: ${table}`);
   }

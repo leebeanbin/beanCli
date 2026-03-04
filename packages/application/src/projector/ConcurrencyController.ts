@@ -32,15 +32,9 @@ export class ConcurrencyController {
     ]);
 
     if (p95 >= this.p95HardLimitMs || poolUsage >= this.poolThrottlePct) {
-      this.currentBatchSize = Math.max(
-        this.minBatchSize,
-        Math.floor(this.currentBatchSize / 2),
-      );
+      this.currentBatchSize = Math.max(this.minBatchSize, Math.floor(this.currentBatchSize / 2));
     } else {
-      this.currentBatchSize = Math.min(
-        this.maxBatchSize,
-        Math.floor(this.currentBatchSize * 1.1),
-      );
+      this.currentBatchSize = Math.min(this.maxBatchSize, Math.floor(this.currentBatchSize * 1.1));
     }
 
     return this.currentBatchSize;

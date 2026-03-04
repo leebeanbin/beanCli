@@ -12,10 +12,9 @@ interface AuditLog {
 }
 
 async function getAuditLogs(limit = 50) {
-  const res = await apiClient.get<{ items: AuditLog[]; total: number }>(
-    '/api/v1/audit',
-    { limit: String(limit) },
-  );
+  const res = await apiClient.get<{ items: AuditLog[]; total: number }>('/api/v1/audit', {
+    limit: String(limit),
+  });
   return res.ok ? res.data : null;
 }
 
@@ -36,10 +35,14 @@ export default async function AuditPage() {
             <thead>
               <tr className="bg-bg border-b border-rim">
                 <th className="px-3 py-2 text-left text-fg-2 uppercase tracking-widest">Time</th>
-                <th className="px-3 py-2 text-left text-fg-2 uppercase tracking-widest">Category</th>
+                <th className="px-3 py-2 text-left text-fg-2 uppercase tracking-widest">
+                  Category
+                </th>
                 <th className="px-3 py-2 text-left text-fg-2 uppercase tracking-widest">Actor</th>
                 <th className="px-3 py-2 text-left text-fg-2 uppercase tracking-widest">Action</th>
-                <th className="px-3 py-2 text-left text-fg-2 uppercase tracking-widest">Resource</th>
+                <th className="px-3 py-2 text-left text-fg-2 uppercase tracking-widest">
+                  Resource
+                </th>
                 <th className="px-3 py-2 text-left text-fg-2 uppercase tracking-widest">Result</th>
               </tr>
             </thead>

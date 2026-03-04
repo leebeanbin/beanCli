@@ -1,6 +1,9 @@
 // Entities
 export { ChangeRequest } from './entities/ChangeRequest.js';
-export type { CreateChangeRequestParams, ReconstituteChangeRequestParams } from './entities/ChangeRequest.js';
+export type {
+  CreateChangeRequestParams,
+  ReconstituteChangeRequestParams,
+} from './entities/ChangeRequest.js';
 export { BackupSnapshot } from './entities/BackupSnapshot.js';
 
 // Value Objects

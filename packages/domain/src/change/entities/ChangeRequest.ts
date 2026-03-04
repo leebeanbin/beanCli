@@ -75,9 +75,7 @@ export class ChangeRequest {
       correlationId,
       new Date(),
     );
-    cr._events.push(
-      new ChangeSubmitted(id, params.actor, params.riskScore, correlationId),
-    );
+    cr._events.push(new ChangeSubmitted(id, params.actor, params.riskScore, correlationId));
     return cr;
   }
 
@@ -106,9 +104,7 @@ export class ChangeRequest {
 
   submit(): void {
     this.assertStatus('DRAFT');
-    this._status = this.executionPolicy.requiresApproval
-      ? 'PENDING_APPROVAL'
-      : 'APPROVED';
+    this._status = this.executionPolicy.requiresApproval ? 'PENDING_APPROVAL' : 'APPROVED';
   }
 
   approve(approver: string): void {
@@ -116,9 +112,7 @@ export class ChangeRequest {
     this._status = 'APPROVED';
     this._approvedBy = approver;
     this._approvedAt = new Date();
-    this._events.push(
-      new ChangeApproved(this.id, approver, this.correlationId),
-    );
+    this._events.push(new ChangeApproved(this.id, approver, this.correlationId));
   }
 
   reject(): void {
@@ -142,12 +136,9 @@ export class ChangeRequest {
     this._executedAt = new Date();
     this._affectedRowsActual = affectedRows;
 
-    const truncatedList =
-      affectedRows <= CONSTANTS.CHANGE_APPLIED_PK_LIST_MAX ? pkList : undefined;
+    const truncatedList = affectedRows <= CONSTANTS.CHANGE_APPLIED_PK_LIST_MAX ? pkList : undefined;
 
-    this._events.push(
-      new ChangeExecuted(this.id, affectedRows, this.correlationId, truncatedList),
-    );
+    this._events.push(new ChangeExecuted(this.id, affectedRows, this.correlationId, truncatedList));
   }
 
   fail(reason: string): void {
@@ -160,9 +151,7 @@ export class ChangeRequest {
     this.assertStatus('FAILED');
     this._status = 'REVERTED';
     this._revertedAt = new Date();
-    this._events.push(
-      new ChangeReverted(this.id, this.correlationId, snapshotId),
-    );
+    this._events.push(new ChangeReverted(this.id, this.correlationId, snapshotId));
   }
 
   // ── Queries ─────────────────────────────────────────────

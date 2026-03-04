@@ -15,8 +15,6 @@ import { dirname, resolve } from 'path';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const entry = resolve(__dirname, '../src/index-ink.tsx');
 
-spawn(
-  process.execPath,
-  ['--import', 'tsx/esm', entry, ...process.argv.slice(2)],
-  { stdio: 'inherit' },
-).on('exit', (code) => process.exit(code ?? 0));
+spawn(process.execPath, ['--import', 'tsx/esm', entry, ...process.argv.slice(2)], {
+  stdio: 'inherit',
+}).on('exit', (code) => process.exit(code ?? 0));

@@ -20,9 +20,7 @@ describe('HmacHasher', () => {
 
   it('should produce deterministic HMAC-SHA256 hash', async () => {
     const result = await hasher.hash('user', 'USR-001');
-    const expected = createHmac('sha256', testKey.value)
-      .update('user:USR-001')
-      .digest('hex');
+    const expected = createHmac('sha256', testKey.value).update('user:USR-001').digest('hex');
 
     expect(result).toBe(expected);
   });
@@ -60,9 +58,9 @@ describe('HmacHasher — key rotation', () => {
   it('hash() uses active (new) key while hashWithKeyId() uses old key — results differ', async () => {
     const rotationStore: IKeyStore = {
       getActiveKey: jest.fn().mockResolvedValue(newKey),
-      getKeyById: jest.fn().mockImplementation(async (id: string) =>
-        id === 'key-001' ? oldKey : newKey,
-      ),
+      getKeyById: jest
+        .fn()
+        .mockImplementation(async (id: string) => (id === 'key-001' ? oldKey : newKey)),
       getActiveKeyId: jest.fn().mockResolvedValue('key-002'),
     };
     const h = new HmacHasher(rotationStore);

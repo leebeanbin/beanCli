@@ -38,7 +38,10 @@ describe('ApiClient', () => {
   it('get() includes Authorization header when token is present', async () => {
     fetchMock.mockResolvedValue(makeResponse(true, 200, {}));
 
-    const client = new ApiClient({ baseUrl: 'http://localhost:3000', getAccessToken: () => 'my-token' });
+    const client = new ApiClient({
+      baseUrl: 'http://localhost:3000',
+      getAccessToken: () => 'my-token',
+    });
     await client.get('/api/v1/changes');
 
     const [, calledOpts] = fetchMock.mock.calls[0] as [string, RequestInit];

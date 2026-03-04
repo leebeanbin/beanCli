@@ -3,11 +3,11 @@
 export type UserRole = 'DBA' | 'MANAGER' | 'ANALYST' | 'SECURITY_ADMIN';
 
 export interface LoginResult {
-  ok:        boolean;
-  token?:    string;
+  ok: boolean;
+  token?: string;
   username?: string;
-  role?:     UserRole;
-  error?:    string;
+  role?: UserRole;
+  error?: string;
 }
 
 // ── DB connection types ──────────────────────────────────────────────────────
@@ -15,25 +15,25 @@ export interface LoginResult {
 export type DbType = 'postgresql' | 'mysql' | 'sqlite' | 'mongodb' | 'redis';
 
 export interface DbConnection {
-  id:         string;
-  label:      string;
-  type:       DbType;
-  host?:      string;
-  port?:      number;
-  database?:  string;
-  username?:  string;
-  password?:  string;
+  id: string;
+  label: string;
+  type: DbType;
+  host?: string;
+  port?: number;
+  database?: string;
+  username?: string;
+  password?: string;
   isDefault?: boolean;
 }
 
 export interface ColumnInfo {
-  name:      string;
-  type:      string;
+  name: string;
+  type: string;
   nullable?: boolean;
 }
 
 export interface ConnectResult {
-  error:  string | null;
+  error: string | null;
   tables: string[];
 }
 
@@ -42,28 +42,28 @@ export interface ConnectResult {
 export type QueryType = 'select' | 'dml' | 'ddl' | 'other';
 
 export interface QueryResult {
-  columns:   string[];
-  rows:      Record<string, unknown>[];
-  rowCount:  number;
-  duration:  number;            // ms
-  type:      QueryType;
-  message?:  string;            // for DML/DDL feedback
-  error?:    string;
-  warning?:  string;            // non-fatal notice (e.g. truncation)
+  columns: string[];
+  rows: Record<string, unknown>[];
+  rowCount: number;
+  duration: number; // ms
+  type: QueryType;
+  message?: string; // for DML/DDL feedback
+  error?: string;
+  warning?: string; // non-fatal notice (e.g. truncation)
 }
 
 // ── AI types ─────────────────────────────────────────────────────────────────
 
 export interface AiMessage {
-  role:    'user' | 'assistant' | 'system';
+  role: 'user' | 'assistant' | 'system';
   content: string;
 }
 
 export interface AiStreamCallbacks {
-  onChunk:  (text: string) => void;
+  onChunk: (text: string) => void;
   onIntent: (intent: string) => void;
-  onDone:   (content: string, sql: string | null, model: string) => void;
-  onError:  (error: string) => void;
+  onDone: (content: string, sql: string | null, model: string) => void;
+  onError: (error: string) => void;
 }
 
 // ── Service interface (implemented in apps/cli, injected into TUI) ───────────
@@ -123,8 +123,8 @@ export interface IConnectionService {
    * Fires callbacks as SSE events arrive.
    */
   streamAi?: (
-    messages:  AiMessage[],
-    opts:      { model?: string },
+    messages: AiMessage[],
+    opts: { model?: string },
     callbacks: AiStreamCallbacks,
   ) => Promise<void>;
 }

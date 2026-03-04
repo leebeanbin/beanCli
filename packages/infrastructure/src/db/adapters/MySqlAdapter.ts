@@ -29,7 +29,9 @@ export class MySqlAdapter implements IDbAdapter {
     if (!this.connection) {
       // Dynamic import — mysql2 is an optional peer dependency
       const mysql = await import('mysql2/promise');
-      this.connection = await (mysql as { createConnection: (cfg: unknown) => Promise<unknown> }).createConnection({
+      this.connection = await (
+        mysql as { createConnection: (cfg: unknown) => Promise<unknown> }
+      ).createConnection({
         host: this.config.host ?? 'localhost',
         port: this.config.port ?? 3306,
         database: this.config.database,
@@ -42,8 +44,11 @@ export class MySqlAdapter implements IDbAdapter {
   }
 
   async listTables(): Promise<string[]> {
-    const conn = await this.getConnection() as {
-      execute: (sql: string, values: unknown[]) => Promise<[Array<Record<string, unknown>>, unknown]>;
+    const conn = (await this.getConnection()) as {
+      execute: (
+        sql: string,
+        values: unknown[],
+      ) => Promise<[Array<Record<string, unknown>>, unknown]>;
     };
     const db = this.config.database ?? '';
     // SEC-FIX: parameterised query — db name never interpolated into SQL string
@@ -54,14 +59,22 @@ export class MySqlAdapter implements IDbAdapter {
        ORDER BY TABLE_NAME`,
       [db],
     );
-    return (rows as Array<{ table_name: string }>).map(r => r.table_name);
+    return (rows as Array<{ table_name: string }>).map((r) => r.table_name);
   }
 
   async queryRows(sql: string, params?: unknown[]): Promise<Record<string, unknown>[]> {
-    const conn = await this.getConnection() as {
-      execute: (opts: { sql: string; timeout: number; values: unknown[] }) => Promise<[Array<Record<string, unknown>>, unknown]>;
+    const conn = (await this.getConnection()) as {
+      execute: (opts: {
+        sql: string;
+        timeout: number;
+        values: unknown[];
+      }) => Promise<[Array<Record<string, unknown>>, unknown]>;
     };
-    const [rows] = await conn.execute({ sql: injectLimit(sql), timeout: 30_000, values: params ?? [] });
+    const [rows] = await conn.execute({
+      sql: injectLimit(sql),
+      timeout: 30_000,
+      values: params ?? [],
+    });
     return rows as Record<string, unknown>[];
   }
 

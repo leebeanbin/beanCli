@@ -13,7 +13,7 @@ export function useWsEvents(wsUrl: string, tables: string[]) {
     managerRef.current = manager;
     manager.connect(wsUrl, tables);
     const timer = setInterval(() => setConnected(manager.isConnected()), 1000);
-    const unsub = manager.onMessage(msg => setLastEvent(msg));
+    const unsub = manager.onMessage((msg) => setLastEvent(msg));
     return () => {
       clearInterval(timer);
       unsub();

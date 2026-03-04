@@ -16,9 +16,12 @@ export function usePanelFocus() {
     setFocusedPanel(PANEL_ORDER[(idx - 1 + PANEL_ORDER.length) % PANEL_ORDER.length]!);
   }, [focusedPanel, setFocusedPanel]);
 
-  const focusPanel = useCallback((panel: PanelId) => {
-    setFocusedPanel(panel);
-  }, [setFocusedPanel]);
+  const focusPanel = useCallback(
+    (panel: PanelId) => {
+      setFocusedPanel(panel);
+    },
+    [setFocusedPanel],
+  );
 
   return { focusedPanel, nextPanel, prevPanel, focusPanel };
 }

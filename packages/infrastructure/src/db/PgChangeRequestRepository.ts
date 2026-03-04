@@ -1,12 +1,12 @@
 import type { IChangeRequestRepository } from '@tfsdc/domain';
-import type { ChangeRequestStatus, Environment, ExecutionMode, RiskLevel, UserRole } from '@tfsdc/kernel';
-import {
-  ChangeRequest,
-  ChangeId,
-  SqlStatement,
-  RiskScore,
-  ExecutionPolicy,
-} from '@tfsdc/domain';
+import type {
+  ChangeRequestStatus,
+  Environment,
+  ExecutionMode,
+  RiskLevel,
+  UserRole,
+} from '@tfsdc/kernel';
+import { ChangeRequest, ChangeId, SqlStatement, RiskScore, ExecutionPolicy } from '@tfsdc/domain';
 import type { ISqlAstValidator } from '@tfsdc/domain';
 import type { PgPool } from './PgPool.js';
 
@@ -59,10 +59,7 @@ export class PgChangeRequestRepository implements IChangeRequestRepository {
   }
 
   async findById(id: ChangeId): Promise<ChangeRequest | null> {
-    const result = await this.pool.query(
-      'SELECT * FROM change_requests WHERE id = $1',
-      [id.value],
-    );
+    const result = await this.pool.query('SELECT * FROM change_requests WHERE id = $1', [id.value]);
     if (result.rows.length === 0) return null;
     return this.reconstitute(result.rows[0]);
   }
@@ -103,8 +100,7 @@ export class PgChangeRequestRepository implements IChangeRequestRepository {
 
     const mode = (row.execution_mode as ExecutionMode) ?? 'AUTO';
     const environment = (row.environment as Environment) ?? 'DEV';
-    const requiresApproval =
-      mode === 'MANUAL' || (mode === 'CONFIRM' && environment === 'PROD');
+    const requiresApproval = mode === 'MANUAL' || (mode === 'CONFIRM' && environment === 'PROD');
     const executionPolicy = new ExecutionPolicy(mode, requiresApproval);
 
     return ChangeRequest.reconstitute({
@@ -123,9 +119,8 @@ export class PgChangeRequestRepository implements IChangeRequestRepository {
       executedAt: row.executed_at ? new Date(row.executed_at as string) : undefined,
       revertedAt: row.reverted_at ? new Date(row.reverted_at as string) : undefined,
       failureReason: (row.failure_reason as string) ?? undefined,
-      affectedRowsActual: row.affected_rows_actual != null
-        ? Number(row.affected_rows_actual)
-        : undefined,
+      affectedRowsActual:
+        row.affected_rows_actual != null ? Number(row.affected_rows_actual) : undefined,
     });
   }
 }

@@ -1,11 +1,5 @@
 import type { Environment } from '@tfsdc/kernel';
-import {
-  ChangeRequest,
-  ChangeId,
-  SqlStatement,
-  RiskScorer,
-  PolicyEvaluator,
-} from '@tfsdc/domain';
+import { ChangeRequest, ChangeId, SqlStatement, RiskScorer, PolicyEvaluator } from '@tfsdc/domain';
 import type { IChangeRequestRepository, ISqlAstValidator } from '@tfsdc/domain';
 import type { IChangeRouteHandler, CreateChangeInput, ChangeListQuery } from './changes.routes.js';
 import type { AuthContext, IDbSession } from '../types.js';
@@ -113,11 +107,7 @@ export class ChangeRouteHandlerImpl implements IChangeRouteHandler {
     return result.rows[0] ?? null;
   }
 
-  async submit(
-    _ctx: AuthContext,
-    _db: IDbSession,
-    id: string,
-  ): Promise<{ status: string }> {
+  async submit(_ctx: AuthContext, _db: IDbSession, id: string): Promise<{ status: string }> {
     const changeId = ChangeId.from(id);
     const cr = await this.repo.findById(changeId);
     if (!cr) throw notFound(id);
@@ -185,11 +175,7 @@ export class ChangeRouteHandlerImpl implements IChangeRouteHandler {
     return { status: cr.status, affectedRows };
   }
 
-  async revert(
-    _ctx: AuthContext,
-    db: IDbSession,
-    id: string,
-  ): Promise<{ status: string }> {
+  async revert(_ctx: AuthContext, db: IDbSession, id: string): Promise<{ status: string }> {
     const changeId = ChangeId.from(id);
     const cr = await this.repo.findById(changeId);
     if (!cr) throw notFound(id);

@@ -101,7 +101,7 @@ export class SchemaIntrospector {
       });
     }
 
-    return tablesResult.rows.map(row => ({
+    return tablesResult.rows.map((row) => ({
       name: String(row.name),
       rowEstimate: Number(row.row_estimate),
       sizeBytes: Number(row.size_bytes),
@@ -136,7 +136,7 @@ export class SchemaIntrospector {
       ORDER BY i.tablename, i.indexname
     `);
 
-    return result.rows.map(row => ({
+    return result.rows.map((row) => ({
       name: String(row.name),
       table: String(row.table),
       columns: String(row.columns),
@@ -161,7 +161,7 @@ export class SchemaIntrospector {
       ORDER BY s.idx_scan DESC
     `);
 
-    return result.rows.map(row => ({
+    return result.rows.map((row) => ({
       name: String(row.name),
       table: String(row.table),
       scans: Number(row.scans),
@@ -186,7 +186,7 @@ export class SchemaIntrospector {
       ORDER BY relname
     `);
 
-    return result.rows.map(row => ({
+    return result.rows.map((row) => ({
       table: String(row.table),
       seqScans: Number(row.seq_scans),
       seqTupRead: Number(row.seq_tup_read),

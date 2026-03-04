@@ -65,11 +65,13 @@ export class KafkaConsumerAdapter implements IKafkaConsumer {
   }
 
   async commitOffset(event: RawEvent): Promise<void> {
-    await this.consumer.commitOffsets([{
-      topic: event.sourceTopic,
-      partition: event.partition,
-      offset: String(event.offset + 1),
-    }]);
+    await this.consumer.commitOffsets([
+      {
+        topic: event.sourceTopic,
+        partition: event.partition,
+        offset: String(event.offset + 1),
+      },
+    ]);
   }
 
   async disconnect(): Promise<void> {

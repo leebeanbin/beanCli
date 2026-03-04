@@ -20,11 +20,12 @@ interface ApprovalCardProps {
 }
 
 export function ApprovalCard({ item, onApprove, onReject }: ApprovalCardProps) {
-  const riskCls = item.risk_level === 'L2'
-    ? 'text-danger font-bold'
-    : item.risk_level === 'L1'
-    ? 'text-warn'
-    : 'text-ok';
+  const riskCls =
+    item.risk_level === 'L2'
+      ? 'text-danger font-bold'
+      : item.risk_level === 'L1'
+        ? 'text-warn'
+        : 'text-ok';
 
   return (
     <div className="bg-bg-2 border border-rim shadow-px p-4">
@@ -39,7 +40,8 @@ export function ApprovalCard({ item, onApprove, onReject }: ApprovalCardProps) {
 
       <div className="text-xs text-fg-2 mb-1 font-mono">
         <span className="text-fg">Actor:</span> {item.actor} &nbsp;|&nbsp;
-        <span className="text-fg">Table:</span> <code className="text-accent">{item.target_table}</code>
+        <span className="text-fg">Table:</span>{' '}
+        <code className="text-accent">{item.target_table}</code>
       </div>
 
       <pre className="bg-bg border border-rim p-2 text-xs font-mono overflow-x-auto mb-3 max-h-24 text-fg">

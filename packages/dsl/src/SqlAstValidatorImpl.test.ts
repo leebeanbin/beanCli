@@ -108,8 +108,8 @@ describe('SqlAstValidatorImpl', () => {
 
   describe('AST hash determinism', () => {
     it('same SQL produces same hash', () => {
-      const r1 = validator.parse("SELECT * FROM state_orders WHERE id = 1");
-      const r2 = validator.parse("SELECT * FROM state_orders WHERE id = 1");
+      const r1 = validator.parse('SELECT * FROM state_orders WHERE id = 1');
+      const r2 = validator.parse('SELECT * FROM state_orders WHERE id = 1');
       if (r1.isOk() && r2.isOk()) {
         expect(r1.value.astHash).toBe(r2.value.astHash);
       }

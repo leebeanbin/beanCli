@@ -19,11 +19,7 @@ export class ApprovalRouteHandlerImpl implements IApprovalRouteHandler {
     return { items: result.rows };
   }
 
-  async approve(
-    ctx: AuthContext,
-    _db: IDbSession,
-    changeId: string,
-  ): Promise<{ status: string }> {
+  async approve(ctx: AuthContext, _db: IDbSession, changeId: string): Promise<{ status: string }> {
     const id = ChangeId.from(changeId);
     const cr = await this.repo.findById(id);
     if (!cr) throw notFound(changeId);
@@ -33,11 +29,7 @@ export class ApprovalRouteHandlerImpl implements IApprovalRouteHandler {
     return { status: cr.status };
   }
 
-  async reject(
-    _ctx: AuthContext,
-    _db: IDbSession,
-    changeId: string,
-  ): Promise<{ status: string }> {
+  async reject(_ctx: AuthContext, _db: IDbSession, changeId: string): Promise<{ status: string }> {
     const id = ChangeId.from(changeId);
     const cr = await this.repo.findById(id);
     if (!cr) throw notFound(changeId);

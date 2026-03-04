@@ -30,7 +30,7 @@ function SqlBlock({ sql }: { sql: string }) {
       </pre>
       {isLong && (
         <button
-          onClick={() => setExpanded(v => !v)}
+          onClick={() => setExpanded((v) => !v)}
           className="text-xs font-mono text-accent hover:underline mt-1"
         >
           {expanded ? '[ Show less ]' : '[ Show more ]'}
@@ -49,10 +49,10 @@ function RecoveryContent() {
   const fetchFailed = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const res = await apiClient.get<{ items: FailedChange[]; total: number }>(
-      '/api/v1/changes',
-      { status: 'FAILED', limit: '50' },
-    );
+    const res = await apiClient.get<{ items: FailedChange[]; total: number }>('/api/v1/changes', {
+      status: 'FAILED',
+      limit: '50',
+    });
     if (res.ok && res.data) {
       setItems(res.data.items ?? []);
     } else {
@@ -61,13 +61,18 @@ function RecoveryContent() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { void fetchFailed(); }, [fetchFailed]);
+  useEffect(() => {
+    void fetchFailed();
+  }, [fetchFailed]);
 
   if (!getToken()) {
     return (
       <p className="text-xs font-mono text-fg-2">
         Please set a JWT token in the{' '}
-        <a href="/auth" className="text-accent hover:underline">Auth</a> page first.
+        <a href="/auth" className="text-accent hover:underline">
+          Auth
+        </a>{' '}
+        page first.
       </p>
     );
   }
@@ -96,9 +101,7 @@ function RecoveryContent() {
       ) : (
         <div className="space-y-4">
           {items.map((item) => {
-            const riskCls = item.risk_level === 'L2'
-              ? 'text-danger font-bold'
-              : 'text-warn';
+            const riskCls = item.risk_level === 'L2' ? 'text-danger font-bold' : 'text-warn';
             return (
               <div key={item.id} className="bg-bg-2 border border-danger shadow-px-d p-4">
                 <div className="flex items-center gap-2 mb-2">
@@ -117,7 +120,9 @@ function RecoveryContent() {
                 {item.failure_reason && (
                   <div className="border border-danger p-2 mb-2 bg-bg">
                     <p className="text-xs font-mono text-danger mb-1">Failure Reason</p>
-                    <pre className="text-xs text-danger overflow-x-auto whitespace-pre-wrap">{item.failure_reason}</pre>
+                    <pre className="text-xs text-danger overflow-x-auto whitespace-pre-wrap">
+                      {item.failure_reason}
+                    </pre>
                   </div>
                 )}
 
@@ -128,7 +133,9 @@ function RecoveryContent() {
                     Created: {new Date(item.created_at).toLocaleString()}
                   </span>
                   <button
-                    onClick={() => router.push('/changes?sql=' + encodeURIComponent(item.sql_statement))}
+                    onClick={() =>
+                      router.push('/changes?sql=' + encodeURIComponent(item.sql_statement))
+                    }
                     className="text-xs font-mono px-3 py-1 border border-accent text-accent hover:bg-accent hover:text-bg shadow-px-a transition-none"
                   >
                     [ New Change from This ]

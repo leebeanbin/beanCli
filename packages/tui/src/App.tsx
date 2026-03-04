@@ -10,16 +10,41 @@ import { useAppContext } from './context/AppContext.js';
 
 function handleCommand(id: string, ctx: ReturnType<typeof useAppContext>): void {
   switch (id) {
-    case 'schema':   ctx.setFocusedPanel('schema'); break;
-    case 'query':    ctx.setAppMode('query');  ctx.setFocusedPanel('query');  break;
-    case 'result':   ctx.setFocusedPanel('result'); break;
-    case 'ai':       ctx.setFocusedPanel('ai'); break;
-    case 'tables':       ctx.setOverlay({ type: 'table-picker' }); break;
-    case 'create-table': ctx.setOverlay({ type: 'create-table' }); break;
-    case 'monitor':  ctx.setAppMode('monitor'); ctx.setFocusedPanel('query'); break;
-    case 'indexes':  ctx.setAppMode('index');   ctx.setFocusedPanel('query'); break;
-    case 'audit':    ctx.setAppMode('audit');   ctx.setFocusedPanel('query'); break;
-    case 'recovery': ctx.setAppMode('recovery'); ctx.setFocusedPanel('query'); break;
+    case 'schema':
+      ctx.setFocusedPanel('schema');
+      break;
+    case 'query':
+      ctx.setAppMode('query');
+      ctx.setFocusedPanel('query');
+      break;
+    case 'result':
+      ctx.setFocusedPanel('result');
+      break;
+    case 'ai':
+      ctx.setFocusedPanel('ai');
+      break;
+    case 'tables':
+      ctx.setOverlay({ type: 'table-picker' });
+      break;
+    case 'create-table':
+      ctx.setOverlay({ type: 'create-table' });
+      break;
+    case 'monitor':
+      ctx.setAppMode('monitor');
+      ctx.setFocusedPanel('query');
+      break;
+    case 'indexes':
+      ctx.setAppMode('index');
+      ctx.setFocusedPanel('query');
+      break;
+    case 'audit':
+      ctx.setAppMode('audit');
+      ctx.setFocusedPanel('query');
+      break;
+    case 'recovery':
+      ctx.setAppMode('recovery');
+      ctx.setFocusedPanel('query');
+      break;
     case 'disconnect':
       if (ctx.connectionService?.disconnect) void ctx.connectionService.disconnect();
       ctx.setActiveConnection(null);
@@ -33,7 +58,8 @@ function handleCommand(id: string, ctx: ReturnType<typeof useAppContext>): void 
 export const App: React.FC = () => {
   const { exit } = useApp();
   const ctx = useAppContext();
-  const { paletteOpen, setPaletteOpen, startupPhase, focusedPanel, appMode, overlay, setOverlay } = ctx;
+  const { paletteOpen, setPaletteOpen, startupPhase, focusedPanel, appMode, overlay, setOverlay } =
+    ctx;
 
   useInput((input, key) => {
     // Startup screens handle their own input
@@ -92,15 +118,14 @@ export const App: React.FC = () => {
 
       {/* Command palette renders as an overlay below the main layout */}
       {paletteOpen && (
-        <Box
-          position="absolute"
-          marginLeft={4}
-          marginTop={1}
-        >
+        <Box position="absolute" marginLeft={4} marginTop={1}>
           <CommandPalette
             onClose={() => setPaletteOpen(false)}
             onSelect={(id) => {
-              if (id === 'quit') { exit(); return; }
+              if (id === 'quit') {
+                exit();
+                return;
+              }
               handleCommand(id, ctx);
             }}
           />

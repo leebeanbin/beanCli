@@ -1,7 +1,10 @@
 import type {
-  RawEvent, IHasher,
-  IProjectorDb, IMetricsProvider,
-  IDlqPublisher, IKafkaConsumer,
+  RawEvent,
+  IHasher,
+  IProjectorDb,
+  IMetricsProvider,
+  IDlqPublisher,
+  IKafkaConsumer,
 } from '@tfsdc/domain';
 import type { EventDispatcher } from '../EventDispatcher.js';
 
@@ -30,7 +33,12 @@ export interface ProcessEventMetrics {
 }
 
 export class ProcessEventUseCase {
-  private _metrics: ProcessEventMetrics = { processed: 0, duplicateSkips: 0, dlqSent: 0, overloadDrops: 0 };
+  private _metrics: ProcessEventMetrics = {
+    processed: 0,
+    duplicateSkips: 0,
+    dlqSent: 0,
+    overloadDrops: 0,
+  };
 
   constructor(
     private readonly db: IProjectorDb,

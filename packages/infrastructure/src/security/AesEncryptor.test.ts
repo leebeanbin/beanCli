@@ -58,9 +58,9 @@ describe('AesEncryptor — key rotation', () => {
   it('encrypts with old key and decrypts successfully via keyId routing', async () => {
     const rotationStore: IKeyStore = {
       getActiveKey: jest.fn().mockResolvedValue(newKey),
-      getKeyById: jest.fn().mockImplementation(async (id: string) =>
-        id === 'key-001' ? oldKey : newKey,
-      ),
+      getKeyById: jest
+        .fn()
+        .mockImplementation(async (id: string) => (id === 'key-001' ? oldKey : newKey)),
       getActiveKeyId: jest.fn().mockResolvedValue('key-002'),
     };
     const enc = new AesEncryptor(rotationStore);

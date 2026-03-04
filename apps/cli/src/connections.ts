@@ -17,7 +17,7 @@ export interface DbConnection {
   isDefault?: boolean;
 }
 
-const CONN_DIR  = join(homedir(), '.config', 'beanCli');
+const CONN_DIR = join(homedir(), '.config', 'beanCli');
 const CONN_FILE = join(CONN_DIR, 'connections.json');
 
 // ── Encryption helpers ────────────────────────────────────────────────────────
@@ -32,7 +32,7 @@ function getEncKey(): Buffer {
 
 function encryptPassword(plaintext: string): string {
   const key = getEncKey();
-  const iv  = randomBytes(16);
+  const iv = randomBytes(16);
   const cipher = createCipheriv('aes-256-gcm', key, iv);
   const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
   const tag = cipher.getAuthTag();
@@ -43,14 +43,14 @@ function encryptPassword(plaintext: string): string {
 function decryptPassword(stored: string): string {
   if (!stored.startsWith(ENC_PREFIX)) return stored; // plaintext fallback
   try {
-    const rest   = stored.slice(ENC_PREFIX.length);
-    const parts  = rest.split(':');
+    const rest = stored.slice(ENC_PREFIX.length);
+    const parts = rest.split(':');
     if (parts.length !== 3) return stored;
     const [ivHex, tagHex, ctHex] = parts as [string, string, string];
-    const key    = getEncKey();
-    const iv     = Buffer.from(ivHex, 'hex');
-    const tag    = Buffer.from(tagHex, 'hex');
-    const ct     = Buffer.from(ctHex, 'hex');
+    const key = getEncKey();
+    const iv = Buffer.from(ivHex, 'hex');
+    const tag = Buffer.from(tagHex, 'hex');
+    const ct = Buffer.from(ctHex, 'hex');
     const decipher = createDecipheriv('aes-256-gcm', key, iv);
     decipher.setAuthTag(tag);
     return decipher.update(ct).toString('utf8') + decipher.final('utf8');
@@ -94,7 +94,7 @@ export function saveConnections(conns: DbConnection[]): void {
 
 export function upsertConnection(conn: DbConnection): void {
   const conns = loadConnections();
-  const idx = conns.findIndex(c => c.id === conn.id);
+  const idx = conns.findIndex((c) => c.id === conn.id);
   if (idx >= 0) {
     conns[idx] = conn;
   } else {
@@ -104,7 +104,7 @@ export function upsertConnection(conn: DbConnection): void {
 }
 
 export function removeConnection(id: string): void {
-  const conns = loadConnections().filter(c => c.id !== id);
+  const conns = loadConnections().filter((c) => c.id !== id);
   saveConnections(conns);
 }
 
@@ -118,28 +118,33 @@ export function getEnvConnection(): DbConnection | null {
   const url = process.env['DATABASE_URL'];
   if (!url) return null;
   try {
-    const u    = new URL(url);
+    const u = new URL(url);
     const scheme = u.protocol.replace(/:$/, '');
     const type: DbType =
-      scheme === 'postgres' || scheme === 'postgresql' ? 'postgresql' :
-      scheme === 'mysql'                               ? 'mysql'      :
-      scheme === 'mongodb'                             ? 'mongodb'    :
-      scheme === 'redis'                               ? 'redis'      :
-      scheme === 'sqlite'                              ? 'sqlite'     :
-      'postgresql';
+      scheme === 'postgres' || scheme === 'postgresql'
+        ? 'postgresql'
+        : scheme === 'mysql'
+          ? 'mysql'
+          : scheme === 'mongodb'
+            ? 'mongodb'
+            : scheme === 'redis'
+              ? 'redis'
+              : scheme === 'sqlite'
+                ? 'sqlite'
+                : 'postgresql';
 
     const database = u.pathname.replace(/^\//, '') || undefined;
-    const label    = database ?? u.hostname ?? 'local-db';
+    const label = database ?? u.hostname ?? 'local-db';
 
     return {
-      id:        'env-default',
+      id: 'env-default',
       label,
       type,
-      host:      u.hostname || 'localhost',
-      port:      u.port ? Number(u.port) : (type === 'postgresql' ? 5432 : undefined),
+      host: u.hostname || 'localhost',
+      port: u.port ? Number(u.port) : type === 'postgresql' ? 5432 : undefined,
       database,
-      username:  u.username || undefined,
-      password:  u.password ? decodeURIComponent(u.password) : undefined,
+      username: u.username || undefined,
+      password: u.password ? decodeURIComponent(u.password) : undefined,
       isDefault: true,
     };
   } catch {

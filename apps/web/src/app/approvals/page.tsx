@@ -20,7 +20,9 @@ export default function ApprovalsPage() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { void fetchPending(); }, [fetchPending]);
+  useEffect(() => {
+    void fetchPending();
+  }, [fetchPending]);
 
   async function handleApprove(id: string) {
     const res = await apiClient.post(`/api/v1/approvals/${id}/approve`);

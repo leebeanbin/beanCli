@@ -20,7 +20,9 @@ import { initDbAdapters, createAdapter } from '@tfsdc/infrastructure';
 const DB_URL = process.env['DATABASE_URL'];
 const describeIf = DB_URL ? describe : describe.skip;
 
-beforeAll(() => { initDbAdapters(); });
+beforeAll(() => {
+  initDbAdapters();
+});
 
 // ── PART 1: Adapter-level tests ────────────────────────────────────────────────
 
@@ -30,15 +32,17 @@ describeIf('Adapter — raw PgAdapter via DATABASE_URL', () => {
     expect(conn).not.toBeNull();
     expect(['postgresql', 'mysql', 'sqlite', 'mongodb', 'redis']).toContain(conn!.type);
     expect(conn!.host).toBeTruthy();
-    console.log(`  Parsed → type=${conn!.type}  host=${conn!.host}:${conn!.port}  db=${conn!.database}  user=${conn!.username}`);
+    console.log(
+      `  Parsed → type=${conn!.type}  host=${conn!.host}:${conn!.port}  db=${conn!.database}  user=${conn!.username}`,
+    );
   });
 
   it('createAdapter() + listTables() connects and lists tables', async () => {
     const conn = getEnvConnection()!;
     const adapter = createAdapter({
-      type:     conn.type,
-      host:     conn.host,
-      port:     conn.port,
+      type: conn.type,
+      host: conn.host,
+      port: conn.port,
       database: conn.database,
       username: conn.username,
       password: conn.password,
@@ -47,39 +51,45 @@ describeIf('Adapter — raw PgAdapter via DATABASE_URL', () => {
     const tables = await adapter.listTables();
     expect(Array.isArray(tables)).toBe(true);
     expect(tables.length).toBeGreaterThan(0);
-    console.log(`  Tables (${tables.length}): ${tables.slice(0, 6).join(', ')}${tables.length > 6 ? '…' : ''}`);
+    console.log(
+      `  Tables (${tables.length}): ${tables.slice(0, 6).join(', ')}${tables.length > 6 ? '…' : ''}`,
+    );
     await adapter.close();
   }, 15_000);
 
   it('queryRows("SELECT 1") returns a result row with <200ms latency', async () => {
-    const conn    = getEnvConnection()!;
+    const conn = getEnvConnection()!;
     const adapter = createAdapter({
-      type:     conn.type,
-      host:     conn.host,
-      port:     conn.port,
+      type: conn.type,
+      host: conn.host,
+      port: conn.port,
       database: conn.database,
       username: conn.username,
       password: conn.password,
     });
 
     const t0 = Date.now();
-    const rows = await adapter.queryRows('SELECT 1 AS ping, version() AS ver, current_database() AS db');
-    const ms   = Date.now() - t0;
+    const rows = await adapter.queryRows(
+      'SELECT 1 AS ping, version() AS ver, current_database() AS db',
+    );
+    const ms = Date.now() - t0;
 
     expect(rows).toHaveLength(1);
     expect(rows[0]?.['ping']).toBe(1);
     expect(typeof rows[0]?.['ver']).toBe('string');
     expect(ms).toBeLessThan(200);
-    console.log(`  ✓ SELECT 1 in ${ms}ms — db="${String(rows[0]?.['db'])}" server="${String(rows[0]?.['ver']).split(',')[0]}"`);
+    console.log(
+      `  ✓ SELECT 1 in ${ms}ms — db="${String(rows[0]?.['db'])}" server="${String(rows[0]?.['ver']).split(',')[0]}"`,
+    );
     await adapter.close();
   }, 15_000);
 
   it('queryRows on information_schema.tables returns table_name column', async () => {
-    const conn    = getEnvConnection()!;
+    const conn = getEnvConnection()!;
     const adapter = createAdapter({
-      type:     conn.type,
-      host:     conn.host,
-      port:     conn.port,
+      type: conn.type,
+      host: conn.host,
+      port: conn.port,
       database: conn.database,
       username: conn.username,
       password: conn.password,
@@ -94,11 +104,11 @@ describeIf('Adapter — raw PgAdapter via DATABASE_URL', () => {
   }, 15_000);
 
   it('queryRows rejects on invalid SQL', async () => {
-    const conn    = getEnvConnection()!;
+    const conn = getEnvConnection()!;
     const adapter = createAdapter({
-      type:     conn.type,
-      host:     conn.host,
-      port:     conn.port,
+      type: conn.type,
+      host: conn.host,
+      port: conn.port,
       database: conn.database,
       username: conn.username,
       password: conn.password,
@@ -122,7 +132,9 @@ describeIf('Service — createCliConnectionService() full flow', () => {
     expect(result.error).toBeNull();
   });
 
-  afterAll(async () => { await svc.disconnect(); });
+  afterAll(async () => {
+    await svc.disconnect();
+  });
 
   it('testConnection() returns non-empty table list', async () => {
     const conn = getEnvConnection()!;
@@ -164,12 +176,14 @@ describeIf('Service — listDatabases()', () => {
     await svc.testConnection(connForListing);
   });
 
-  afterAll(async () => { await svc.disconnect(); });
+  afterAll(async () => {
+    await svc.disconnect();
+  });
 
   it('returns an array of strings', async () => {
     const dbs = await svc.listDatabases!();
     expect(Array.isArray(dbs)).toBe(true);
-    dbs.forEach(db => expect(typeof db).toBe('string'));
+    dbs.forEach((db) => expect(typeof db).toBe('string'));
   });
 
   it('returns at least one database', async () => {
@@ -185,7 +199,7 @@ describeIf('Service — listDatabases()', () => {
 
   it('includes the database from DATABASE_URL', async () => {
     const conn = getEnvConnection()!;
-    if (!conn.database) return;  // skip if no database in URL
+    if (!conn.database) return; // skip if no database in URL
     const dbs = await svc.listDatabases!();
     expect(dbs).toContain(conn.database);
     console.log(`  ✓ Found ${conn.database} in database list`);
@@ -217,7 +231,9 @@ describeIf('Service — createDatabase()', () => {
     try {
       await svc.executeQuery(`DROP DATABASE IF EXISTS "${TEST_DB}"`);
       console.log(`  Cleaned up: dropped ${TEST_DB}`);
-    } catch { /* ignore cleanup errors */ }
+    } catch {
+      /* ignore cleanup errors */
+    }
     await svc.disconnect();
   });
 
@@ -250,7 +266,9 @@ describeIf('Service — createDatabase()', () => {
 describeIf('Service — full boot flow: no DB → listDatabases → reconnect', () => {
   let svc: ReturnType<typeof createCliConnectionService>;
 
-  afterAll(async () => { await svc.disconnect(); });
+  afterAll(async () => {
+    await svc.disconnect();
+  });
 
   it('step 1: testConnection() without database falls back to "postgres" and succeeds', async () => {
     svc = createCliConnectionService();

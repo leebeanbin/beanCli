@@ -18,7 +18,10 @@ export class MongoAdapter implements IDbAdapter {
 
   private buildUri(): string {
     const { host = 'localhost', port = 27017, username, password } = this.config;
-    const auth = username && password ? `${encodeURIComponent(username)}:${encodeURIComponent(password)}@` : '';
+    const auth =
+      username && password
+        ? `${encodeURIComponent(username)}:${encodeURIComponent(password)}@`
+        : '';
     return `mongodb://${auth}${host}:${port}`;
   }
 
@@ -33,35 +36,47 @@ export class MongoAdapter implements IDbAdapter {
   }
 
   async listTables(): Promise<string[]> {
-    const client = await this.getClient() as {
-      db: (name?: string) => { listCollections: () => { toArray: () => Promise<Array<{ name: string }>> } };
+    const client = (await this.getClient()) as {
+      db: (name?: string) => {
+        listCollections: () => { toArray: () => Promise<Array<{ name: string }>> };
+      };
     };
     const db = client.db(this.config.database);
     const cols = await db.listCollections().toArray();
-    return cols.map(c => c.name);
+    return cols.map((c) => c.name);
   }
 
   async queryRows(sql: string, _params?: unknown[]): Promise<Record<string, unknown>[]> {
     // MongoDB doesn't use SQL — parse a minimal "SELECT * FROM <collection>" pattern
     // Special case: SHOW DATABASES → list all databases via admin interface
     if (/SHOW\s+DATABASES/i.test(sql)) {
-      const client = await this.getClient() as {
+      const client = (await this.getClient()) as {
         db: (name?: string) => {
           admin: () => {
-            listDatabases: () => Promise<{ databases: Array<{ name: string; sizeOnDisk?: number }> }>;
+            listDatabases: () => Promise<{
+              databases: Array<{ name: string; sizeOnDisk?: number }>;
+            }>;
           };
         };
       };
       const result = await client.db().admin().listDatabases();
-      return result.databases.map(db => ({ name: db.name, sizeOnDisk: db.sizeOnDisk ?? 0 }));
+      return result.databases.map((db) => ({ name: db.name, sizeOnDisk: db.sizeOnDisk ?? 0 }));
     }
 
     const match = /FROM\s+(\w+)/i.exec(sql);
     if (!match) return [];
     const limitMatch = /LIMIT\s+(\d+)/i.exec(sql);
     const limit = limitMatch ? parseInt(limitMatch[1]!, 10) : 5001;
-    const client = await this.getClient() as {
-      db: (name?: string) => { collection: (name: string) => { find: () => { limit: (n: number) => { maxTimeMS: (ms: number) => { toArray: () => Promise<Record<string, unknown>[]> } } } } };
+    const client = (await this.getClient()) as {
+      db: (name?: string) => {
+        collection: (name: string) => {
+          find: () => {
+            limit: (n: number) => {
+              maxTimeMS: (ms: number) => { toArray: () => Promise<Record<string, unknown>[]> };
+            };
+          };
+        };
+      };
     };
     const db = client.db(this.config.database);
     return db.collection(match[1]!).find().limit(limit).maxTimeMS(30_000).toArray();

@@ -40,12 +40,12 @@ export function saveConnections(conns: DbConnection[]): void {
 
 export function upsertConnection(conn: DbConnection): void {
   const conns = loadConnections();
-  const idx = conns.findIndex(c => c.id === conn.id);
+  const idx = conns.findIndex((c) => c.id === conn.id);
   if (idx >= 0) conns[idx] = conn;
   else conns.push(conn);
   saveConnections(conns);
 }
 
 export function removeConnection(id: string): void {
-  saveConnections(loadConnections().filter(c => c.id !== id));
+  saveConnections(loadConnections().filter((c) => c.id !== id));
 }

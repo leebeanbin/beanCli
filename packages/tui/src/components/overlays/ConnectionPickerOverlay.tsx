@@ -23,12 +23,15 @@ import type { Field, FormVals, TestStatus } from './ConnectionFormPane.js';
 
 const DB_TYPES: DbType[] = ['postgresql', 'mysql', 'sqlite', 'mongodb', 'redis'];
 
-const DB_META: Record<DbType, { color: string; icon: string; label: string; defaultPort?: number }> = {
+const DB_META: Record<
+  DbType,
+  { color: string; icon: string; label: string; defaultPort?: number }
+> = {
   postgresql: { color: '#3b82f6', icon: 'PG', label: 'PostgreSQL', defaultPort: 5432 },
-  mysql:      { color: '#f59e0b', icon: 'MY', label: 'MySQL',      defaultPort: 3306 },
-  sqlite:     { color: '#10b981', icon: 'SQ', label: 'SQLite'                        },
-  mongodb:    { color: '#22c55e', icon: 'MG', label: 'MongoDB',    defaultPort: 27017 },
-  redis:      { color: '#ef4444', icon: 'RD', label: 'Redis',      defaultPort: 6379  },
+  mysql: { color: '#f59e0b', icon: 'MY', label: 'MySQL', defaultPort: 3306 },
+  sqlite: { color: '#10b981', icon: 'SQ', label: 'SQLite' },
+  mongodb: { color: '#22c55e', icon: 'MG', label: 'MongoDB', defaultPort: 27017 },
+  redis: { color: '#ef4444', icon: 'RD', label: 'Redis', defaultPort: 6379 },
 };
 
 // ── Form field types ──────────────────────────────────────────────────────────
@@ -36,19 +39,19 @@ const DB_META: Record<DbType, { color: string; icon: string; label: string; defa
 // Prefix pre-filled in the URL input field (changes with driver type)
 const URL_PREFIX: Record<DbType, string> = {
   postgresql: 'postgres://',
-  mysql:      'mysql://',
-  sqlite:     'sqlite:',
-  mongodb:    'mongodb://',
-  redis:      'redis://',
+  mysql: 'mysql://',
+  sqlite: 'sqlite:',
+  mongodb: 'mongodb://',
+  redis: 'redis://',
 };
 
-const ALL_FIELDS:    Field[] = ['label', 'type', 'host', 'port', 'database', 'username', 'password'];
+const ALL_FIELDS: Field[] = ['label', 'type', 'host', 'port', 'database', 'username', 'password'];
 const SQLITE_FIELDS: Field[] = ['label', 'type', 'database'];
-const REDIS_FIELDS:  Field[] = ['label', 'type', 'host', 'port', 'database', 'password'];
+const REDIS_FIELDS: Field[] = ['label', 'type', 'host', 'port', 'database', 'password'];
 
 function fieldsFor(dbType: DbType): Field[] {
   if (dbType === 'sqlite') return SQLITE_FIELDS;
-  if (dbType === 'redis')  return REDIS_FIELDS;
+  if (dbType === 'redis') return REDIS_FIELDS;
   return ALL_FIELDS;
 }
 
@@ -56,14 +59,16 @@ function fieldsFor(dbType: DbType): Field[] {
 
 type PaneFocus = 'list' | 'form';
 
-function genId(): string { return crypto.randomUUID().slice(0, 10); }
+function genId(): string {
+  return crypto.randomUUID().slice(0, 10);
+}
 
 function toFormVals(conn: DbConnection | null): FormVals {
   return {
-    label:    conn?.label    ?? '',
-    type:     conn?.type     ?? 'postgresql',
-    host:     conn?.host     ?? 'localhost',
-    port:     conn?.port     != null ? String(conn.port) : '5432',
+    label: conn?.label ?? '',
+    type: conn?.type ?? 'postgresql',
+    host: conn?.host ?? 'localhost',
+    port: conn?.port != null ? String(conn.port) : '5432',
     database: conn?.database ?? '',
     username: conn?.username ?? '',
     password: conn?.password ?? '',
@@ -73,14 +78,14 @@ function toFormVals(conn: DbConnection | null): FormVals {
 function fromFormVals(vals: FormVals, original: DbConnection | null): DbConnection {
   const dbType = vals.type as DbType;
   return {
-    id:        original?.id ?? genId(),
-    label:     vals.label.trim() || `${vals.type}-${genId().slice(0, 4)}`,
-    type:      dbType,
-    host:      dbType !== 'sqlite' ? (vals.host.trim() || undefined) : undefined,
-    port:      vals.port ? Number(vals.port) : undefined,
-    database:  vals.database.trim() || undefined,
-    username:  vals.username.trim() || undefined,
-    password:  vals.password || undefined,
+    id: original?.id ?? genId(),
+    label: vals.label.trim() || `${vals.type}-${genId().slice(0, 4)}`,
+    type: dbType,
+    host: dbType !== 'sqlite' ? vals.host.trim() || undefined : undefined,
+    port: vals.port ? Number(vals.port) : undefined,
+    database: vals.database.trim() || undefined,
+    username: vals.username.trim() || undefined,
+    password: vals.password || undefined,
     isDefault: original?.isDefault,
   };
 }
@@ -88,12 +93,13 @@ function fromFormVals(vals: FormVals, original: DbConnection | null): DbConnecti
 // ── ConnectionPickerOverlay ───────────────────────────────────────────────────
 
 export const ConnectionPickerOverlay: React.FC = () => {
-  const { stdout }    = useStdout();
-  const termW         = stdout?.columns ?? 80;
+  const { stdout } = useStdout();
+  const termW = stdout?.columns ?? 80;
 
   const {
     connectionService,
-    connections, setConnections,
+    connections,
+    setConnections,
     setStartupPhase,
     setActiveConnection,
     setTables,
@@ -101,33 +107,31 @@ export const ConnectionPickerOverlay: React.FC = () => {
   } = useAppContext();
 
   // ── Pane state ──────────────────────────────────────────────────────────────
-  const [pane,      setPane]      = useState<PaneFocus>('list');
-  const [cursor,    setCursor]    = useState(() => {
-    const defIdx = connections.findIndex(c => c.isDefault);
+  const [pane, setPane] = useState<PaneFocus>('list');
+  const [cursor, setCursor] = useState(() => {
+    const defIdx = connections.findIndex((c) => c.isDefault);
     return defIdx >= 0 ? defIdx : 0;
   });
 
   // ── Form state ──────────────────────────────────────────────────────────────
-  const [isNew,     setIsNew]     = useState(connections.length === 0);
-  const [vals,      setVals]      = useState<FormVals>(() =>
-    toFormVals(connections[0] ?? null),
-  );
+  const [isNew, setIsNew] = useState(connections.length === 0);
+  const [vals, setVals] = useState<FormVals>(() => toFormVals(connections[0] ?? null));
   // -1 = URL field active; 0..n = regular field index
-  const [fieldIdx,  setFieldIdx]  = useState(-1);
+  const [fieldIdx, setFieldIdx] = useState(-1);
   // URL input field — user types the part AFTER the prefix
-  const [urlBuf,    setUrlBuf]    = useState('');
+  const [urlBuf, setUrlBuf] = useState('');
 
   // ── Test / connect state ─────────────────────────────────────────────────────
   const [testStatus, setTestStatus] = useState<TestStatus>('idle');
-  const [testMsg,    setTestMsg]    = useState('');
-  const [spinIdx,    setSpinIdx]    = useState(0);
+  const [testMsg, setTestMsg] = useState('');
+  const [spinIdx, setSpinIdx] = useState(0);
   const [connecting, setConnecting] = useState(false);
   const [connectErr, setConnectErr] = useState<string | null>(null);
 
   // Spinner tick
   useEffect(() => {
     if (testStatus !== 'testing' && !connecting) return;
-    const id = setInterval(() => setSpinIdx(i => (i + 1) % SPINNER.length), 80);
+    const id = setInterval(() => setSpinIdx((i) => (i + 1) % SPINNER.length), 80);
     return () => clearInterval(id);
   }, [testStatus, connecting]);
 
@@ -140,44 +144,46 @@ export const ConnectionPickerOverlay: React.FC = () => {
     }
   }, [cursor, isNew]); // intentionally omits `connections` to avoid re-triggering on saves
 
-  const dbType    = vals.type as DbType;
-  const fields    = fieldsFor(dbType);
+  const dbType = vals.type as DbType;
+  const fields = fieldsFor(dbType);
   // -1 stays -1 (URL field); 0..n clamped to fields range
   const safeFieldIdx = fieldIdx < 0 ? -1 : Math.min(fieldIdx, fields.length - 1);
-  const meta      = DB_META[dbType] ?? { color: '#6b7280', icon: '??', label: dbType };
+  const meta = DB_META[dbType] ?? { color: '#6b7280', icon: '??', label: dbType };
   const urlPrefix = URL_PREFIX[dbType] ?? 'postgres://';
 
   // Parse urlBuf → fill individual form fields (called on Tab/Enter from URL field)
   const applyUrl = useCallback(() => {
     const full = urlPrefix + urlBuf.trim();
     try {
-      const u  = new URL(full);
+      const u = new URL(full);
       const db = u.pathname.replace(/^\//, '');
-      setVals(prev => ({
+      setVals((prev) => ({
         ...prev,
-        host:     u.hostname  || prev.host,
-        port:     u.port      || prev.port,
-        database: db          || prev.database,
-        username: u.username  || prev.username,
-        password: u.password  ? decodeURIComponent(u.password) : prev.password,
+        host: u.hostname || prev.host,
+        port: u.port || prev.port,
+        database: db || prev.database,
+        username: u.username || prev.username,
+        password: u.password ? decodeURIComponent(u.password) : prev.password,
       }));
       setUrlBuf('');
-    } catch { /* keep urlBuf if unparseable */ }
+    } catch {
+      /* keep urlBuf if unparseable */
+    }
   }, [urlBuf, urlPrefix]);
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
 
-  const setVal = (f: Field, v: string) => setVals(p => ({ ...p, [f]: v }));
+  const setVal = (f: Field, v: string) => setVals((p) => ({ ...p, [f]: v }));
 
   const cycleType = (dir: 1 | -1) => {
-    const idx  = DB_TYPES.indexOf(vals.type as DbType);
+    const idx = DB_TYPES.indexOf(vals.type as DbType);
     const next = DB_TYPES[(idx + dir + DB_TYPES.length) % DB_TYPES.length]!;
-    const m    = DB_META[next];
-    setVals(p => ({
+    const m = DB_META[next];
+    setVals((p) => ({
       ...p,
       type: next,
       port: m.defaultPort != null ? String(m.defaultPort) : '',
-      host: next === 'sqlite' ? '' : (p.host || 'localhost'),
+      host: next === 'sqlite' ? '' : p.host || 'localhost',
     }));
     setTestStatus('idle');
   };
@@ -194,7 +200,7 @@ export const ConnectionPickerOverlay: React.FC = () => {
     const conn = fromFormVals(vals, original);
     connectionService?.saveConnection(conn);
     const updated = reloadConns();
-    const newIdx = updated.findIndex(c => c.id === conn.id);
+    const newIdx = updated.findIndex((c) => c.id === conn.id);
     if (newIdx >= 0) setCursor(newIdx);
     setIsNew(false);
     return conn;
@@ -218,29 +224,32 @@ export const ConnectionPickerOverlay: React.FC = () => {
     }
   }, [connectionService, testStatus, isNew, connections, cursor, vals]);
 
-  const doConnect = useCallback(async (conn: DbConnection) => {
-    if (!connectionService || connecting) return;
-    setConnecting(true);
-    setConnectErr(null);
-    const result = await connectionService.testConnection(conn);
-    setConnecting(false);
-    if (result.error) {
-      setConnectErr(result.error);
-      setPane('form');
-    } else {
-      setActiveConnection(conn);
-      // sqlite / redis skip the DB picker (database = file path or index)
-      const skipDbPicker = conn.type === 'sqlite' || conn.type === 'redis';
-      if (skipDbPicker) {
-        setTables(result.tables);
-        setConnection(conn.label);
-        setStartupPhase('table-picker');
+  const doConnect = useCallback(
+    async (conn: DbConnection) => {
+      if (!connectionService || connecting) return;
+      setConnecting(true);
+      setConnectErr(null);
+      const result = await connectionService.testConnection(conn);
+      setConnecting(false);
+      if (result.error) {
+        setConnectErr(result.error);
+        setPane('form');
       } else {
-        // mysql / postgresql / mongodb — always verify first, then pick DB
-        setStartupPhase('database-picker');
+        setActiveConnection(conn);
+        // sqlite / redis skip the DB picker (database = file path or index)
+        const skipDbPicker = conn.type === 'sqlite' || conn.type === 'redis';
+        if (skipDbPicker) {
+          setTables(result.tables);
+          setConnection(conn.label);
+          setStartupPhase('table-picker');
+        } else {
+          // mysql / postgresql / mongodb — always verify first, then pick DB
+          setStartupPhase('database-picker');
+        }
       }
-    }
-  }, [connectionService, connecting, setActiveConnection, setTables, setConnection, setStartupPhase]);
+    },
+    [connectionService, connecting, setActiveConnection, setTables, setConnection, setStartupPhase],
+  );
 
   // ── Input handling ──────────────────────────────────────────────────────────
 
@@ -249,13 +258,13 @@ export const ConnectionPickerOverlay: React.FC = () => {
 
     // ── LIST pane ────────────────────────────────────────────────────────────
     if (pane === 'list') {
-      if (key.upArrow   || inp === 'k') {
-        setCursor(c => Math.max(0, c - 1));
+      if (key.upArrow || inp === 'k') {
+        setCursor((c) => Math.max(0, c - 1));
         setIsNew(false);
         return;
       }
       if (key.downArrow || inp === 'j') {
-        setCursor(c => Math.min(connections.length - 1, c + 1));
+        setCursor((c) => Math.min(connections.length - 1, c + 1));
         setIsNew(false);
         return;
       }
@@ -267,7 +276,7 @@ export const ConnectionPickerOverlay: React.FC = () => {
         setUrlBuf('');
         setTestStatus('idle');
         setConnectErr(null);
-        setFieldIdx(-1);   // start at URL field
+        setFieldIdx(-1); // start at URL field
         setPane('form');
         return;
       }
@@ -277,7 +286,7 @@ export const ConnectionPickerOverlay: React.FC = () => {
         const conn = connections[cursor];
         if (conn) connectionService?.deleteConnection(conn.id);
         const updated = reloadConns();
-        setCursor(c => Math.min(c, Math.max(0, updated.length - 1)));
+        setCursor((c) => Math.min(c, Math.max(0, updated.length - 1)));
         return;
       }
 
@@ -285,11 +294,11 @@ export const ConnectionPickerOverlay: React.FC = () => {
       if (inp === '*' && connections.length > 0 && !isNew) {
         const conn = connections[cursor];
         if (conn) {
-          const next = connections.map(c => ({
+          const next = connections.map((c) => ({
             ...c,
             isDefault: c.id === conn.id ? !c.isDefault : false,
           }));
-          next.forEach(c => connectionService?.saveConnection(c));
+          next.forEach((c) => connectionService?.saveConnection(c));
           reloadConns();
         }
         return;
@@ -320,7 +329,10 @@ export const ConnectionPickerOverlay: React.FC = () => {
     // ── FORM pane ────────────────────────────────────────────────────────────
     if (pane === 'form') {
       // t — test
-      if (inp === 't' && !key.ctrl) { void runTest(); return; }
+      if (inp === 't' && !key.ctrl) {
+        void runTest();
+        return;
+      }
 
       // Esc — back to list
       if (key.escape) {
@@ -334,7 +346,11 @@ export const ConnectionPickerOverlay: React.FC = () => {
 
       // Enter — save + connect
       if (key.return) {
-        if (safeFieldIdx === -1) { applyUrl(); setFieldIdx(0); return; }
+        if (safeFieldIdx === -1) {
+          applyUrl();
+          setFieldIdx(0);
+          return;
+        }
         const conn = saveForm();
         void doConnect(conn);
         return;
@@ -342,22 +358,29 @@ export const ConnectionPickerOverlay: React.FC = () => {
 
       // Tab — cycle through URL field (-1) then regular fields
       if (key.tab && !key.shift) {
-        if (safeFieldIdx === -1) { applyUrl(); setFieldIdx(0); }
-        else setFieldIdx(i => (i + 1) % fields.length);
+        if (safeFieldIdx === -1) {
+          applyUrl();
+          setFieldIdx(0);
+        } else setFieldIdx((i) => (i + 1) % fields.length);
         return;
       }
       if (key.tab && key.shift) {
-        if (safeFieldIdx === 0)  { setFieldIdx(-1); }
-        else if (safeFieldIdx < 0) { setFieldIdx(fields.length - 1); }
-        else setFieldIdx(i => i - 1);
+        if (safeFieldIdx === 0) {
+          setFieldIdx(-1);
+        } else if (safeFieldIdx < 0) {
+          setFieldIdx(fields.length - 1);
+        } else setFieldIdx((i) => i - 1);
         return;
       }
 
       // ── URL field input (fieldIdx === -1) ──────────────────────────────────
       if (safeFieldIdx === -1) {
-        if (key.backspace || key.delete) { setUrlBuf(s => s.slice(0, -1)); return; }
+        if (key.backspace || key.delete) {
+          setUrlBuf((s) => s.slice(0, -1));
+          return;
+        }
         if (inp && inp.length === 1 && inp >= ' ' && !key.ctrl && !key.meta) {
-          setUrlBuf(s => s + inp);
+          setUrlBuf((s) => s + inp);
           return;
         }
         return;
@@ -367,14 +390,26 @@ export const ConnectionPickerOverlay: React.FC = () => {
 
       // Type field: ←→ cycles driver
       if (activeField === 'type') {
-        if (key.leftArrow  || key.upArrow)   { cycleType(-1); return; }
-        if (key.rightArrow || key.downArrow) { cycleType(1);  return; }
+        if (key.leftArrow || key.upArrow) {
+          cycleType(-1);
+          return;
+        }
+        if (key.rightArrow || key.downArrow) {
+          cycleType(1);
+          return;
+        }
         return;
       }
 
       // Other fields: ↑↓ navigate
-      if (key.upArrow)   { setFieldIdx(i => Math.max(-1, i - 1)); return; }
-      if (key.downArrow) { setFieldIdx(i => Math.min(fields.length - 1, i + 1)); return; }
+      if (key.upArrow) {
+        setFieldIdx((i) => Math.max(-1, i - 1));
+        return;
+      }
+      if (key.downArrow) {
+        setFieldIdx((i) => Math.min(fields.length - 1, i + 1));
+        return;
+      }
 
       // Text input
       if (key.backspace || key.delete) {
@@ -391,8 +426,8 @@ export const ConnectionPickerOverlay: React.FC = () => {
 
   // ── Layout metrics ──────────────────────────────────────────────────────────
 
-  const W       = Math.min(termW - 2, 90);
-  const LEFT_W  = 22;
+  const W = Math.min(termW - 2, 90);
+  const LEFT_W = 22;
   const RIGHT_W = W - LEFT_W - 4; // 4 = outer box padding (L+R) and separator
 
   // ── Connecting spinner ──────────────────────────────────────────────────────
@@ -411,11 +446,17 @@ export const ConnectionPickerOverlay: React.FC = () => {
           paddingX={2}
           paddingY={1}
         >
-          <Text color="#00d4ff" bold>  Connecting...</Text>
-          <Text>{' '}</Text>
-          <Text color="#f59e0b">{SPINNER[spinIdx]}  {conn.label}</Text>
+          <Text color="#00d4ff" bold>
+            {' '}
+            Connecting...
+          </Text>
+          <Text> </Text>
+          <Text color="#f59e0b">
+            {SPINNER[spinIdx]} {conn.label}
+          </Text>
           <Text color="#4a5568">
-            {'   '}{conn.type}
+            {'   '}
+            {conn.type}
             {conn.host ? ` · ${conn.host}` : ''}
             {conn.port ? `:${conn.port}` : ''}
             {conn.database ? `/${conn.database}` : ''}
@@ -435,22 +476,17 @@ export const ConnectionPickerOverlay: React.FC = () => {
 
   return (
     <Box flexDirection="column" flexGrow={1} justifyContent="center" alignItems="center">
-      <Box
-        flexDirection="column"
-        borderStyle="double"
-        borderColor="#00d4ff"
-        width={W}
-      >
-
+      <Box flexDirection="column" borderStyle="double" borderColor="#00d4ff" width={W}>
         {/* ── Title ──────────────────────────────────────────────────────────── */}
         <Box paddingX={2} paddingY={0}>
-          <Text color="#00d4ff" bold>DATA SOURCES</Text>
-          <Text color="#1e3a5f">  ·  beanCLI</Text>
+          <Text color="#00d4ff" bold>
+            DATA SOURCES
+          </Text>
+          <Text color="#1e3a5f"> · beanCLI</Text>
         </Box>
 
         {/* ── Two panes ──────────────────────────────────────────────────────── */}
         <Box flexDirection="row">
-
           {/* LEFT: connection list */}
           <Box
             flexDirection="column"
@@ -458,11 +494,10 @@ export const ConnectionPickerOverlay: React.FC = () => {
             borderStyle="single"
             borderColor={listActive ? '#00d4ff' : '#1e3a5f'}
           >
-
             {/* "+ Add new" row */}
             <Box>
               <Text
-                color={isNew && formActive ? '#00d4ff' : (listActive ? '#10b981' : '#374151')}
+                color={isNew && formActive ? '#00d4ff' : listActive ? '#10b981' : '#374151'}
                 bold={isNew && formActive}
               >
                 {isNew && pane === 'form' ? '▶ ' : '  '}
@@ -473,23 +508,26 @@ export const ConnectionPickerOverlay: React.FC = () => {
 
             {/* Connection entries */}
             {connections.length === 0 && !isNew && (
-              <Text color="#374151" dimColor>  (no connections)</Text>
+              <Text color="#374151" dimColor>
+                {' '}
+                (no connections)
+              </Text>
             )}
             {connections.map((conn, i) => {
-              const isSel  = i === cursor && !isNew;
-              const m      = DB_META[conn.type] ?? { color: '#6b7280', icon: '??' };
-              const bg     = isSel && listActive ? '#00d4ff' : undefined;
-              const fg     = isSel && listActive ? '#0a1628' : '#e0e0e0';
+              const isSel = i === cursor && !isNew;
+              const m = DB_META[conn.type] ?? { color: '#6b7280', icon: '??' };
+              const bg = isSel && listActive ? '#00d4ff' : undefined;
+              const fg = isSel && listActive ? '#0a1628' : '#e0e0e0';
               const fgType = isSel && listActive ? '#0a1628' : m.color;
-              const star   = conn.isDefault ? '★' : ' ';
-              const arrow  = isSel ? '▶' : ' ';
+              const star = conn.isDefault ? '★' : ' ';
+              const arrow = isSel ? '▶' : ' ';
               // Highlight selected in list pane even when form is focused
               const fgInactive = isSel ? '#00d4ff' : '#a0aec0';
 
               return (
                 <Box key={conn.id}>
                   <Text
-                    color={listActive ? fgType : (isSel ? m.color : '#4a5568')}
+                    color={listActive ? fgType : isSel ? m.color : '#4a5568'}
                     backgroundColor={bg}
                     bold={isSel && listActive}
                   >
@@ -517,14 +555,18 @@ export const ConnectionPickerOverlay: React.FC = () => {
           >
             {/* DB type header */}
             <Box gap={1}>
-              <Text color={meta.color} bold>{'●'}</Text>
-              <Text color={meta.color} bold>{meta.label}</Text>
+              <Text color={meta.color} bold>
+                {'●'}
+              </Text>
+              <Text color={meta.color} bold>
+                {meta.label}
+              </Text>
               {!formActive && connections.length > 0 && (
-                <Text color="#374151" dimColor>Tab / → to edit</Text>
+                <Text color="#374151" dimColor>
+                  Tab / → to edit
+                </Text>
               )}
-              {isNew && formActive && (
-                <Text color="#f59e0b"> (new — unsaved)</Text>
-              )}
+              {isNew && formActive && <Text color="#f59e0b"> (new — unsaved)</Text>}
             </Box>
             <Text color="#1a2a3a">{'─'.repeat(RIGHT_W - 2)}</Text>
 
@@ -561,7 +603,6 @@ export const ConnectionPickerOverlay: React.FC = () => {
             </Text>
           )}
         </Box>
-
       </Box>
     </Box>
   );

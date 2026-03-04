@@ -44,10 +44,14 @@ export class ApiClient {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        return { ok: false, status: response.status, error: (errorData as { error?: string }).error ?? response.statusText };
+        return {
+          ok: false,
+          status: response.status,
+          error: (errorData as { error?: string }).error ?? response.statusText,
+        };
       }
 
-      const data = await response.json() as T;
+      const data = (await response.json()) as T;
       return { ok: true, status: response.status, data };
     } catch (err) {
       return { ok: false, status: 0, error: (err as Error).message };

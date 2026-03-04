@@ -6,11 +6,7 @@ import {
   KafkaConsumerAdapter,
   DlqPublisher,
 } from '@tfsdc/infrastructure';
-import {
-  ProcessEventUseCase,
-  EventDispatcher,
-  ConcurrencyController,
-} from '@tfsdc/application';
+import { ProcessEventUseCase, EventDispatcher, ConcurrencyController } from '@tfsdc/application';
 import type { IMetricsProvider } from '@tfsdc/domain';
 import {
   OrderCreatedHandler,
@@ -20,7 +16,8 @@ import {
 } from '@tfsdc/domain';
 import type { RawEvent } from '@tfsdc/domain';
 
-const DATABASE_URL = process.env.DATABASE_URL ?? 'postgres://postgres:postgres@localhost:5432/tfsdc';
+const DATABASE_URL =
+  process.env.DATABASE_URL ?? 'postgres://postgres:postgres@localhost:5432/tfsdc';
 const KAFKA_BROKER = process.env.KAFKA_BROKER ?? 'localhost:9092';
 
 const TOPICS = ['ecom.orders', 'ecom.payments', 'ecom.products', 'ecom.shipments'];
@@ -50,7 +47,12 @@ async function main() {
 
   const concurrency = new ConcurrencyController(metricsProvider);
   const useCase = new ProcessEventUseCase(
-    pgPool, dispatcher, hasher, kafkaConsumer, dlqPublisher, activeKeyId,
+    pgPool,
+    dispatcher,
+    hasher,
+    kafkaConsumer,
+    dlqPublisher,
+    activeKeyId,
   );
 
   await kafkaConsumer.subscribe(TOPICS);
@@ -86,10 +88,11 @@ async function main() {
       if (processedDelta > 0) {
         const counts = groupByEntityType(events);
         for (const [entityType, count] of counts) {
-          await pgPool.query(
-            `SELECT pg_notify('tfsdc_stream_event', $1)`,
-            [JSON.stringify({ entityType, count })],
-          ).catch((err: Error) => console.warn('[projector] notify failed:', err.message));
+          await pgPool
+            .query(`SELECT pg_notify('tfsdc_stream_event', $1)`, [
+              JSON.stringify({ entityType, count }),
+            ])
+            .catch((err: Error) => console.warn('[projector] notify failed:', err.message));
         }
       }
     }

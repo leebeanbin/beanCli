@@ -27,45 +27,45 @@ import { join } from 'node:path';
 const API_URL = process.env['API_URL'] ?? 'http://localhost:3100';
 const DURATION = parseInt(process.env['LOADTEST_DURATION'] ?? '10', 10);
 const CONNECTIONS = parseInt(process.env['LOADTEST_CONNECTIONS'] ?? '10', 10);
-const JWT_TOKEN = process.env['LOADTEST_JWT'] ?? '';   // optional
+const JWT_TOKEN = process.env['LOADTEST_JWT'] ?? ''; // optional
 
 // ── Colour helpers ────────────────────────────────────────────────────────────
 const C = {
-  reset:   '\x1b[0m',
-  bold:    '\x1b[1m',
-  dim:     '\x1b[2m',
-  cyan:    '\x1b[36m',
-  green:   '\x1b[32m',
-  yellow:  '\x1b[33m',
-  red:     '\x1b[31m',
+  reset: '\x1b[0m',
+  bold: '\x1b[1m',
+  dim: '\x1b[2m',
+  cyan: '\x1b[36m',
+  green: '\x1b[32m',
+  yellow: '\x1b[33m',
+  red: '\x1b[31m',
   magenta: '\x1b[35m',
 };
 
 function rpsColor(rps: number): string {
   if (rps >= 1000) return C.green;
-  if (rps >= 200)  return C.yellow;
+  if (rps >= 200) return C.yellow;
   return C.red;
 }
 function latColor(ms: number): string {
-  if (ms <= 10)  return C.green;
-  if (ms <= 50)  return C.yellow;
+  if (ms <= 10) return C.green;
+  if (ms <= 50) return C.yellow;
   return C.red;
 }
 function errColor(pct: number): string {
   if (pct === 0) return C.green;
-  if (pct < 1)   return C.yellow;
+  if (pct < 1) return C.yellow;
   return C.red;
 }
 
 // ── Endpoint definitions ──────────────────────────────────────────────────────
 
 interface EndpointDef {
-  label:   string;
-  method:  'GET' | 'POST';
-  path:    string;
-  body?:   object;
-  auth?:   boolean;
-  skip?:   boolean;
+  label: string;
+  method: 'GET' | 'POST';
+  path: string;
+  body?: object;
+  auth?: boolean;
+  skip?: boolean;
 }
 
 const ENDPOINTS: EndpointDef[] = [
@@ -116,27 +116,36 @@ const ENDPOINTS: EndpointDef[] = [
 // ── Runner ────────────────────────────────────────────────────────────────────
 
 interface BenchResult {
-  label:       string;
-  rps_avg:     number;
-  rps_max:     number;
+  label: string;
+  rps_avg: number;
+  rps_max: number;
   latency_p50: number;
   latency_p75: number;
   latency_p99: number;
   latency_max: number;
-  errors:      number;
-  timeouts:    number;
-  requests:    number;
-  error_pct:   number;
-  skipped:     boolean;
+  errors: number;
+  timeouts: number;
+  requests: number;
+  error_pct: number;
+  skipped: boolean;
 }
 
 async function runEndpoint(ep: EndpointDef): Promise<BenchResult> {
   if (ep.skip) {
     console.log(`  ${C.dim}⊘  ${ep.label} — skipped (no JWT token)${C.reset}`);
     return {
-      label: ep.label, rps_avg: 0, rps_max: 0,
-      latency_p50: 0, latency_p75: 0, latency_p99: 0, latency_max: 0,
-      errors: 0, timeouts: 0, requests: 0, error_pct: 0, skipped: true,
+      label: ep.label,
+      rps_avg: 0,
+      rps_max: 0,
+      latency_p50: 0,
+      latency_p75: 0,
+      latency_p99: 0,
+      latency_max: 0,
+      errors: 0,
+      timeouts: 0,
+      requests: 0,
+      error_pct: 0,
+      skipped: true,
     };
   }
 
@@ -150,49 +159,50 @@ async function runEndpoint(ep: EndpointDef): Promise<BenchResult> {
   }
 
   const opts: autocannon.Options = {
-    url:          `${API_URL}${ep.path}`,
-    method:       ep.method,
+    url: `${API_URL}${ep.path}`,
+    method: ep.method,
     headers,
-    body:         ep.body ? JSON.stringify(ep.body) : undefined,
-    connections:  CONNECTIONS,
-    duration:     DURATION,
-    pipelining:   1,
-    timeout:      10,
+    body: ep.body ? JSON.stringify(ep.body) : undefined,
+    connections: CONNECTIONS,
+    duration: DURATION,
+    pipelining: 1,
+    timeout: 10,
   };
 
   const result = await new Promise<autocannon.Result>((resolve, reject) => {
     const instance = autocannon(opts, (err, res) => {
-      if (err) reject(err); else resolve(res);
+      if (err) reject(err);
+      else resolve(res);
     });
     autocannon.track(instance, { renderProgressBar: false, renderResultsTable: false });
   });
 
   const totalReqs = result.requests.total;
-  const errors    = result.errors + result.timeouts;
-  const errPct    = totalReqs > 0 ? (errors / totalReqs) * 100 : 0;
+  const errors = result.errors + result.timeouts;
+  const errPct = totalReqs > 0 ? (errors / totalReqs) * 100 : 0;
 
   const r: BenchResult = {
-    label:       ep.label,
-    rps_avg:     result.requests.average,
-    rps_max:     result.requests.max,
+    label: ep.label,
+    rps_avg: result.requests.average,
+    rps_max: result.requests.max,
     latency_p50: result.latency.p50,
     latency_p75: result.latency.p75,
     latency_p99: result.latency.p99,
     latency_max: result.latency.max,
-    errors:      result.errors,
-    timeouts:    result.timeouts,
-    requests:    totalReqs,
-    error_pct:   errPct,
-    skipped:     false,
+    errors: result.errors,
+    timeouts: result.timeouts,
+    requests: totalReqs,
+    error_pct: errPct,
+    skipped: false,
   };
 
   // Print quick stats
   console.log(
     `     rps: ${rpsColor(r.rps_avg)}avg=${r.rps_avg.toFixed(0).padStart(6)}${C.reset}  ` +
-    `p50=${latColor(r.latency_p50)}${r.latency_p50.toFixed(1).padStart(6)}ms${C.reset}  ` +
-    `p99=${latColor(r.latency_p99)}${r.latency_p99.toFixed(1).padStart(6)}ms${C.reset}  ` +
-    `errors=${errColor(errPct)}${errPct.toFixed(1)}%${C.reset}  ` +
-    `total=${totalReqs.toLocaleString()} reqs`,
+      `p50=${latColor(r.latency_p50)}${r.latency_p50.toFixed(1).padStart(6)}ms${C.reset}  ` +
+      `p99=${latColor(r.latency_p99)}${r.latency_p99.toFixed(1).padStart(6)}ms${C.reset}  ` +
+      `errors=${errColor(errPct)}${errPct.toFixed(1)}%${C.reset}  ` +
+      `total=${totalReqs.toLocaleString()} reqs`,
   );
 
   return r;
@@ -201,25 +211,40 @@ async function runEndpoint(ep: EndpointDef): Promise<BenchResult> {
 // ── Summary table ─────────────────────────────────────────────────────────────
 
 function printSummary(results: BenchResult[]): number {
-  console.log(`\n${C.bold}${C.magenta}╔══════════════════════════════════════════════════════════════════════════╗`);
+  console.log(
+    `\n${C.bold}${C.magenta}╔══════════════════════════════════════════════════════════════════════════╗`,
+  );
   console.log(`║                   LOAD TEST SUMMARY REPORT                            ║`);
-  console.log(`╚══════════════════════════════════════════════════════════════════════════╝${C.reset}`);
-  console.log(`  ${C.dim}Target: ${API_URL}  |  Connections: ${CONNECTIONS}  |  Duration: ${DURATION}s per endpoint${C.reset}`);
+  console.log(
+    `╚══════════════════════════════════════════════════════════════════════════╝${C.reset}`,
+  );
+  console.log(
+    `  ${C.dim}Target: ${API_URL}  |  Connections: ${CONNECTIONS}  |  Duration: ${DURATION}s per endpoint${C.reset}`,
+  );
   console.log('');
 
   const COL = { label: 36, rps: 10, p50: 8, p75: 8, p99: 8, err: 8, reqs: 10 };
   const pad = (s: string, w: number) => s.slice(0, w).padEnd(w);
-  const hr  = Object.values(COL).map(w => '─'.repeat(w)).join('┼');
+  const hr = Object.values(COL)
+    .map((w) => '─'.repeat(w))
+    .join('┼');
 
-  console.log(C.bold +
-    pad(' Endpoint', COL.label) + '│' +
-    pad(' avg rps', COL.rps)   + '│' +
-    pad(' p50ms', COL.p50)     + '│' +
-    pad(' p75ms', COL.p75)     + '│' +
-    pad(' p99ms', COL.p99)     + '│' +
-    pad(' err%', COL.err)      + '│' +
-    pad(' requests', COL.reqs) +
-    C.reset,
+  console.log(
+    C.bold +
+      pad(' Endpoint', COL.label) +
+      '│' +
+      pad(' avg rps', COL.rps) +
+      '│' +
+      pad(' p50ms', COL.p50) +
+      '│' +
+      pad(' p75ms', COL.p75) +
+      '│' +
+      pad(' p99ms', COL.p99) +
+      '│' +
+      pad(' err%', COL.err) +
+      '│' +
+      pad(' requests', COL.reqs) +
+      C.reset,
   );
   console.log(hr);
 
@@ -230,25 +255,27 @@ function printSummary(results: BenchResult[]): number {
     }
     console.log(
       ` ${pad(r.label, COL.label - 1)}│` +
-      `${rpsColor(r.rps_avg)}${r.rps_avg.toFixed(0).padStart(COL.rps - 1)} ${C.reset}│` +
-      `${latColor(r.latency_p50)}${r.latency_p50.toFixed(1).padStart(COL.p50 - 1)} ${C.reset}│` +
-      `${latColor(r.latency_p75)}${r.latency_p75.toFixed(1).padStart(COL.p75 - 1)} ${C.reset}│` +
-      `${latColor(r.latency_p99)}${r.latency_p99.toFixed(1).padStart(COL.p99 - 1)} ${C.reset}│` +
-      `${errColor(r.error_pct)}${r.error_pct.toFixed(1).padStart(COL.err - 1)} ${C.reset}│` +
-      ` ${r.requests.toLocaleString()}`,
+        `${rpsColor(r.rps_avg)}${r.rps_avg.toFixed(0).padStart(COL.rps - 1)} ${C.reset}│` +
+        `${latColor(r.latency_p50)}${r.latency_p50.toFixed(1).padStart(COL.p50 - 1)} ${C.reset}│` +
+        `${latColor(r.latency_p75)}${r.latency_p75.toFixed(1).padStart(COL.p75 - 1)} ${C.reset}│` +
+        `${latColor(r.latency_p99)}${r.latency_p99.toFixed(1).padStart(COL.p99 - 1)} ${C.reset}│` +
+        `${errColor(r.error_pct)}${r.error_pct.toFixed(1).padStart(COL.err - 1)} ${C.reset}│` +
+        ` ${r.requests.toLocaleString()}`,
     );
   }
 
   // Thresholds check
-  const failed = results.filter(r => !r.skipped && (r.latency_p99 > 200 || r.error_pct > 1));
+  const failed = results.filter((r) => !r.skipped && (r.latency_p99 > 200 || r.error_pct > 1));
   if (failed.length === 0) {
-    console.log(`\n  ${C.green}${C.bold}✓ All endpoints meet SLO (p99 ≤ 200ms, error% ≤ 1%)${C.reset}`);
+    console.log(
+      `\n  ${C.green}${C.bold}✓ All endpoints meet SLO (p99 ≤ 200ms, error% ≤ 1%)${C.reset}`,
+    );
   } else {
     console.log(`\n  ${C.red}${C.bold}✗ SLO violations:${C.reset}`);
     for (const r of failed) {
       const reasons: string[] = [];
       if (r.latency_p99 > 200) reasons.push(`p99=${r.latency_p99.toFixed(0)}ms > 200ms`);
-      if (r.error_pct > 1)     reasons.push(`error%=${r.error_pct.toFixed(1)}% > 1%`);
+      if (r.error_pct > 1) reasons.push(`error%=${r.error_pct.toFixed(1)}% > 1%`);
       console.log(`    ${C.red}• ${r.label}: ${reasons.join(', ')}${C.reset}`);
     }
   }
@@ -265,7 +292,7 @@ function saveReport(results: BenchResult[]): void {
   const report = {
     generatedAt: new Date().toISOString(),
     config: { apiUrl: API_URL, connections: CONNECTIONS, durationPerEndpoint: DURATION },
-    slo:    { p99MaxMs: 200, maxErrorPct: 1 },
+    slo: { p99MaxMs: 200, maxErrorPct: 1 },
     results,
   };
   writeFileSync(path, JSON.stringify(report, null, 2));
@@ -283,7 +310,9 @@ async function main(): Promise<void> {
   console.log(`  Duration:    ${DURATION}s per endpoint`);
   if (!JWT_TOKEN) {
     console.log(`  ${C.yellow}⚠  No LOADTEST_JWT set — auth endpoints will be skipped${C.reset}`);
-    console.log(`     To test all: export LOADTEST_JWT=$(curl -s -X POST ${API_URL}/api/v1/auth/login \\`);
+    console.log(
+      `     To test all: export LOADTEST_JWT=$(curl -s -X POST ${API_URL}/api/v1/auth/login \\`,
+    );
     console.log(`                   -H 'Content-Type: application/json' \\`);
     console.log(`                   -d '{"username":"admin","password":"admin"}' | jq -r .token)`);
   }
@@ -315,7 +344,7 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error(err);
   process.exit(1);
 });

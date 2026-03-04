@@ -47,9 +47,7 @@ describe('audit middleware', () => {
         mockWriter,
       );
 
-      expect(mockWriter.write).toHaveBeenCalledWith(
-        expect.objectContaining({ result: 'FAILURE' }),
-      );
+      expect(mockWriter.write).toHaveBeenCalledWith(expect.objectContaining({ result: 'FAILURE' }));
     });
 
     it('should skip audit for GET requests', async () => {

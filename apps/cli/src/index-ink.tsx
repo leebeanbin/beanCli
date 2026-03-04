@@ -17,14 +17,10 @@ import { createMockConnectionService } from './mockConnectionService.js';
 import { loadHistory, appendHistory } from './historyStore.js';
 
 const isMock =
-  process.argv.includes('--mock') ||
-  process.env['MOCK'] === 'true' ||
-  process.env['MOCK'] === '1';
+  process.argv.includes('--mock') || process.env['MOCK'] === 'true' || process.env['MOCK'] === '1';
 
 start({
-  connectionService: isMock
-    ? createMockConnectionService()
-    : createCliConnectionService(),
+  connectionService: isMock ? createMockConnectionService() : createCliConnectionService(),
   initialHistory: loadHistory(),
-  onHistoryAdd:   appendHistory,
+  onHistoryAdd: appendHistory,
 });

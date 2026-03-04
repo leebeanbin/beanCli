@@ -15,13 +15,13 @@
 /** Simulates a single Redis round-trip with configurable network latency */
 const RTT_MS = 0.5; // 0.5ms — localhost Redis typical RTT
 function fakeRtt(): Promise<void> {
-  return new Promise(resolve => setImmediate(resolve)); // zero-sleep, just yield
+  return new Promise((resolve) => setImmediate(resolve)); // zero-sleep, just yield
 }
 
 // For latency-aware simulation we add a tiny delay per RTT
 function fakeRttWithLatency(ms: number): Promise<void> {
   if (ms <= 0) return fakeRtt();
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 // ── Approach A: Naïve N+1 (sequential per-key round-trips) ───────────────────
@@ -30,7 +30,7 @@ async function naiveNPlusOne(keys: string[], latencyMs: number): Promise<Record<
   const results: Record<string, string>[] = [];
   for (const key of keys) {
     await fakeRttWithLatency(latencyMs); // TYPE round-trip
-    const type = 'string';               // assume string for simulation
+    const type = 'string'; // assume string for simulation
     await fakeRttWithLatency(latencyMs); // GET round-trip
     results.push({ key, type, value: `v_${key}` });
   }
@@ -39,14 +39,17 @@ async function naiveNPlusOne(keys: string[], latencyMs: number): Promise<Record<
 
 // ── Approach B: Two-pipeline batch (2 RTTs total) ────────────────────────────
 
-async function twoPipelineBatch(keys: string[], latencyMs: number): Promise<Record<string, string>[]> {
+async function twoPipelineBatch(
+  keys: string[],
+  latencyMs: number,
+): Promise<Record<string, string>[]> {
   // Pipeline 1: all TYPE commands in one RTT
   await fakeRttWithLatency(latencyMs);
   const types = keys.map(() => 'string');
 
   // Pipeline 2: all GET/HGETALL/etc. commands in one RTT
   await fakeRttWithLatency(latencyMs);
-  const values = keys.map(k => `v_${k}`);
+  const values = keys.map((k) => `v_${k}`);
 
   return keys.map((key, i) => ({ key, type: types[i]!, value: values[i]! }));
 }
@@ -60,9 +63,9 @@ async function measureMs(fn: () => Promise<unknown>): Promise<number> {
 }
 
 async function compareApproaches(
-  keyCount:  number,
+  keyCount: number,
   latencyMs: number,
-  iters:     number,
+  iters: number,
 ): Promise<{ naiveMs: number; pipelineMs: number; speedup: number }> {
   // warm-up
   for (let i = 0; i < 3; i++) {
@@ -84,14 +87,14 @@ async function compareApproaches(
     pipeTotal += await measureMs(() => twoPipelineBatch(keys, latencyMs));
   }
 
-  const naiveMs    = naiveTotal / iters;
-  const pipelineMs = pipeTotal  / iters;
-  const speedup    = naiveMs / pipelineMs;
+  const naiveMs = naiveTotal / iters;
+  const pipelineMs = pipeTotal / iters;
+  const speedup = naiveMs / pipelineMs;
 
   console.log(
     `  [BENCH] ${keyCount.toString().padStart(3)} keys @ ${latencyMs.toFixed(1)}ms RTT | ` +
-    `naive=${naiveMs.toFixed(2).padStart(7)}ms  pipeline=${pipelineMs.toFixed(2).padStart(6)}ms  ` +
-    `speedup=${speedup.toFixed(1).padStart(5)}×`,
+      `naive=${naiveMs.toFixed(2).padStart(7)}ms  pipeline=${pipelineMs.toFixed(2).padStart(6)}ms  ` +
+      `speedup=${speedup.toFixed(1).padStart(5)}×`,
   );
 
   return { naiveMs, pipelineMs, speedup };
@@ -135,7 +138,9 @@ describe('Redis: two-pipeline batch vs naïve N+1', () => {
 
   it('worst-case: 100 keys, 2ms RTT (WAN-like)', async () => {
     const { naiveMs, pipelineMs, speedup } = await compareApproaches(100, 2, 5);
-    console.log(`  [WARN]  WAN scenario: naive=${naiveMs.toFixed(0)}ms → pipeline=${pipelineMs.toFixed(0)}ms`);
+    console.log(
+      `  [WARN]  WAN scenario: naive=${naiveMs.toFixed(0)}ms → pipeline=${pipelineMs.toFixed(0)}ms`,
+    );
     expect(speedup).toBeGreaterThan(30);
   }, 60_000);
 });
@@ -146,8 +151,8 @@ describe('SQL LIMIT parsing — MongoAdapter regex performance', () => {
   const ITERS = 100_000;
 
   const queries = [
-    { sql: 'SELECT * FROM users LIMIT 100',    expected: 100  },
-    { sql: 'SELECT * FROM orders',              expected: 500  },  // default
+    { sql: 'SELECT * FROM users LIMIT 100', expected: 100 },
+    { sql: 'SELECT * FROM orders', expected: 500 }, // default
     { sql: 'select * from products limit 1000', expected: 1000 },
     { sql: 'SELECT * FROM events LIMIT 50 OFFSET 0', expected: 50 },
   ];
@@ -173,7 +178,7 @@ describe('SQL LIMIT parsing — MongoAdapter regex performance', () => {
     const opsPerSec = Math.round(totalOps / (totalMs / 1000));
     console.log(
       `  [BENCH] LIMIT regex parse: ${opsPerSec.toLocaleString().padStart(12)} ops/s  ` +
-      `(${totalMs.toFixed(1)}ms for ${totalOps.toLocaleString()} parses)`,
+        `(${totalMs.toFixed(1)}ms for ${totalOps.toLocaleString()} parses)`,
     );
     // Must be well above 1M ops/s (regex is trivial)
     expect(opsPerSec).toBeGreaterThan(1_000_000);
@@ -187,7 +192,7 @@ describe('SQL LIMIT parsing — MongoAdapter regex performance', () => {
     for (let i = 0; i < ITERS2; i++) {
       /FROM\s+(\w+)/i.exec(sql);
     }
-    const ms      = performance.now() - t0;
+    const ms = performance.now() - t0;
     const opsPerSec = Math.round(ITERS2 / (ms / 1000));
     console.log(`  [BENCH] FROM regex extract: ${opsPerSec.toLocaleString().padStart(12)} ops/s`);
     expect(opsPerSec).toBeGreaterThan(5_000_000);
@@ -200,11 +205,11 @@ describe('DB name allowlist regex — SEC-001 performance', () => {
   const VALID_NAME_RE = /^[a-zA-Z_][a-zA-Z0-9_$-]{0,63}$/;
   const ITERS = 200_000;
 
-  const validNames   = ['tfsdc', 'my_db', 'prod-db', 'db$v2', 'a_very_long_database_name_here'];
+  const validNames = ['tfsdc', 'my_db', 'prod-db', 'db$v2', 'a_very_long_database_name_here'];
   const invalidNames = ["'; DROP TABLE users; --", '../etc/passwd', 'a'.repeat(65), '123invalid'];
 
   it('correctly validates names', () => {
-    for (const n of validNames)   expect(VALID_NAME_RE.test(n)).toBe(true);
+    for (const n of validNames) expect(VALID_NAME_RE.test(n)).toBe(true);
     for (const n of invalidNames) expect(VALID_NAME_RE.test(n)).toBe(false);
   });
 
@@ -214,7 +219,7 @@ describe('DB name allowlist regex — SEC-001 performance', () => {
     for (let i = 0; i < ITERS; i++) {
       for (const n of allNames) VALID_NAME_RE.test(n);
     }
-    const ms      = performance.now() - t0;
+    const ms = performance.now() - t0;
     const totalOps = ITERS * allNames.length;
     const opsPerSec = Math.round(totalOps / (ms / 1000));
     console.log(`  [BENCH] DB name validate:   ${opsPerSec.toLocaleString().padStart(12)} ops/s`);

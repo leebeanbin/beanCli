@@ -21,7 +21,9 @@ describe('EventDispatcher', () => {
   });
 
   it('should throw for unregistered entity type', () => {
-    expect(() => dispatcher.resolve('unknown')).toThrow('No handler registered for entity type: unknown');
+    expect(() => dispatcher.resolve('unknown')).toThrow(
+      'No handler registered for entity type: unknown',
+    );
   });
 
   it('should list registered types', () => {

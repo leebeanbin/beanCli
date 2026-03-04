@@ -30,7 +30,7 @@ export class PgAdapter implements IDbAdapter {
       max: 2,
       connectionTimeoutMillis: 5000,
       idleTimeoutMillis: 1000,
-      query_timeout: 30_000,   // SEC-005: hard kill at 30s
+      query_timeout: 30_000, // SEC-005: hard kill at 30s
     });
   }
 
@@ -40,7 +40,7 @@ export class PgAdapter implements IDbAdapter {
        WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
        ORDER BY table_name`,
     );
-    return res.rows.map(r => r.table_name);
+    return res.rows.map((r) => r.table_name);
   }
 
   async queryRows(sql: string, params?: unknown[]): Promise<Record<string, unknown>[]> {

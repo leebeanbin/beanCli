@@ -1,26 +1,22 @@
-import {
-  ChangeRequest,
-  ChangeId,
-  SqlStatement,
-  RiskScore,
-  ExecutionPolicy,
-} from '@tfsdc/domain';
+import { ChangeRequest, ChangeId, SqlStatement, RiskScore, ExecutionPolicy } from '@tfsdc/domain';
 import type { IAuditWriter, IDbSession } from '@tfsdc/application';
 
 // ── ChangeRequest stub ──────────────────────────────────────
 
-export function makeChangeRequest(overrides?: Partial<{
-  id: string;
-  actor: string;
-  role: import('@tfsdc/kernel').UserRole;
-  sql: string;
-  environment: import('@tfsdc/kernel').Environment;
-  riskPoints: number;
-  riskLevel: import('@tfsdc/kernel').RiskLevel;
-  affectedRows: number;
-  mode: import('@tfsdc/kernel').ExecutionMode;
-  requiresApproval: boolean;
-}>): ChangeRequest {
+export function makeChangeRequest(
+  overrides?: Partial<{
+    id: string;
+    actor: string;
+    role: import('@tfsdc/kernel').UserRole;
+    sql: string;
+    environment: import('@tfsdc/kernel').Environment;
+    riskPoints: number;
+    riskLevel: import('@tfsdc/kernel').RiskLevel;
+    affectedRows: number;
+    mode: import('@tfsdc/kernel').ExecutionMode;
+    requiresApproval: boolean;
+  }>,
+): ChangeRequest {
   const id = overrides?.id ?? 'test-change-id-1234';
   const riskScore = makeRiskScore({
     points: overrides?.riskPoints,
@@ -55,11 +51,13 @@ export function makeChangeRequest(overrides?: Partial<{
 
 // ── RiskScore stub ──────────────────────────────────────────
 
-export function makeRiskScore(overrides?: Partial<{
-  points: number;
-  level: import('@tfsdc/kernel').RiskLevel;
-  affectedRowsEstimate: number;
-}>): RiskScore {
+export function makeRiskScore(
+  overrides?: Partial<{
+    points: number;
+    level: import('@tfsdc/kernel').RiskLevel;
+    affectedRowsEstimate: number;
+  }>,
+): RiskScore {
   return RiskScore.of(
     overrides?.points ?? 0,
     overrides?.level ?? 'L0',
@@ -82,4 +80,3 @@ export function makeMockAuditWriter(): jest.Mocked<IAuditWriter> {
     write: jest.fn().mockResolvedValue(undefined),
   };
 }
-

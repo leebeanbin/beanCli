@@ -11,7 +11,10 @@ export class PgPool implements IProjectorDb, IMetricsProvider {
     this.pool = new Pool(config);
   }
 
-  async query(sql: string, params?: unknown[]): Promise<{ rows: Record<string, unknown>[]; rowCount: number | null }> {
+  async query(
+    sql: string,
+    params?: unknown[],
+  ): Promise<{ rows: Record<string, unknown>[]; rowCount: number | null }> {
     const start = Date.now();
     const result = await this.pool.query(sql, params);
     this.recordLatency(Date.now() - start);

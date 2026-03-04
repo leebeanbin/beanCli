@@ -42,5 +42,8 @@ export interface IJwtVerifier {
 }
 
 export interface IDbSession {
-  query(sql: string, params?: unknown[]): Promise<{ rows: Record<string, unknown>[]; rowCount: number | null }>;
+  query(
+    sql: string,
+    params?: unknown[],
+  ): Promise<{ rows: Record<string, unknown>[]; rowCount: number | null }>;
 }

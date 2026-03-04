@@ -36,7 +36,10 @@ function createTestCR(overrides?: {
   return ChangeRequest.create({
     actor: 'alice',
     role: 'MANAGER',
-    sqlStatement: SqlStatement.parse("UPDATE state_orders SET status='DONE' WHERE id=1", mockValidator),
+    sqlStatement: SqlStatement.parse(
+      "UPDATE state_orders SET status='DONE' WHERE id=1",
+      mockValidator,
+    ),
     riskScore: RiskScore.of(50, level, affected),
     executionPolicy: new ExecutionPolicy(mode, requiresApproval),
     environment: 'DEV',

@@ -1,14 +1,14 @@
 'use client';
 
 const STATUS_STYLE: Record<string, string> = {
-  DRAFT:            'border-rim text-fg-2',
+  DRAFT: 'border-rim text-fg-2',
   PENDING_APPROVAL: 'border-accent text-accent',
-  APPROVED:         'border-ok text-ok',
-  WAITING_EXECUTION:'border-warn text-warn',
-  EXECUTING:        'border-special text-special',
-  DONE:             'border-ok text-ok',
-  FAILED:           'border-danger text-danger',
-  REVERTED:         'border-warn text-warn',
+  APPROVED: 'border-ok text-ok',
+  WAITING_EXECUTION: 'border-warn text-warn',
+  EXECUTING: 'border-special text-special',
+  DONE: 'border-ok text-ok',
+  FAILED: 'border-danger text-danger',
+  REVERTED: 'border-warn text-warn',
 };
 
 export function StatusBadge({ status }: { status: string }) {

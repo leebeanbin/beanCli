@@ -29,36 +29,44 @@ const describeIf = MYSQL_URL ? describe : describe.skip;
 function parseMysqlUrl(raw: string): DbConnection {
   const u = new URL(raw.startsWith('mysql://') ? raw : `mysql://${raw}`);
   return {
-    id:       'test-mysql',
-    label:    'test-mysql',
-    type:     'mysql',
-    host:     u.hostname || 'localhost',
-    port:     u.port ? Number(u.port) : 3306,
+    id: 'test-mysql',
+    label: 'test-mysql',
+    type: 'mysql',
+    host: u.hostname || 'localhost',
+    port: u.port ? Number(u.port) : 3306,
     database: u.pathname.replace(/^\//, '') || undefined,
     username: u.username || undefined,
     password: u.password ? decodeURIComponent(u.password) : undefined,
   };
 }
 
-beforeAll(() => { initDbAdapters(); });
+beforeAll(() => {
+  initDbAdapters();
+});
 
 // ── 1. Credential verification (no database) ──────────────────────────────────
 
 describeIf('MySQL — credential verification (no database)', () => {
   it('testConnection() succeeds without specifying a database', async () => {
-    const svc  = createCliConnectionService();
+    const svc = createCliConnectionService();
     const conn = parseMysqlUrl(MYSQL_URL!);
     const noDB = { ...conn, database: undefined };
 
     const result = await svc.testConnection(noDB);
     expect(result.error).toBeNull();
-    console.log(`  ✓ Connected to MySQL at ${noDB.host}:${noDB.port} as ${noDB.username ?? 'root'}`);
+    console.log(
+      `  ✓ Connected to MySQL at ${noDB.host}:${noDB.port} as ${noDB.username ?? 'root'}`,
+    );
     await svc.disconnect();
   }, 10_000);
 
   it('testConnection() fails with wrong password', async () => {
-    const svc  = createCliConnectionService();
-    const conn = { ...parseMysqlUrl(MYSQL_URL!), database: undefined, password: 'definitely-wrong-pw-xyz' };
+    const svc = createCliConnectionService();
+    const conn = {
+      ...parseMysqlUrl(MYSQL_URL!),
+      database: undefined,
+      password: 'definitely-wrong-pw-xyz',
+    };
 
     const result = await svc.testConnection(conn);
     expect(result.error).toBeTruthy();
@@ -78,12 +86,14 @@ describeIf('MySQL — listDatabases()', () => {
     await svc.testConnection(conn);
   });
 
-  afterAll(async () => { await svc.disconnect(); });
+  afterAll(async () => {
+    await svc.disconnect();
+  });
 
   it('returns an array of strings', async () => {
     const dbs = await svc.listDatabases!();
     expect(Array.isArray(dbs)).toBe(true);
-    dbs.forEach(db => expect(typeof db).toBe('string'));
+    dbs.forEach((db) => expect(typeof db).toBe('string'));
   });
 
   it('always contains information_schema', async () => {
@@ -117,7 +127,11 @@ describeIf('MySQL — createDatabase()', () => {
 
   afterAll(async () => {
     // Cleanup: drop the test database regardless of test outcome
-    try { await svc.executeQuery(`DROP DATABASE IF EXISTS \`${TEST_DB}\``); } catch { /* ignore */ }
+    try {
+      await svc.executeQuery(`DROP DATABASE IF EXISTS \`${TEST_DB}\``);
+    } catch {
+      /* ignore */
+    }
     await svc.disconnect();
   });
 
@@ -145,7 +159,9 @@ describeIf('MySQL — full flow: verify → select DB → query', () => {
   const SYSTEM_DB = 'information_schema';
   let svc: ReturnType<typeof createCliConnectionService>;
 
-  afterAll(async () => { await svc.disconnect(); });
+  afterAll(async () => {
+    await svc.disconnect();
+  });
 
   it('step 1: connects without database (credential verify)', async () => {
     svc = createCliConnectionService();
@@ -164,7 +180,9 @@ describeIf('MySQL — full flow: verify → select DB → query', () => {
     const result = await svc.testConnection(conn);
     expect(result.error).toBeNull();
     expect(Array.isArray(result.tables)).toBe(true);
-    console.log(`  ✓ Connected to ${SYSTEM_DB}, tables: ${result.tables.slice(0, 4).join(', ')}...`);
+    console.log(
+      `  ✓ Connected to ${SYSTEM_DB}, tables: ${result.tables.slice(0, 4).join(', ')}...`,
+    );
   }, 10_000);
 
   it('step 4: SELECT 1 round-trip in <200ms', async () => {
@@ -196,7 +214,9 @@ describeIf('MySQL — executeQuery error handling', () => {
     await svc.testConnection(conn);
   });
 
-  afterAll(async () => { await svc.disconnect(); });
+  afterAll(async () => {
+    await svc.disconnect();
+  });
 
   it('invalid SQL returns error (does not throw)', async () => {
     const result = await svc.executeQuery('THIS IS NOT SQL');
