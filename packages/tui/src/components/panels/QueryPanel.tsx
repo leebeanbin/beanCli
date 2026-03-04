@@ -5,7 +5,8 @@ import { useQuery } from '../../hooks/useQuery.js';
 
 // ── SQL keyword highlighter ───────────────────────────────────────────────────
 
-const KEYWORD_RE = /\b(SELECT|FROM|WHERE|JOIN|LEFT|RIGHT|INNER|OUTER|CROSS|FULL|ON|USING|GROUP|BY|ORDER|HAVING|LIMIT|OFFSET|INSERT|INTO|VALUES|UPDATE|SET|DELETE|CREATE|DROP|ALTER|TABLE|INDEX|VIEW|SEQUENCE|AND|OR|NOT|IN|IS|NULL|AS|DISTINCT|COUNT|SUM|AVG|MIN|MAX|WITH|RETURNING|CASE|WHEN|THEN|ELSE|END|EXISTS|BETWEEN|LIKE|ILIKE|CAST|COALESCE|NULLIF)\b/gi;
+const KEYWORD_RE =
+  /\b(SELECT|FROM|WHERE|JOIN|LEFT|RIGHT|INNER|OUTER|CROSS|FULL|ON|USING|GROUP|BY|ORDER|HAVING|LIMIT|OFFSET|INSERT|INTO|VALUES|UPDATE|SET|DELETE|CREATE|DROP|ALTER|TABLE|INDEX|VIEW|SEQUENCE|AND|OR|NOT|IN|IS|NULL|AS|DISTINCT|COUNT|SUM|AVG|MIN|MAX|WITH|RETURNING|CASE|WHEN|THEN|ELSE|END|EXISTS|BETWEEN|LIKE|ILIKE|CAST|COALESCE|NULLIF)\b/gi;
 
 function splitKeywords(sql: string): Array<[string, boolean]> {
   const result: Array<[string, boolean]> = [];
@@ -23,44 +24,53 @@ function splitKeywords(sql: string): Array<[string, boolean]> {
 
 // ── Cursor geometry ───────────────────────────────────────────────────────────
 
-interface CursorPos { line: number; col: number }
+interface CursorPos {
+  line: number;
+  col: number;
+}
 
 function getCursorGeometry(text: string, cursorPos: number): CursorPos {
   const before = text.slice(0, cursorPos);
-  const lines  = before.split('\n');
+  const lines = before.split('\n');
   return { line: lines.length - 1, col: (lines[lines.length - 1] ?? '').length };
 }
 
 // ── Line renderer ─────────────────────────────────────────────────────────────
 
 const LineRow: React.FC<{
-  lineNum:     number;
-  text:        string;
-  isCurrent:   boolean;
-  cursorCol:   number;   // only used when isCurrent
-  isActive:    boolean;
-  totalLines:  number;
+  lineNum: number;
+  text: string;
+  isCurrent: boolean;
+  cursorCol: number; // only used when isCurrent
+  isActive: boolean;
+  totalLines: number;
 }> = ({ lineNum, text, isCurrent, cursorCol, isActive, totalLines }) => {
   const numWidth = String(totalLines).length;
-  const numStr   = String(lineNum).padStart(numWidth);
+  const numStr = String(lineNum).padStart(numWidth);
 
   const before = isCurrent ? text.slice(0, cursorCol) : text;
-  const atCur  = isCurrent ? (text[cursorCol] ?? ' ') : null;
-  const after  = isCurrent ? text.slice(cursorCol + 1) : null;
+  const atCur = isCurrent ? (text[cursorCol] ?? ' ') : null;
+  const after = isCurrent ? text.slice(cursorCol + 1) : null;
 
   const renderSegments = (s: string, dim?: boolean) =>
     splitKeywords(s).map(([t, kw], i) => (
-      <Text key={i} color={kw ? '#00d4ff' : (dim ? '#4a5568' : '#e0e0e0')} bold={kw}>{t}</Text>
+      <Text key={i} color={kw ? '#00d4ff' : dim ? '#4a5568' : '#e0e0e0'} bold={kw}>
+        {t}
+      </Text>
     ));
 
   return (
     <Box>
-      <Text color="#374151" dimColor>{numStr} </Text>
+      <Text color="#374151" dimColor>
+        {numStr}{' '}
+      </Text>
       {isCurrent ? (
         <>
           {renderSegments(before)}
           {isActive && (
-            <Text color="#0a1628" backgroundColor="#00d4ff">{atCur}</Text>
+            <Text color="#0a1628" backgroundColor="#00d4ff">
+              {atCur}
+            </Text>
           )}
           {!isActive && <Text color="#e0e0e0">{atCur === ' ' ? '' : atCur}</Text>}
           {after !== null && renderSegments(after, true)}
@@ -76,30 +86,46 @@ const LineRow: React.FC<{
 
 export const QueryPanel: React.FC = () => {
   const {
-    focusedPanel, overlay, paletteOpen,
-    activeConnection, queryLoading, tables,
-    setOverlay, setExpandedMode, expandedMode,
-    setQueryError, dmlConfirm,
+    focusedPanel,
+    overlay,
+    paletteOpen,
+    activeConnection,
+    queryLoading,
+    tables,
+    setOverlay,
+    setExpandedMode,
+    expandedMode,
+    setQueryError,
+    dmlConfirm,
   } = useAppContext();
 
   const {
-    input, setInput,
-    cursorPos, insertAtCursor, deleteAtCursor, moveCursor,
-    history, histIdx,
-    execute, confirmDml, cancelDml, navHistory, clearInput,
+    input,
+    setInput,
+    cursorPos,
+    insertAtCursor,
+    deleteAtCursor,
+    moveCursor,
+    history,
+    histIdx,
+    execute,
+    confirmDml,
+    cancelDml,
+    navHistory,
+    clearInput,
   } = useQuery();
 
   const isActive = focusedPanel === 'query' && !overlay && !paletteOpen;
 
-  const lines      = input.split('\n');
-  const isMulti    = lines.length > 1;
-  const curGeo     = useMemo(() => getCursorGeometry(input, cursorPos), [input, cursorPos]);
+  const lines = input.split('\n');
+  const isMulti = lines.length > 1;
+  const curGeo = useMemo(() => getCursorGeometry(input, cursorPos), [input, cursorPos]);
 
   // ── Meta command handler ───────────────────────────────────────────────────
 
   const runMeta = async (cmd: string): Promise<boolean> => {
     const parts = cmd.trim().split(/\s+/);
-    const verb  = (parts[0] ?? '').toLowerCase();
+    const verb = (parts[0] ?? '').toLowerCase();
 
     // \dt  /  \tables  — open table picker
     if (verb === '\\dt' || verb === '\\tables' || verb === '\\l') {
@@ -118,7 +144,7 @@ export const QueryPanel: React.FC = () => {
         return true;
       }
       // SEC-002/003: validate table name against known tables list only
-      const knownTable = tables.find(t => t === tbl);
+      const knownTable = tables.find((t) => t === tbl);
       if (!knownTable) {
         setQueryError(`Table "${tbl}" not found. Use \\dt to see available tables.`);
         setInput('');
@@ -143,7 +169,7 @@ export const QueryPanel: React.FC = () => {
 
     // \x  — toggle expanded mode (psql \x parity)
     if (verb === '\\x') {
-      setExpandedMode(v => !v);
+      setExpandedMode((v) => !v);
       setInput('');
       return true;
     }
@@ -157,10 +183,10 @@ export const QueryPanel: React.FC = () => {
     if (verb === '\\ping') {
       const sql = [
         'SELECT',
-        "  1                      AS ping,",
-        "  version()              AS server_version,",
-        "  current_database()     AS database,",
-        "  NOW()                  AS server_time",
+        '  1                      AS ping,',
+        '  version()              AS server_version,',
+        '  current_database()     AS database,',
+        '  NOW()                  AS server_time',
       ].join(' ');
       await execute(sql);
       setInput('');
@@ -171,11 +197,11 @@ export const QueryPanel: React.FC = () => {
     if (verb === '\\status') {
       const sql = [
         'SELECT',
-        "  current_user          AS db_user,",
-        "  current_database()    AS database,",
-        "  inet_server_addr()    AS server_host,",
-        "  inet_server_port()    AS server_port,",
-        "  pg_postmaster_start_time() AS started_at",
+        '  current_user          AS db_user,',
+        '  current_database()    AS database,',
+        '  inet_server_addr()    AS server_host,',
+        '  inet_server_port()    AS server_port,',
+        '  pg_postmaster_start_time() AS started_at',
       ].join(' ');
       await execute(sql);
       setInput('');
@@ -198,8 +224,14 @@ export const QueryPanel: React.FC = () => {
 
     // ── DML confirmation mode ────────────────────────────────────────────────
     if (dmlConfirm) {
-      if (inp === 'y' || inp === 'Y') { void confirmDml(); return; }
-      if (inp === 'n' || inp === 'N' || key.escape) { cancelDml(); return; }
+      if (inp === 'y' || inp === 'Y') {
+        void confirmDml();
+        return;
+      }
+      if (inp === 'n' || inp === 'N' || key.escape) {
+        cancelDml();
+        return;
+      }
       return; // swallow all other keys while confirming
     }
 
@@ -256,8 +288,14 @@ export const QueryPanel: React.FC = () => {
     }
 
     // ── Cursor left / right ───────────────────────────────────────────────────
-    if (key.leftArrow)  { moveCursor(-1); return; }
-    if (key.rightArrow) { moveCursor(1);  return; }
+    if (key.leftArrow) {
+      moveCursor(-1);
+      return;
+    }
+    if (key.rightArrow) {
+      moveCursor(1);
+      return;
+    }
 
     // ── Home / End ────────────────────────────────────────────────────────────
     if (key.ctrl && inp === 'a') {
@@ -281,7 +319,10 @@ export const QueryPanel: React.FC = () => {
     }
 
     // ── Ctrl+L — clear ────────────────────────────────────────────────────────
-    if (key.ctrl && inp === 'l') { clearInput(); return; }
+    if (key.ctrl && inp === 'l') {
+      clearInput();
+      return;
+    }
 
     // ── Backspace / Delete ────────────────────────────────────────────────────
     if (key.backspace || key.delete) {
@@ -297,9 +338,9 @@ export const QueryPanel: React.FC = () => {
 
   // ── Layout variables ───────────────────────────────────────────────────────
 
-  const cols       = process.stdout.columns ?? 80;
+  const cols = process.stdout.columns ?? 80;
   const inputWidth = cols - 32;
-  const lineCount  = lines.length;
+  const lineCount = lines.length;
   const MAX_VISIBLE_LINES = 12;
 
   // Scroll window: show lines around the cursor line
@@ -313,7 +354,6 @@ export const QueryPanel: React.FC = () => {
 
   return (
     <Box flexDirection="column" flexGrow={1}>
-
       {/* ── Recent history ──────────────────────────────── */}
       {recentHistory.length > 0 && (
         <Box flexDirection="column" marginBottom={0}>
@@ -336,7 +376,9 @@ export const QueryPanel: React.FC = () => {
 
       {/* ── Expanded mode badge ─────────────────────────── */}
       {expandedMode && (
-        <Text color="#a855f7" dimColor>{'  \\x EXPANDED MODE  '}</Text>
+        <Text color="#a855f7" dimColor>
+          {'  \\x EXPANDED MODE  '}
+        </Text>
       )}
 
       {/* ── DML confirmation prompt ─────────────────────── */}
@@ -344,9 +386,14 @@ export const QueryPanel: React.FC = () => {
         <Box flexDirection="column" marginBottom={0}>
           <Text color="#1a2a3a">{'─'.repeat(Math.min(inputWidth + 6, 60))}</Text>
           <Box>
-            <Text color="#ef4444" bold>  ⚠  Execute DML? </Text>
+            <Text color="#ef4444" bold>
+              {' '}
+              ⚠ Execute DML?{' '}
+            </Text>
             {dmlConfirm.rowCount > 0 && (
-              <Text color="#f59e0b" bold>~{dmlConfirm.rowCount.toLocaleString()} rows affected</Text>
+              <Text color="#f59e0b" bold>
+                ~{dmlConfirm.rowCount.toLocaleString()} rows affected
+              </Text>
             )}
           </Box>
           <Box>
@@ -356,12 +403,18 @@ export const QueryPanel: React.FC = () => {
             </Text>
           </Box>
           <Box>
-            <Text color="#374151">  Press </Text>
-            <Text color="#10b981" bold>y</Text>
+            <Text color="#374151"> Press </Text>
+            <Text color="#10b981" bold>
+              y
+            </Text>
             <Text color="#374151"> to confirm or </Text>
-            <Text color="#ef4444" bold>n</Text>
+            <Text color="#ef4444" bold>
+              n
+            </Text>
             <Text color="#374151"> / </Text>
-            <Text color="#ef4444" bold>Esc</Text>
+            <Text color="#ef4444" bold>
+              Esc
+            </Text>
             <Text color="#374151"> to cancel</Text>
           </Box>
           <Text color="#1a2a3a">{'─'.repeat(Math.min(inputWidth + 6, 60))}</Text>
@@ -371,7 +424,9 @@ export const QueryPanel: React.FC = () => {
       {/* ── Multi-line editor ───────────────────────────── */}
       {queryLoading ? (
         <Box>
-          <Text color="#f59e0b" bold>{'  ⟳ '}</Text>
+          <Text color="#f59e0b" bold>
+            {'  ⟳ '}
+          </Text>
           <Text color="#f59e0b">Executing...</Text>
         </Box>
       ) : (
@@ -379,7 +434,9 @@ export const QueryPanel: React.FC = () => {
           {/* Prompt line for single-line mode */}
           {!isMulti && (
             <Box>
-              <Text color={activeConnection ? '#00d4ff' : '#374151'} bold>{'  ❯ '}</Text>
+              <Text color={activeConnection ? '#00d4ff' : '#374151'} bold>
+                {'  ❯ '}
+              </Text>
               <LineRow
                 lineNum={1}
                 text={lines[0] ?? ''}
@@ -425,7 +482,10 @@ export const QueryPanel: React.FC = () => {
 
       {/* ── Footer hints ────────────────────────────────── */}
       {!activeConnection ? (
-        <Text color="#ef4444" dimColor>  Not connected — press 1 to focus Schema panel, then n to add a connection</Text>
+        <Text color="#ef4444" dimColor>
+          {' '}
+          Not connected — press 1 to focus Schema panel, then n to add a connection
+        </Text>
       ) : (
         <Box flexDirection="column">
           <Text color="#374151" dimColor>
@@ -436,7 +496,6 @@ export const QueryPanel: React.FC = () => {
           </Text>
         </Box>
       )}
-
     </Box>
   );
 };

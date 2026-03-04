@@ -2,7 +2,13 @@ import { apiClient } from '../../../lib/api';
 import Link from 'next/link';
 import { LiveTableRefresh } from '../../../components/LiveTableRefresh';
 
-const VALID_TABLES = ['state_users', 'state_products', 'state_orders', 'state_payments', 'state_shipments'];
+const VALID_TABLES = [
+  'state_users',
+  'state_products',
+  'state_orders',
+  'state_payments',
+  'state_shipments',
+];
 
 const HIDDEN_COLUMNS = new Set(['last_offset', 'email_hash', 'tracking_number_hash']);
 
@@ -11,14 +17,20 @@ function fmtCellValue(col: string, value: unknown, row: Record<string, unknown>)
   if (HIDDEN_COLUMNS.has(col)) return '[private]';
   if (col.endsWith('_ms')) {
     const n = Number(value);
-    return isNaN(n) ? String(value) : new Date(n).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'medium' });
+    return isNaN(n)
+      ? String(value)
+      : new Date(n).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'medium' });
   }
   if (col.endsWith('_cents')) {
     const n = Number(value);
     if (isNaN(n)) return String(value);
     const currency = String(row['currency_code'] ?? 'USD').toUpperCase();
     try {
-      return new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 2 }).format(n / 100);
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency,
+        maximumFractionDigits: 2,
+      }).format(n / 100);
     } catch {
       return `${(n / 100).toFixed(2)} ${currency}`;
     }
@@ -33,10 +45,10 @@ interface StateRow {
 }
 
 async function getStateData(table: string, limit = 50, offset = 0) {
-  const res = await apiClient.get<{ items: StateRow[]; total: number }>(
-    `/api/v1/state/${table}`,
-    { limit: String(limit), offset: String(offset) },
-  );
+  const res = await apiClient.get<{ items: StateRow[]; total: number }>(`/api/v1/state/${table}`, {
+    limit: String(limit),
+    offset: String(offset),
+  });
   return res.ok ? res.data : null;
 }
 
@@ -60,7 +72,7 @@ export default async function StatePage({
 
   const allColumns = data?.items[0] ? Object.keys(data.items[0]) : [];
   const columns = allColumns
-    .filter(c => !c.startsWith('_') && c !== 'created_at' && !HIDDEN_COLUMNS.has(c))
+    .filter((c) => !c.startsWith('_') && c !== 'created_at' && !HIDDEN_COLUMNS.has(c))
     .slice(0, 8);
 
   return (
@@ -99,7 +111,12 @@ export default async function StatePage({
               <thead>
                 <tr className="bg-bg border-b border-rim">
                   {columns.map((col) => (
-                    <th key={col} className="px-3 py-2 text-left text-fg-2 uppercase tracking-widest">{col}</th>
+                    <th
+                      key={col}
+                      className="px-3 py-2 text-left text-fg-2 uppercase tracking-widest"
+                    >
+                      {col}
+                    </th>
                   ))}
                 </tr>
               </thead>

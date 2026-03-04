@@ -25,11 +25,11 @@ const VERSION = '0.1.2';
 // ── Center panel title/hint ───────────────────────────────────────────────────
 
 const CENTER_TITLES: Record<AppMode, string> = {
-  query:    'Query Editor',
-  browse:   'Explore',
-  monitor:  'Stream Monitor',
-  index:    'Index Lab',
-  audit:    'Audit Log',
+  query: 'Query Editor',
+  browse: 'Explore',
+  monitor: 'Stream Monitor',
+  index: 'Index Lab',
+  audit: 'Audit Log',
   recovery: 'DLQ Recovery',
 };
 
@@ -38,8 +38,15 @@ const CENTER_TITLES: Record<AppMode, string> = {
 export const AppShell: React.FC = () => {
   const { focusedPanel, nextPanel, prevPanel, focusPanel } = usePanelFocus();
   const {
-    paletteOpen, overlay, setOverlay, connection, env,
-    appMode, setAppMode, browseTable, userRole,
+    paletteOpen,
+    overlay,
+    setOverlay,
+    connection,
+    env,
+    appMode,
+    setAppMode,
+    browseTable,
+    userRole,
   } = useAppContext();
   const { saveConn } = useConnection();
   const { stdout } = useStdout();
@@ -49,7 +56,9 @@ export const AppShell: React.FC = () => {
   useEffect(() => {
     const onResize = () => setTermCols(stdout.columns ?? 80);
     stdout.on('resize', onResize);
-    return () => { stdout.off('resize', onResize); };
+    return () => {
+      stdout.off('resize', onResize);
+    };
   }, [stdout]);
 
   const isBlocked = paletteOpen || overlay !== null;
@@ -61,39 +70,79 @@ export const AppShell: React.FC = () => {
     if (isBlocked) return;
 
     // Panel cycling
-    if (key.tab && !key.shift) { nextPanel(); return; }
-    if (key.tab && key.shift)  { prevPanel(); return; }
+    if (key.tab && !key.shift) {
+      nextPanel();
+      return;
+    }
+    if (key.tab && key.shift) {
+      prevPanel();
+      return;
+    }
 
     // Direct panel jump (skip when SQL editor is active to avoid inserting numbers)
     if (!isTypingSQL) {
-      if (input === '1') { focusPanel('schema'); return; }
-      if (input === '2') { focusPanel('query');  return; }
-      if (input === '3') { focusPanel('result'); return; }
-      if (input === '4') { focusPanel('ai');     return; }
+      if (input === '1') {
+        focusPanel('schema');
+        return;
+      }
+      if (input === '2') {
+        focusPanel('query');
+        return;
+      }
+      if (input === '3') {
+        focusPanel('result');
+        return;
+      }
+      if (input === '4') {
+        focusPanel('ai');
+        return;
+      }
     }
 
     // t — open table picker
-    if (input === 't') { setOverlay({ type: 'table-picker' }); return; }
+    if (input === 't') {
+      setOverlay({ type: 'table-picker' });
+      return;
+    }
 
     // Mode shortcuts — block only when SQL text editor is active
     if (!isTypingSQL) {
-      if (input === 'm') { setAppMode('monitor');  focusPanel('query'); return; }
-      if (input === 'A') { setAppMode('audit');    focusPanel('query'); return; }
-      if (input === 'R') { setAppMode('recovery'); focusPanel('query'); return; }
-      if (input === 'I') { setAppMode('index');    focusPanel('query'); return; }
+      if (input === 'm') {
+        setAppMode('monitor');
+        focusPanel('query');
+        return;
+      }
+      if (input === 'A') {
+        setAppMode('audit');
+        focusPanel('query');
+        return;
+      }
+      if (input === 'R') {
+        setAppMode('recovery');
+        focusPanel('query');
+        return;
+      }
+      if (input === 'I') {
+        setAppMode('index');
+        focusPanel('query');
+        return;
+      }
       // b — return to browse mode if a table was previously selected
-      if (input === 'b' && browseTable) { setAppMode('browse'); focusPanel('query'); return; }
+      if (input === 'b' && browseTable) {
+        setAppMode('browse');
+        focusPanel('query');
+        return;
+      }
     }
   });
 
   // ── Center mode title ─────────────────────────────────────────────────────
-  const showConnForm    = overlay?.type === 'connection-form';
+  const showConnForm = overlay?.type === 'connection-form';
   const showTablePicker = overlay?.type === 'table-picker';
   const showCreateTable = overlay?.type === 'create-table';
-  const showHelp        = overlay?.type === 'help';
-  const centerTitle  = appMode === 'browse'
-    ? `Explore · ${browseTable ?? '—'}`
-    : CENTER_TITLES[appMode] ?? 'Query';
+  const showHelp = overlay?.type === 'help';
+  const centerTitle =
+    appMode === 'browse' ? `Explore · ${browseTable ?? '—'}` : (CENTER_TITLES[appMode] ?? 'Query');
 
   // ── Center content ────────────────────────────────────────────────────────
   const renderCenter = () => {
@@ -154,17 +203,10 @@ export const AppShell: React.FC = () => {
 
   return (
     <Box flexDirection="column" flexGrow={1}>
-
       {/* ── 3-pane area ─────────────────────────────────── */}
       <Box flexGrow={1} width={termCols}>
-
         {/* Left: Schema tree */}
-        <Panel
-          title="Schema"
-          isFocused={focusedPanel === 'schema'}
-          hint="1"
-          width={26}
-        >
+        <Panel title="Schema" isFocused={focusedPanel === 'schema'} hint="1" width={26}>
           <SchemaPanel />
         </Panel>
 
@@ -180,7 +222,6 @@ export const AppShell: React.FC = () => {
         >
           <AiPanel />
         </Panel>
-
       </Box>
 
       {/* ── Status bar ──────────────────────────────────── */}
@@ -227,7 +268,6 @@ export const AppShell: React.FC = () => {
           <HelpOverlay />
         </Box>
       )}
-
     </Box>
   );
 };

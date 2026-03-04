@@ -16,19 +16,22 @@ export { PgPool } from './db/PgPool.js';
 export { PgChangeRequestRepository } from './db/PgChangeRequestRepository.js';
 export { SchemaIntrospector } from './db/SchemaIntrospector.js';
 export type {
-  TableMeta, ColumnMeta, IndexMeta, IndexUsage, TableStat,
+  TableMeta,
+  ColumnMeta,
+  IndexMeta,
+  IndexUsage,
+  TableStat,
 } from './db/SchemaIntrospector.js';
-export type {
-  IDbPool,
-  IDbTransaction,
-  IDbQueryResult,
-  IMetricsProvider,
-} from './db/IDbPool.js';
+export type { IDbPool, IDbTransaction, IDbQueryResult, IMetricsProvider } from './db/IDbPool.js';
 
 // DB Adapters (multi-DB connection layer)
 export type { IDbAdapter } from './db/adapters/IDbAdapter.js';
 export type { DbConnectionConfig, DbAdapterFactory } from './db/adapters/DbAdapterRegistry.js';
-export { createAdapter, registerDbAdapter, registeredAdapterTypes } from './db/adapters/DbAdapterRegistry.js';
+export {
+  createAdapter,
+  registerDbAdapter,
+  registeredAdapterTypes,
+} from './db/adapters/DbAdapterRegistry.js';
 export { PgAdapter } from './db/adapters/PgAdapter.js';
 export { MySqlAdapter } from './db/adapters/MySqlAdapter.js';
 export { SqliteAdapter } from './db/adapters/SqliteAdapter.js';

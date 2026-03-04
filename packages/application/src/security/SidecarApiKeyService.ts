@@ -29,10 +29,9 @@ export class SidecarApiKeyService {
   }
 
   async revoke(keyHash: string, actor: string): Promise<void> {
-    await this.db.query(
-      'UPDATE sidecar_api_keys SET revoked_at = now() WHERE key_hash = $1',
-      [keyHash],
-    );
+    await this.db.query('UPDATE sidecar_api_keys SET revoked_at = now() WHERE key_hash = $1', [
+      keyHash,
+    ]);
 
     await this.auditWriter.write({
       category: 'SECURITY',

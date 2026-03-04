@@ -14,24 +14,37 @@ import {
 
 const DB_TYPES: DbType[] = ['postgresql', 'mysql', 'sqlite', 'mongodb', 'redis'];
 const DEFAULT_PORTS: Record<DbType, number | undefined> = {
-  postgresql: 5432, mysql: 3306, sqlite: undefined, mongodb: 27017, redis: 6379,
+  postgresql: 5432,
+  mysql: 3306,
+  sqlite: undefined,
+  mongodb: 27017,
+  redis: 6379,
 };
 const DB_TYPE_ICONS: Record<DbType, string> = {
-  postgresql: 'PG', mysql: 'MY', sqlite: 'SQ', mongodb: 'MG', redis: 'RD',
+  postgresql: 'PG',
+  mysql: 'MY',
+  sqlite: 'SQ',
+  mongodb: 'MG',
+  redis: 'RD',
 };
 const DB_TYPE_COLORS: Record<DbType, string> = {
   postgresql: 'text-accent',
-  mysql:      'text-warn',
-  sqlite:     'text-ok',
-  mongodb:    'text-ok',
-  redis:      'text-danger',
+  mysql: 'text-warn',
+  sqlite: 'text-ok',
+  mongodb: 'text-ok',
+  redis: 'text-danger',
 };
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3100';
 
 const BLANK: Omit<DbConnection, 'id'> = {
-  label: '', type: 'postgresql', host: 'localhost', port: 5432,
-  database: '', username: '', password: '',
+  label: '',
+  type: 'postgresql',
+  host: 'localhost',
+  port: 5432,
+  database: '',
+  username: '',
+  password: '',
 };
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -65,9 +78,10 @@ function ConnectionRow({
   onClick: () => void;
   onDelete: (e: React.MouseEvent) => void;
 }) {
-  const hostStr = conn.type === 'sqlite'
-    ? (conn.database ?? ':memory:')
-    : `${conn.host ?? 'localhost'}:${conn.port ?? DEFAULT_PORTS[conn.type] ?? ''}`;
+  const hostStr =
+    conn.type === 'sqlite'
+      ? (conn.database ?? ':memory:')
+      : `${conn.host ?? 'localhost'}:${conn.port ?? DEFAULT_PORTS[conn.type] ?? ''}`;
 
   return (
     <button
@@ -78,9 +92,7 @@ function ConnectionRow({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="text-sm font-mono text-fg truncate">{conn.label || conn.id}</span>
-          {conn.isDefault && (
-            <span className="text-xs text-warn font-bold">★</span>
-          )}
+          {conn.isDefault && <span className="text-xs text-warn font-bold">★</span>}
         </div>
         <div className="text-xs text-fg-2 font-mono truncate">{hostStr}</div>
       </div>
@@ -146,7 +158,7 @@ export default function ConnectionsPage() {
     if (conns.length > 0) setSelectedId(conns[0].id);
   }, []);
 
-  const selected = connections.find(c => c.id === selectedId) ?? null;
+  const selected = connections.find((c) => c.id === selectedId) ?? null;
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -160,7 +172,8 @@ export default function ConnectionsPage() {
 
   function openEdit(conn: DbConnection) {
     setForm({
-      label: conn.label, type: conn.type,
+      label: conn.label,
+      type: conn.type,
       host: conn.host ?? 'localhost',
       port: conn.port ?? DEFAULT_PORTS[conn.type],
       database: conn.database ?? '',
@@ -184,7 +197,7 @@ export default function ConnectionsPage() {
   function handleTypeChange(type: DbType) {
     const currentPort = form.port;
     const wasDefault = Object.values(DEFAULT_PORTS).includes(currentPort as number) || !currentPort;
-    setForm(f => ({
+    setForm((f) => ({
       ...f,
       type,
       port: wasDefault ? DEFAULT_PORTS[type] : currentPort,
@@ -211,37 +224,43 @@ export default function ConnectionsPage() {
 
   function toggleDefault(conn: DbConnection) {
     const wasDefault = conn.isDefault;
-    const updated = connections.map(c => ({ ...c, isDefault: c.id === conn.id ? !wasDefault : false }));
-    updated.forEach(c => upsertConnection(c));
+    const updated = connections.map((c) => ({
+      ...c,
+      isDefault: c.id === conn.id ? !wasDefault : false,
+    }));
+    updated.forEach((c) => upsertConnection(c));
     setConnections(loadConnections());
   }
 
-  const handleTest = useCallback(async (connOverride?: DbConnection) => {
-    const target = connOverride ?? selected;
-    if (!target) return;
-    setTestStatus('testing');
-    setTestResult(null);
-    try {
-      const res = await fetch(`${API_BASE}/api/v1/connections/test`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type:     target.type,
-          host:     target.host,
-          port:     target.port,
-          database: target.database,
-          username: target.username,
-          password: target.password,
-        }),
-      });
-      const data = await res.json() as TestResult;
-      setTestResult(data);
-      setTestStatus(data.ok ? 'ok' : 'error');
-    } catch (err) {
-      setTestResult({ ok: false, error: err instanceof Error ? err.message : 'Network error' });
-      setTestStatus('error');
-    }
-  }, [selected]);
+  const handleTest = useCallback(
+    async (connOverride?: DbConnection) => {
+      const target = connOverride ?? selected;
+      if (!target) return;
+      setTestStatus('testing');
+      setTestResult(null);
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/connections/test`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: target.type,
+            host: target.host,
+            port: target.port,
+            database: target.database,
+            username: target.username,
+            password: target.password,
+          }),
+        });
+        const data = (await res.json()) as TestResult;
+        setTestResult(data);
+        setTestStatus(data.ok ? 'ok' : 'error');
+      } catch (err) {
+        setTestResult({ ok: false, error: err instanceof Error ? err.message : 'Network error' });
+        setTestStatus('error');
+      }
+    },
+    [selected],
+  );
 
   async function handleTestForm() {
     const tempConn: DbConnection = { id: '__test__', ...form };
@@ -252,7 +271,6 @@ export default function ConnectionsPage() {
 
   return (
     <div className="flex gap-0 h-[calc(100vh-8rem)] max-w-5xl">
-
       {/* ── Left: Connection list ─────────────────────────────── */}
       <div className="w-72 flex-shrink-0 bg-bg-2 border border-rim flex flex-col">
         <div className="px-3 py-2.5 border-b border-rim flex items-center justify-between">
@@ -273,15 +291,21 @@ export default function ConnectionsPage() {
             <div className="px-3 py-8 text-center text-fg-2 font-mono text-xs">
               <div className="mb-2 text-2xl">⊕</div>
               No saved connections.
-              <br />Press + NEW to add one.
+              <br />
+              Press + NEW to add one.
             </div>
           ) : (
-            connections.map(conn => (
+            connections.map((conn) => (
               <ConnectionRow
                 key={conn.id}
                 conn={conn}
                 selected={selectedId === conn.id && !showForm}
-                onClick={() => { setSelectedId(conn.id); setShowForm(false); setTestStatus('idle'); setTestResult(null); }}
+                onClick={() => {
+                  setSelectedId(conn.id);
+                  setShowForm(false);
+                  setTestStatus('idle');
+                  setTestResult(null);
+                }}
                 onDelete={(e) => handleDelete(conn.id, e)}
               />
             ))
@@ -291,7 +315,6 @@ export default function ConnectionsPage() {
 
       {/* ── Right: Detail / Form panel ────────────────────────── */}
       <div className="flex-1 bg-bg-2 border border-l-0 border-rim flex flex-col">
-
         {showForm ? (
           /* ── Add / Edit form ── */
           <div className="flex-1 overflow-y-auto p-5">
@@ -299,7 +322,10 @@ export default function ConnectionsPage() {
               <h2 className="font-mono text-sm font-bold text-accent tracking-wide">
                 {isEditing ? '[ EDIT CONNECTION ]' : '[ ADD CONNECTION ]'}
               </h2>
-              <button onClick={cancelForm} className="text-fg-2 hover:text-fg font-mono text-xs transition-none">
+              <button
+                onClick={cancelForm}
+                className="text-fg-2 hover:text-fg font-mono text-xs transition-none"
+              >
                 ESC
               </button>
             </div>
@@ -307,9 +333,11 @@ export default function ConnectionsPage() {
             <div className="space-y-4">
               {/* Type selector */}
               <div>
-                <label className="block font-mono text-xs text-fg-2 mb-1.5 uppercase tracking-widest">TYPE</label>
+                <label className="block font-mono text-xs text-fg-2 mb-1.5 uppercase tracking-widest">
+                  TYPE
+                </label>
                 <div className="flex gap-2 flex-wrap">
-                  {DB_TYPES.map(t => (
+                  {DB_TYPES.map((t) => (
                     <button
                       key={t}
                       onClick={() => handleTypeChange(t)}
@@ -329,7 +357,7 @@ export default function ConnectionsPage() {
                 <input
                   type="text"
                   value={form.label}
-                  onChange={e => setForm(f => ({ ...f, label: e.target.value }))}
+                  onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))}
                   placeholder="my-local-pg"
                   className="w-full bg-bg border border-rim px-3 py-2 font-mono text-sm text-fg focus:outline-none focus:border-accent placeholder-fg-2"
                 />
@@ -342,7 +370,7 @@ export default function ConnectionsPage() {
                       <input
                         type="text"
                         value={form.host ?? ''}
-                        onChange={e => setForm(f => ({ ...f, host: e.target.value }))}
+                        onChange={(e) => setForm((f) => ({ ...f, host: e.target.value }))}
                         placeholder="localhost"
                         className="w-full bg-bg border border-rim px-3 py-2 font-mono text-sm text-fg focus:outline-none focus:border-accent placeholder-fg-2"
                       />
@@ -352,7 +380,12 @@ export default function ConnectionsPage() {
                     <input
                       type="number"
                       value={form.port ?? ''}
-                      onChange={e => setForm(f => ({ ...f, port: e.target.value ? Number(e.target.value) : undefined }))}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          port: e.target.value ? Number(e.target.value) : undefined,
+                        }))
+                      }
                       placeholder={String(DEFAULT_PORTS[form.type] ?? '')}
                       className="w-full bg-bg border border-rim px-3 py-2 font-mono text-sm text-fg focus:outline-none focus:border-accent placeholder-fg-2"
                     />
@@ -360,12 +393,22 @@ export default function ConnectionsPage() {
                 </div>
               )}
 
-              <FormField label={form.type === 'sqlite' ? 'FILE PATH' : form.type === 'redis' ? 'DB INDEX' : 'DATABASE'}>
+              <FormField
+                label={
+                  form.type === 'sqlite'
+                    ? 'FILE PATH'
+                    : form.type === 'redis'
+                      ? 'DB INDEX'
+                      : 'DATABASE'
+                }
+              >
                 <input
                   type="text"
                   value={form.database ?? ''}
-                  onChange={e => setForm(f => ({ ...f, database: e.target.value }))}
-                  placeholder={form.type === 'sqlite' ? ':memory:' : form.type === 'redis' ? '0' : 'tfsdc'}
+                  onChange={(e) => setForm((f) => ({ ...f, database: e.target.value }))}
+                  placeholder={
+                    form.type === 'sqlite' ? ':memory:' : form.type === 'redis' ? '0' : 'tfsdc'
+                  }
                   className="w-full bg-bg border border-rim px-3 py-2 font-mono text-sm text-fg focus:outline-none focus:border-accent placeholder-fg-2"
                 />
               </FormField>
@@ -376,7 +419,7 @@ export default function ConnectionsPage() {
                     <input
                       type="text"
                       value={form.username ?? ''}
-                      onChange={e => setForm(f => ({ ...f, username: e.target.value }))}
+                      onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
                       placeholder="postgres"
                       className="w-full bg-bg border border-rim px-3 py-2 font-mono text-sm text-fg focus:outline-none focus:border-accent placeholder-fg-2"
                     />
@@ -387,13 +430,13 @@ export default function ConnectionsPage() {
                       <input
                         type={showPassword ? 'text' : 'password'}
                         value={form.password ?? ''}
-                        onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                        onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
                         placeholder="••••••••"
                         className="w-full bg-bg border border-rim px-3 py-2 font-mono text-sm text-fg focus:outline-none focus:border-accent placeholder-fg-2"
                       />
                       <button
                         type="button"
-                        onClick={() => setShowPassword(v => !v)}
+                        onClick={() => setShowPassword((v) => !v)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-fg-2 hover:text-fg text-xs font-mono transition-none"
                       >
                         {showPassword ? 'HIDE' : 'SHOW'}
@@ -422,14 +465,15 @@ export default function ConnectionsPage() {
               </button>
             </div>
           </div>
-
         ) : selected ? (
           /* ── Connection detail ── */
           <div className="flex-1 overflow-y-auto p-5">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-3">
                 <DbTypeBadge type={selected.type} />
-                <h2 className="font-mono text-sm font-bold text-fg">{selected.label || selected.id}</h2>
+                <h2 className="font-mono text-sm font-bold text-fg">
+                  {selected.label || selected.id}
+                </h2>
                 {selected.isDefault && <span className="text-xs text-warn">★ default</span>}
               </div>
               <div className="flex gap-2">
@@ -449,11 +493,25 @@ export default function ConnectionsPage() {
             </div>
 
             <div className="bg-bg border border-rim divide-y divide-rim mb-5">
-              <DetailRow label="Type"     value={selected.type} mono />
-              {selected.type !== 'sqlite' && <DetailRow label="Host" value={`${selected.host ?? 'localhost'}:${selected.port ?? ''}`} mono />}
-              {selected.database && <DetailRow label={selected.type === 'sqlite' ? 'File' : 'Database'} value={selected.database} mono />}
+              <DetailRow label="Type" value={selected.type} mono />
+              {selected.type !== 'sqlite' && (
+                <DetailRow
+                  label="Host"
+                  value={`${selected.host ?? 'localhost'}:${selected.port ?? ''}`}
+                  mono
+                />
+              )}
+              {selected.database && (
+                <DetailRow
+                  label={selected.type === 'sqlite' ? 'File' : 'Database'}
+                  value={selected.database}
+                  mono
+                />
+              )}
               {selected.username && <DetailRow label="Username" value={selected.username} mono />}
-              {selected.password && <DetailRow label="Password" value={'•'.repeat(selected.password.length)} mono />}
+              {selected.password && (
+                <DetailRow label="Password" value={'•'.repeat(selected.password.length)} mono />
+              )}
             </div>
 
             <TestResultPanel status={testStatus} result={testResult} />
@@ -468,10 +526,15 @@ export default function ConnectionsPage() {
 
             {testResult?.ok && testResult.tables && testResult.tables.length > 0 && (
               <div className="mt-4">
-                <div className="font-mono text-xs text-fg-2 mb-2 uppercase tracking-widest">Tables</div>
+                <div className="font-mono text-xs text-fg-2 mb-2 uppercase tracking-widest">
+                  Tables
+                </div>
                 <div className="bg-bg border border-rim max-h-48 overflow-y-auto">
-                  {testResult.tables.map(t => (
-                    <div key={t} className="px-3 py-1.5 font-mono text-xs text-fg border-b border-rim last:border-0 hover:bg-bg-2 transition-none">
+                  {testResult.tables.map((t) => (
+                    <div
+                      key={t}
+                      className="px-3 py-1.5 font-mono text-xs text-fg border-b border-rim last:border-0 hover:bg-bg-2 transition-none"
+                    >
                       {t}
                     </div>
                   ))}
@@ -479,7 +542,6 @@ export default function ConnectionsPage() {
               </div>
             )}
           </div>
-
         ) : (
           /* ── Empty state ── */
           <div className="flex-1 flex items-center justify-center">
@@ -502,10 +564,19 @@ export default function ConnectionsPage() {
 
 // ── Helper components ────────────────────────────────────────────────────────
 
-function FormField({ label, children }: { label: string; placeholder?: string; children: React.ReactNode }) {
+function FormField({
+  label,
+  children,
+}: {
+  label: string;
+  placeholder?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div>
-      <label className="block font-mono text-xs text-fg-2 mb-1.5 uppercase tracking-widest">{label}</label>
+      <label className="block font-mono text-xs text-fg-2 mb-1.5 uppercase tracking-widest">
+        {label}
+      </label>
       {children}
     </div>
   );

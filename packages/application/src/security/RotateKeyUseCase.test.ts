@@ -31,10 +31,7 @@ describe('RotateKeyUseCase', () => {
   it('should notify Kafka about new key', async () => {
     await useCase.execute('admin');
 
-    expect(mockKafka.send).toHaveBeenCalledWith(
-      'tfsdc.internal.key-rotation',
-      expect.any(Array),
-    );
+    expect(mockKafka.send).toHaveBeenCalledWith('tfsdc.internal.key-rotation', expect.any(Array));
   });
 
   it('should write audit log', async () => {

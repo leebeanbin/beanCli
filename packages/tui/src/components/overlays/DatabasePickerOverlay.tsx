@@ -18,9 +18,9 @@ import { SPINNER } from '../../utils/constants.js';
 
 // System databases that users typically don't want to work in directly
 const SYSTEM_DBS: Record<string, string[]> = {
-  mysql:      ['information_schema', 'performance_schema', 'mysql', 'sys'],
+  mysql: ['information_schema', 'performance_schema', 'mysql', 'sys'],
   postgresql: ['postgres', 'template0', 'template1'],
-  mongodb:    ['admin', 'config', 'local'],
+  mongodb: ['admin', 'config', 'local'],
 };
 
 export const DatabasePickerOverlay: React.FC = () => {
@@ -33,25 +33,25 @@ export const DatabasePickerOverlay: React.FC = () => {
     setStartupPhase,
   } = useAppContext();
 
-  const [databases,   setDatabases]   = useState<string[]>([]);
-  const [cursor,      setCursor]      = useState(0);
-  const [loading,     setLoading]     = useState(true);
-  const [error,       setError]       = useState<string | null>(null);
+  const [databases, setDatabases] = useState<string[]>([]);
+  const [cursor, setCursor] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Create-new flow
-  const [creating,    setCreating]    = useState(false);
-  const [newDbBuf,    setNewDbBuf]    = useState('');
+  const [creating, setCreating] = useState(false);
+  const [newDbBuf, setNewDbBuf] = useState('');
   const [createError, setCreateError] = useState<string | null>(null);
-  const [createBusy,  setCreateBusy]  = useState(false);
+  const [createBusy, setCreateBusy] = useState(false);
 
   // Delete confirmation flow
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null); // db name to delete
-  const [dropBusy,      setDropBusy]      = useState(false);
-  const [dropError,     setDropError]     = useState<string | null>(null);
+  const [dropBusy, setDropBusy] = useState(false);
+  const [dropError, setDropError] = useState<string | null>(null);
 
   // Connecting spinner
-  const [connecting,  setConnecting]  = useState(false);
-  const [spinIdx,     setSpinIdx]     = useState(0);
+  const [connecting, setConnecting] = useState(false);
+  const [spinIdx, setSpinIdx] = useState(0);
 
   // Load databases on mount; pre-select the one already in the connection (if any)
   useEffect(() => {
@@ -60,83 +60,102 @@ export const DatabasePickerOverlay: React.FC = () => {
       setLoading(false);
       return;
     }
-    void connectionService.listDatabases().then(dbs => {
-      setDatabases(dbs);
-      // Pre-select whatever database was already filled in the connection form
-      if (activeConnection?.database) {
-        const idx = dbs.indexOf(activeConnection.database);
-        if (idx >= 0) setCursor(idx);
-      }
-      setLoading(false);
-    }).catch(e => {
-      setError(e instanceof Error ? e.message : 'Failed to list databases');
-      setLoading(false);
-    });
+    void connectionService
+      .listDatabases()
+      .then((dbs) => {
+        setDatabases(dbs);
+        // Pre-select whatever database was already filled in the connection form
+        if (activeConnection?.database) {
+          const idx = dbs.indexOf(activeConnection.database);
+          if (idx >= 0) setCursor(idx);
+        }
+        setLoading(false);
+      })
+      .catch((e) => {
+        setError(e instanceof Error ? e.message : 'Failed to list databases');
+        setLoading(false);
+      });
   }, []); // intentionally run once on mount
 
   // Spinner tick
   useEffect(() => {
     if (!connecting && !createBusy && !dropBusy) return;
-    const id = setInterval(() => setSpinIdx(i => (i + 1) % SPINNER.length), 80);
+    const id = setInterval(() => setSpinIdx((i) => (i + 1) % SPINNER.length), 80);
     return () => clearInterval(id);
   }, [connecting, createBusy, dropBusy]);
 
-  const selectDatabase = useCallback(async (dbName: string) => {
-    if (!connectionService || !activeConnection) return;
-    setConnecting(true);
-    setError(null);
-    const conn = { ...activeConnection, database: dbName };
-    const result = await connectionService.testConnection(conn);
-    setConnecting(false);
-    if (result.error) {
-      setError(result.error);
-    } else {
-      setActiveConnection(conn);
-      setTables(result.tables);
-      setConnection(conn.label);
-      setStartupPhase('table-picker');
-    }
-  }, [connectionService, activeConnection, setActiveConnection, setTables, setConnection, setStartupPhase]);
+  const selectDatabase = useCallback(
+    async (dbName: string) => {
+      if (!connectionService || !activeConnection) return;
+      setConnecting(true);
+      setError(null);
+      const conn = { ...activeConnection, database: dbName };
+      const result = await connectionService.testConnection(conn);
+      setConnecting(false);
+      if (result.error) {
+        setError(result.error);
+      } else {
+        setActiveConnection(conn);
+        setTables(result.tables);
+        setConnection(conn.label);
+        setStartupPhase('table-picker');
+      }
+    },
+    [
+      connectionService,
+      activeConnection,
+      setActiveConnection,
+      setTables,
+      setConnection,
+      setStartupPhase,
+    ],
+  );
 
-  const createAndSelect = useCallback(async (name: string) => {
-    if (!connectionService || !name.trim()) return;
-    setCreateBusy(true);
-    setCreateError(null);
-    const result = await connectionService.createDatabase!(name.trim());
-    if (result?.error) {
-      setCreateError(result.error);
+  const createAndSelect = useCallback(
+    async (name: string) => {
+      if (!connectionService || !name.trim()) return;
+      setCreateBusy(true);
+      setCreateError(null);
+      const result = await connectionService.createDatabase!(name.trim());
+      if (result?.error) {
+        setCreateError(result.error);
+        setCreateBusy(false);
+        return;
+      }
+      // Refresh list
+      const dbs = await connectionService.listDatabases!();
+      setDatabases(dbs);
+      const newIdx = dbs.indexOf(name.trim());
+      if (newIdx >= 0) setCursor(newIdx);
       setCreateBusy(false);
-      return;
-    }
-    // Refresh list
-    const dbs = await connectionService.listDatabases!();
-    setDatabases(dbs);
-    const newIdx = dbs.indexOf(name.trim());
-    if (newIdx >= 0) setCursor(newIdx);
-    setCreateBusy(false);
-    setCreating(false);
-    setNewDbBuf('');
-    // Auto-connect to the new database
-    void selectDatabase(name.trim());
-  }, [connectionService, selectDatabase]);
+      setCreating(false);
+      setNewDbBuf('');
+      // Auto-connect to the new database
+      void selectDatabase(name.trim());
+    },
+    [connectionService, selectDatabase],
+  );
 
-  const dropDatabase = useCallback(async (name: string) => {
-    if (!connectionService?.dropDatabase) return;
-    setDropBusy(true);
-    setDropError(null);
-    const result = await connectionService.dropDatabase(name);
-    setDropBusy(false);
-    if (result?.error) {
-      setDropError(result.error);
+  const dropDatabase = useCallback(
+    async (name: string) => {
+      if (!connectionService?.dropDatabase) return;
+      setDropBusy(true);
+      setDropError(null);
+      const result = await connectionService.dropDatabase(name);
+      setDropBusy(false);
+      if (result?.error) {
+        setDropError(result.error);
+        setConfirmDelete(null);
+        return;
+      }
+      // Refresh list
+      const dbs = await connectionService.listDatabases!();
+      setDatabases(dbs);
+      setCursor((c) => Math.min(c, Math.max(0, dbs.length - 1)));
       setConfirmDelete(null);
-      return;
-    }
-    // Refresh list
-    const dbs = await connectionService.listDatabases!();
-    setDatabases(dbs);
-    setCursor(c => Math.min(c, Math.max(0, dbs.length - 1)));
-    setConfirmDelete(null);
-  }, [connectionService]);
+    },
+    [connectionService],
+  );
 
   // ── All derived values must be computed before any early return ─────────────
   const systemDbs = useMemo(() => {
@@ -148,13 +167,14 @@ export const DatabasePickerOverlay: React.FC = () => {
     ? `${activeConnection.username ?? 'user'}@${activeConnection.host ?? 'localhost'}:${activeConnection.port ?? ''}`
     : '';
 
-  const footerHint = confirmDelete !== null
-    ? 'Delete database? [y/N]'
-    : creating
-      ? 'Enter: create   Esc: cancel'
-      : connectionService?.dropDatabase
-        ? 'j/k:move  n:new  d:delete  Enter:use  Esc:back'
-        : 'j/k:move  n:new  Enter:use  Esc:back';
+  const footerHint =
+    confirmDelete !== null
+      ? 'Delete database? [y/N]'
+      : creating
+        ? 'Enter: create   Esc: cancel'
+        : connectionService?.dropDatabase
+          ? 'j/k:move  n:new  d:delete  Enter:use  Esc:back'
+          : 'j/k:move  n:new  Enter:use  Esc:back';
 
   useInput((inp, key) => {
     if (connecting || createBusy || dropBusy) return;
@@ -173,18 +193,35 @@ export const DatabasePickerOverlay: React.FC = () => {
 
     // ── Create-prompt mode ────────────────────────────────────────────────────
     if (creating) {
-      if (key.escape) { setCreating(false); setNewDbBuf(''); setCreateError(null); return; }
-      if (key.return) { void createAndSelect(newDbBuf); return; }
-      if (key.backspace || key.delete) { setNewDbBuf(s => s.slice(0, -1)); return; }
+      if (key.escape) {
+        setCreating(false);
+        setNewDbBuf('');
+        setCreateError(null);
+        return;
+      }
+      if (key.return) {
+        void createAndSelect(newDbBuf);
+        return;
+      }
+      if (key.backspace || key.delete) {
+        setNewDbBuf((s) => s.slice(0, -1));
+        return;
+      }
       if (inp && inp.length === 1 && inp >= ' ' && !key.ctrl && !key.meta) {
-        setNewDbBuf(s => s + inp);
+        setNewDbBuf((s) => s + inp);
       }
       return;
     }
 
     // ── List mode ─────────────────────────────────────────────────────────────
-    if (key.upArrow   || inp === 'k') { setCursor(c => Math.max(0, c - 1)); return; }
-    if (key.downArrow || inp === 'j') { setCursor(c => Math.min(databases.length - 1, c + 1)); return; }
+    if (key.upArrow || inp === 'k') {
+      setCursor((c) => Math.max(0, c - 1));
+      return;
+    }
+    if (key.downArrow || inp === 'j') {
+      setCursor((c) => Math.min(databases.length - 1, c + 1));
+      return;
+    }
 
     if (inp === 'n') {
       setCreating(true);
@@ -226,11 +263,17 @@ export const DatabasePickerOverlay: React.FC = () => {
           paddingX={2}
           paddingY={1}
         >
-          <Text color="#00d4ff" bold>  Connecting to database...</Text>
-          <Text>{' '}</Text>
-          <Text color="#f59e0b">{SPINNER[spinIdx]}  {databases[cursor]}</Text>
+          <Text color="#00d4ff" bold>
+            {' '}
+            Connecting to database...
+          </Text>
+          <Text> </Text>
+          <Text color="#f59e0b">
+            {SPINNER[spinIdx]} {databases[cursor]}
+          </Text>
           <Text color="#4a5568">
-            {'   '}{activeConnection?.type ?? 'db'}
+            {'   '}
+            {activeConnection?.type ?? 'db'}
             {activeConnection?.host ? ` · ${activeConnection.host}` : ''}
           </Text>
         </Box>
@@ -254,58 +297,84 @@ export const DatabasePickerOverlay: React.FC = () => {
       >
         {/* Title */}
         <Box paddingX={2} paddingY={0}>
-          <Text color="#00d4ff" bold>SELECT DATABASE</Text>
-          <Text color="#1e3a5f">  ·  {connLabel}</Text>
+          <Text color="#00d4ff" bold>
+            SELECT DATABASE
+          </Text>
+          <Text color="#1e3a5f"> · {connLabel}</Text>
         </Box>
 
-        <Text color="#1a2a3a" bold>{'─'.repeat(58)}</Text>
+        <Text color="#1a2a3a" bold>
+          {'─'.repeat(58)}
+        </Text>
 
         {/* Database list */}
         {loading && (
           <Box paddingX={2} paddingY={1}>
-            <Text color="#f59e0b">{SPINNER[spinIdx]}  Loading databases...</Text>
+            <Text color="#f59e0b">{SPINNER[spinIdx]} Loading databases...</Text>
           </Box>
         )}
         {!loading && databases.length === 0 && !error && (
           <Box paddingX={2} paddingY={1}>
-            <Text color="#374151" dimColor>  No databases found. Press <Text color="#10b981" bold>n</Text> to create one.</Text>
+            <Text color="#374151" dimColor>
+              {' '}
+              No databases found. Press{' '}
+              <Text color="#10b981" bold>
+                n
+              </Text>{' '}
+              to create one.
+            </Text>
           </Box>
         )}
-        {!loading && databases.map((db, i) => {
-          const isSel   = i === cursor;
-          const isSys   = systemDbs.has(db);
-          const nameCol = isSel ? '#00d4ff' : isSys ? '#374151' : '#a0aec0';
-          const tagCol  = isSys ? '#1e3a5f' : undefined;
-          return (
-            <Box key={db} paddingX={2} gap={1}>
-              <Text color={nameCol} bold={isSel} dimColor={isSys && !isSel}>
-                {isSel ? '▶ ' : '  '}{db}
-              </Text>
-              {isSys && (
-                <Text color={tagCol} dimColor>sys</Text>
-              )}
-            </Box>
-          );
-        })}
+        {!loading &&
+          databases.map((db, i) => {
+            const isSel = i === cursor;
+            const isSys = systemDbs.has(db);
+            const nameCol = isSel ? '#00d4ff' : isSys ? '#374151' : '#a0aec0';
+            const tagCol = isSys ? '#1e3a5f' : undefined;
+            return (
+              <Box key={db} paddingX={2} gap={1}>
+                <Text color={nameCol} bold={isSel} dimColor={isSys && !isSel}>
+                  {isSel ? '▶ ' : '  '}
+                  {db}
+                </Text>
+                {isSys && (
+                  <Text color={tagCol} dimColor>
+                    sys
+                  </Text>
+                )}
+              </Box>
+            );
+          })}
 
         {/* Delete confirmation prompt */}
         {confirmDelete !== null && (
           <>
-            <Text color="#1a2a3a" bold>{'─'.repeat(58)}</Text>
+            <Text color="#1a2a3a" bold>
+              {'─'.repeat(58)}
+            </Text>
             <Box paddingX={2} paddingY={0} flexDirection="column">
               <Box>
-                <Text color="#ef4444" bold>  Delete </Text>
-                <Text color="#f59e0b" bold>&quot;{confirmDelete}&quot;</Text>
-                <Text color="#ef4444" bold>? This cannot be undone.</Text>
+                <Text color="#ef4444" bold>
+                  {' '}
+                  Delete{' '}
+                </Text>
+                <Text color="#f59e0b" bold>
+                  &quot;{confirmDelete}&quot;
+                </Text>
+                <Text color="#ef4444" bold>
+                  ? This cannot be undone.
+                </Text>
               </Box>
               <Box>
-                <Text color="#374151">  Press </Text>
-                <Text color="#ef4444" bold>y</Text>
+                <Text color="#374151"> Press </Text>
+                <Text color="#ef4444" bold>
+                  y
+                </Text>
                 <Text color="#374151"> to confirm, any other key to cancel</Text>
               </Box>
               {dropBusy && (
                 <Box>
-                  <Text color="#f59e0b">  {SPINNER[spinIdx]} Dropping database...</Text>
+                  <Text color="#f59e0b"> {SPINNER[spinIdx]} Dropping database...</Text>
                 </Box>
               )}
             </Box>
@@ -315,23 +384,31 @@ export const DatabasePickerOverlay: React.FC = () => {
         {/* Create-new prompt */}
         {creating && (
           <>
-            <Text color="#1a2a3a" bold>{'─'.repeat(58)}</Text>
+            <Text color="#1a2a3a" bold>
+              {'─'.repeat(58)}
+            </Text>
             <Box paddingX={2} paddingY={0}>
-              <Text color="#10b981">  New database: </Text>
-              <Text color="#e0e0e0">{newDbBuf}{blink}</Text>
+              <Text color="#10b981"> New database: </Text>
+              <Text color="#e0e0e0">
+                {newDbBuf}
+                {blink}
+              </Text>
             </Box>
             {createError && (
               <Box paddingX={2}>
-                <Text color="#ef4444">  ✗ {createError}</Text>
+                <Text color="#ef4444"> ✗ {createError}</Text>
               </Box>
             )}
             {createBusy && (
               <Box paddingX={2}>
-                <Text color="#f59e0b">  {SPINNER[spinIdx]} Creating...</Text>
+                <Text color="#f59e0b"> {SPINNER[spinIdx]} Creating...</Text>
               </Box>
             )}
             <Box paddingX={2}>
-              <Text color="#374151" dimColor>  Enter: create   Esc: cancel</Text>
+              <Text color="#374151" dimColor>
+                {' '}
+                Enter: create Esc: cancel
+              </Text>
             </Box>
           </>
         )}
@@ -339,22 +416,37 @@ export const DatabasePickerOverlay: React.FC = () => {
         {/* Drop error */}
         {dropError && !creating && confirmDelete === null && (
           <Box paddingX={2}>
-            <Text color="#ef4444">  ✗ {dropError}</Text>
+            <Text color="#ef4444"> ✗ {dropError}</Text>
           </Box>
         )}
 
         {/* Connection or load error — full message, wraps */}
         {error && !creating && confirmDelete === null && (
           <Box paddingX={2} flexDirection="column">
-            <Text color="#ef4444" bold>  ✗ Error</Text>
-            <Text color="#ef4444" wrap="wrap">{'  '}{error}</Text>
+            <Text color="#ef4444" bold>
+              {' '}
+              ✗ Error
+            </Text>
+            <Text color="#ef4444" wrap="wrap">
+              {'  '}
+              {error}
+            </Text>
             <Box paddingTop={0}>
-              <Text color="#374151" dimColor>  Press <Text color="#f59e0b" bold>Esc</Text> to go back and fix credentials.</Text>
+              <Text color="#374151" dimColor>
+                {' '}
+                Press{' '}
+                <Text color="#f59e0b" bold>
+                  Esc
+                </Text>{' '}
+                to go back and fix credentials.
+              </Text>
             </Box>
           </Box>
         )}
 
-        <Text color="#1a2a3a" bold>{'─'.repeat(58)}</Text>
+        <Text color="#1a2a3a" bold>
+          {'─'.repeat(58)}
+        </Text>
 
         {/* Footer */}
         <Box paddingX={2}>

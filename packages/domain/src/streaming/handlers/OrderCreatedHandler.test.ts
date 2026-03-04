@@ -46,7 +46,9 @@ describe('OrderCreatedHandler', () => {
     const [sql, params] = (mockTx.query as jest.Mock).mock.calls[0];
     expect(sql).toContain('INSERT INTO state_orders');
     expect(sql).toContain('ON CONFLICT (entity_id_hash) DO UPDATE');
-    expect(sql).toContain('WHERE state_orders.updated_event_time_ms < EXCLUDED.updated_event_time_ms');
+    expect(sql).toContain(
+      'WHERE state_orders.updated_event_time_ms < EXCLUDED.updated_event_time_ms',
+    );
     expect(params[0]).toBe('hashed_order_id');
     expect(params[3]).toBe('hashed_user_id');
     expect(params[4]).toBe('CREATED');

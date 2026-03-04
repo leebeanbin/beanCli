@@ -21,8 +21,8 @@ export const TablePickerOverlay: React.FC = () => {
     setOverlay,
   } = useAppContext();
 
-  const [cursor,    setCursor]    = useState(0);
-  const [filter,    setFilter]    = useState('');
+  const [cursor, setCursor] = useState(0);
+  const [filter, setFilter] = useState('');
   const [filtering, setFiltering] = useState(false);
 
   // Table metadata: row count per table (loaded async)
@@ -53,28 +53,31 @@ export const TablePickerOverlay: React.FC = () => {
         } catch {
           counts[t] = null;
         }
-        setRowCounts(prev => ({ ...prev, [t]: counts[t] ?? null }));
+        setRowCounts((prev) => ({ ...prev, [t]: counts[t] ?? null }));
       }
     })();
   }, [tables, connectionService, activeConnection?.type]);
 
   const filtered = filter
-    ? tables.filter(t => t.toLowerCase().includes(filter.toLowerCase()))
+    ? tables.filter((t) => t.toLowerCase().includes(filter.toLowerCase()))
     : tables;
 
   const maxCursor = Math.max(0, filtered.length - 1);
 
-  const openTable = useCallback((tableName: string) => {
-    setBrowseTable(tableName);
-    setAppMode('browse');
-    setFocusedPanel('query');
-    // Close: either end startup phase or close overlay
-    if (startupPhase === 'table-picker') {
-      setStartupPhase('ready');
-    } else {
-      setOverlay(null);
-    }
-  }, [setBrowseTable, setAppMode, setFocusedPanel, startupPhase, setStartupPhase, setOverlay]);
+  const openTable = useCallback(
+    (tableName: string) => {
+      setBrowseTable(tableName);
+      setAppMode('browse');
+      setFocusedPanel('query');
+      // Close: either end startup phase or close overlay
+      if (startupPhase === 'table-picker') {
+        setStartupPhase('ready');
+      } else {
+        setOverlay(null);
+      }
+    },
+    [setBrowseTable, setAppMode, setFocusedPanel, startupPhase, setStartupPhase, setOverlay],
+  );
 
   const closeWithoutSelect = useCallback(() => {
     if (startupPhase === 'table-picker') {
@@ -87,10 +90,17 @@ export const TablePickerOverlay: React.FC = () => {
   useInput((inp, key) => {
     // ── Filter mode ────────────────────────────────────────────────────────
     if (filtering) {
-      if (key.escape) { setFiltering(false); setFilter(''); return; }
-      if (key.return) { setFiltering(false); return; }
+      if (key.escape) {
+        setFiltering(false);
+        setFilter('');
+        return;
+      }
+      if (key.return) {
+        setFiltering(false);
+        return;
+      }
       if (key.backspace) {
-        setFilter(s => {
+        setFilter((s) => {
           const next = s.slice(0, -1);
           if (next === '') setFiltering(false);
           return next;
@@ -98,23 +108,49 @@ export const TablePickerOverlay: React.FC = () => {
         return;
       }
       if (inp && inp >= ' ' && !key.ctrl && !key.meta) {
-        setFilter(s => s + inp);
+        setFilter((s) => s + inp);
         setCursor(0);
       }
       return;
     }
 
     // ── Navigation ─────────────────────────────────────────────────────────
-    if (key.upArrow   || inp === 'k') { setCursor(c => Math.max(0, c - 1)); return; }
-    if (key.downArrow || inp === 'j') { setCursor(c => Math.min(maxCursor, c + 1)); return; }
-    if (key.pageUp)   { setCursor(c => Math.max(0, c - PAGE_SIZE)); return; }
-    if (key.pageDown) { setCursor(c => Math.min(maxCursor, c + PAGE_SIZE)); return; }
-    if (inp === 'g')  { setCursor(0); return; }
-    if (inp === 'G')  { setCursor(maxCursor); return; }
+    if (key.upArrow || inp === 'k') {
+      setCursor((c) => Math.max(0, c - 1));
+      return;
+    }
+    if (key.downArrow || inp === 'j') {
+      setCursor((c) => Math.min(maxCursor, c + 1));
+      return;
+    }
+    if (key.pageUp) {
+      setCursor((c) => Math.max(0, c - PAGE_SIZE));
+      return;
+    }
+    if (key.pageDown) {
+      setCursor((c) => Math.min(maxCursor, c + PAGE_SIZE));
+      return;
+    }
+    if (inp === 'g') {
+      setCursor(0);
+      return;
+    }
+    if (inp === 'G') {
+      setCursor(maxCursor);
+      return;
+    }
 
     // ── Filter ─────────────────────────────────────────────────────────────
-    if (inp === '/') { setFiltering(true); setFilter(''); return; }
-    if (key.escape && filter) { setFilter(''); setCursor(0); return; }
+    if (inp === '/') {
+      setFiltering(true);
+      setFilter('');
+      return;
+    }
+    if (key.escape && filter) {
+      setFilter('');
+      setCursor(0);
+      return;
+    }
 
     // ── Open table ─────────────────────────────────────────────────────────
     if (key.return && filtered.length > 0) {
@@ -137,48 +173,57 @@ export const TablePickerOverlay: React.FC = () => {
 
   // ── Layout ─────────────────────────────────────────────────────────────────
 
-  const cols     = process.stdout.columns ?? 100;
-  const W        = Math.min(72, cols - 4);
-  const conn     = activeConnection;
-  const typeStr  = conn?.type ?? '';
-  const hostStr  = conn?.host ?? conn?.database ?? '';
-  const portStr  = conn?.port ? `:${conn.port}` : '';
+  const cols = process.stdout.columns ?? 100;
+  const W = Math.min(72, cols - 4);
+  const conn = activeConnection;
+  const typeStr = conn?.type ?? '';
+  const hostStr = conn?.host ?? conn?.database ?? '';
+  const portStr = conn?.port ? `:${conn.port}` : '';
 
   // Sliding window of visible rows
   const windowStart = Math.max(0, cursor - Math.floor(PAGE_SIZE / 2));
-  const visible     = filtered.slice(windowStart, windowStart + PAGE_SIZE);
+  const visible = filtered.slice(windowStart, windowStart + PAGE_SIZE);
 
   const fmtCount = (t: string): string => {
     const n = rowCounts[t];
-    if (n === undefined) return '      ';      // loading
-    if (n === null)      return '  err ';
+    if (n === undefined) return '      '; // loading
+    if (n === null) return '  err ';
     return n.toLocaleString().padStart(6);
   };
 
   return (
     <Box flexDirection="column" flexGrow={1} justifyContent="center" alignItems="center">
-      <Box
-        flexDirection="column"
-        borderStyle="double"
-        borderColor="#00d4ff"
-        width={W}
-        paddingX={1}
-      >
+      <Box flexDirection="column" borderStyle="double" borderColor="#00d4ff" width={W} paddingX={1}>
         {/* ── Header ─────────────────────────────────────────────────── */}
         <Box gap={1} marginTop={0}>
-          <Text color="#10b981" bold>●</Text>
-          <Text color="#00d4ff" bold>{conn?.label ?? 'Connected'}</Text>
+          <Text color="#10b981" bold>
+            ●
+          </Text>
+          <Text color="#00d4ff" bold>
+            {conn?.label ?? 'Connected'}
+          </Text>
           <Text color="#1a2a3a">·</Text>
           <Text color="#4a5568">{typeStr}</Text>
           <Text color="#1a2a3a">·</Text>
-          <Text color="#374151">{hostStr}{portStr}</Text>
+          <Text color="#374151">
+            {hostStr}
+            {portStr}
+          </Text>
           <Box flexGrow={1} />
-          <Text color="#4a5568">{filtered.length}/{tables.length} tables</Text>
+          <Text color="#4a5568">
+            {filtered.length}/{tables.length} tables
+          </Text>
         </Box>
 
         {/* ── Filter bar ─────────────────────────────────────────────── */}
-        <Box borderStyle="single" borderColor="#1a2a3a"
-          borderTop borderBottom={false} borderLeft={false} borderRight={false}>
+        <Box
+          borderStyle="single"
+          borderColor="#1a2a3a"
+          borderTop
+          borderBottom={false}
+          borderLeft={false}
+          borderRight={false}
+        >
           <Text color="#00d4ff">{'/ '}</Text>
           {filtering ? (
             <>
@@ -188,18 +233,26 @@ export const TablePickerOverlay: React.FC = () => {
           ) : filter ? (
             <>
               <Text color="#f59e0b">{filter}</Text>
-              <Text color="#4a5568">  (Esc:clear)</Text>
+              <Text color="#4a5568"> (Esc:clear)</Text>
             </>
           ) : (
-            <Text color="#374151" dimColor>type to filter...</Text>
+            <Text color="#374151" dimColor>
+              type to filter...
+            </Text>
           )}
         </Box>
 
         {/* ── Column header ──────────────────────────────────────────── */}
         <Box>
-          <Text color="#4a5568" dimColor>{'  '}</Text>
-          <Text color="#4a5568" dimColor bold>{'TABLE NAME'.padEnd(W - 22)}</Text>
-          <Text color="#4a5568" dimColor bold>{'   ROWS'}</Text>
+          <Text color="#4a5568" dimColor>
+            {'  '}
+          </Text>
+          <Text color="#4a5568" dimColor bold>
+            {'TABLE NAME'.padEnd(W - 22)}
+          </Text>
+          <Text color="#4a5568" dimColor bold>
+            {'   ROWS'}
+          </Text>
         </Box>
         <Text color="#1a2a3a">{'─'.repeat(W - 4)}</Text>
 
@@ -207,12 +260,16 @@ export const TablePickerOverlay: React.FC = () => {
         <Box flexDirection="column">
           {tables.length === 0 ? (
             <Box paddingX={1} flexDirection="column" paddingY={1}>
-              <Text color="#4a5568">  No tables found in this database.</Text>
+              <Text color="#4a5568"> No tables found in this database.</Text>
               <Text color="#374151" dimColor>
                 {'  Press '}
-                <Text color="#00d4ff" bold>Enter</Text>
+                <Text color="#00d4ff" bold>
+                  Enter
+                </Text>
                 {' or '}
-                <Text color="#f59e0b" bold>Esc</Text>
+                <Text color="#f59e0b" bold>
+                  Esc
+                </Text>
                 {' to open the query editor and create tables.'}
               </Text>
             </Box>
@@ -222,11 +279,11 @@ export const TablePickerOverlay: React.FC = () => {
             </Box>
           ) : (
             visible.map((tableName, i) => {
-              const absIdx   = windowStart + i;
+              const absIdx = windowStart + i;
               const isCursor = absIdx === cursor;
-              const marker   = isCursor ? '▶ ' : '  ';
-              const count    = fmtCount(tableName);
-              const nameW    = W - 18;
+              const marker = isCursor ? '▶ ' : '  ';
+              const count = fmtCount(tableName);
+              const nameW = W - 18;
 
               return (
                 <Box key={tableName}>
@@ -264,7 +321,9 @@ export const TablePickerOverlay: React.FC = () => {
         <Text color="#1a2a3a">{'─'.repeat(W - 4)}</Text>
         <Box gap={2} marginBottom={0}>
           {tables.length > 0 && <Text color="#374151">j/k:move</Text>}
-          <Text color="#374151">{tables.length === 0 ? 'Enter/Esc:open editor' : 'Enter:open'}</Text>
+          <Text color="#374151">
+            {tables.length === 0 ? 'Enter/Esc:open editor' : 'Enter:open'}
+          </Text>
           {tables.length > 0 && <Text color="#374151">/:filter</Text>}
           {tables.length > 0 && <Text color="#374151">g/G:top/bot</Text>}
           <Text color="#374151">Esc/q:close</Text>

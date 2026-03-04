@@ -20,8 +20,8 @@ module.exports = {
     // Map .js → .ts/.tsx (handles ESM-style imports with .js extension)
     '^(\\.{1,2}/.*)\\.js$': '$1',
     // Use a minimal entry (no React/Ink) so Jest CJS runtime can load it
-    '^@tfsdc/tui$':            '<rootDir>/../../packages/tui/src/test-entry',
+    '^@tfsdc/tui$': '<rootDir>/../../packages/tui/src/test-entry',
     '^@tfsdc/infrastructure$': '<rootDir>/../../packages/infrastructure/src',
-    '^@tfsdc/kernel$':         '<rootDir>/../../packages/kernel/src',
+    '^@tfsdc/kernel$': '<rootDir>/../../packages/kernel/src',
   },
 };

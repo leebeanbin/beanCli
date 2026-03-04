@@ -1,6 +1,7 @@
 import { PgPool, PgKeyStore, AesEncryptor, KafkaProducerAdapter } from '@tfsdc/infrastructure';
 
-const DATABASE_URL = process.env.DATABASE_URL ?? 'postgres://postgres:postgres@localhost:5432/tfsdc';
+const DATABASE_URL =
+  process.env.DATABASE_URL ?? 'postgres://postgres:postgres@localhost:5432/tfsdc';
 const KAFKA_BROKER = process.env.KAFKA_BROKER ?? 'localhost:9092';
 const POLL_INTERVAL_MS = Number(process.env.RECOVERY_POLL_MS ?? 30000);
 
@@ -45,7 +46,9 @@ async function main() {
             String(row.key_id),
           );
 
-          console.log(`[recovery-worker] Decrypted DLQ event #${row.id}: ${payload.toString().slice(0, 100)}...`);
+          console.log(
+            `[recovery-worker] Decrypted DLQ event #${row.id}: ${payload.toString().slice(0, 100)}...`,
+          );
 
           // Re-publish to original topic
           await kafkaProducer.send(row.source_topic as string, [{ value: payload.toString() }]);
@@ -56,9 +59,14 @@ async function main() {
             [row.id],
           );
 
-          console.log(`[recovery-worker] Event #${row.id} re-published to ${row.source_topic as string} and resolved`);
+          console.log(
+            `[recovery-worker] Event #${row.id} re-published to ${row.source_topic as string} and resolved`,
+          );
         } catch (err) {
-          console.error(`[recovery-worker] Failed to process DLQ #${row.id}:`, (err as Error).message);
+          console.error(
+            `[recovery-worker] Failed to process DLQ #${row.id}:`,
+            (err as Error).message,
+          );
 
           const newRetryCount = Number(row.retry_count) + 1;
 
@@ -69,12 +77,14 @@ async function main() {
                error_message = 'MAX_RETRIES_EXCEEDED' WHERE id = $1`,
               [row.id, newRetryCount],
             );
-            console.warn(`[recovery-worker] Event #${row.id} exceeded max retries, marking resolved`);
-          } else {
-            await pgPool.query(
-              `UPDATE dlq_events SET retry_count = $2 WHERE id = $1`,
-              [row.id, newRetryCount],
+            console.warn(
+              `[recovery-worker] Event #${row.id} exceeded max retries, marking resolved`,
             );
+          } else {
+            await pgPool.query(`UPDATE dlq_events SET retry_count = $2 WHERE id = $1`, [
+              row.id,
+              newRetryCount,
+            ]);
           }
         }
       }

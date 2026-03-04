@@ -42,10 +42,10 @@ export class SqliteAdapter implements IDbAdapter {
 
   async listTables(): Promise<string[]> {
     const db = await this.getDb();
-    const rows = db.prepare(
-      `SELECT name FROM sqlite_master WHERE type='table' ORDER BY name`,
-    ).all();
-    return rows.map(r => String(r['name'] ?? ''));
+    const rows = db
+      .prepare(`SELECT name FROM sqlite_master WHERE type='table' ORDER BY name`)
+      .all();
+    return rows.map((r) => String(r['name'] ?? ''));
   }
 
   async queryRows(sql: string, params?: unknown[]): Promise<Record<string, unknown>[]> {

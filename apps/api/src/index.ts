@@ -12,7 +12,8 @@ import { AuditEventWriter } from '@tfsdc/audit';
 
 const PORT = Number(process.env.APP_PORT ?? 3000);
 const HOST = process.env.API_HOST ?? '0.0.0.0';
-const DATABASE_URL = process.env.DATABASE_URL ?? 'postgres://postgres:postgres@localhost:5432/tfsdc';
+const DATABASE_URL =
+  process.env.DATABASE_URL ?? 'postgres://postgres:postgres@localhost:5432/tfsdc';
 const JWT_SECRET = process.env.JWT_SECRET ?? 'dev-jwt-secret-change-in-prod';
 
 // Map Kafka entity types to state table names
@@ -84,14 +85,16 @@ async function main() {
   const listenerClient = await startNotificationListener(wsManager, DATABASE_URL);
 
   function jwtSign(sub: string, role: string): string {
-    const header  = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
-    const payload = Buffer.from(JSON.stringify({
-      sub,
-      role,
-      jti: randomBytes(8).toString('hex'),
-      iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + 86400, // 24h
-    })).toString('base64url');
+    const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
+    const payload = Buffer.from(
+      JSON.stringify({
+        sub,
+        role,
+        jti: randomBytes(8).toString('hex'),
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + 86400, // 24h
+      }),
+    ).toString('base64url');
     const sig = createHmac('sha256', JWT_SECRET).update(`${header}.${payload}`).digest('base64url');
     return `${header}.${payload}.${sig}`;
   }

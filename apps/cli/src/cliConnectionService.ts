@@ -5,9 +5,21 @@
  * - Connection test:  @tfsdc/infrastructure adapters (PG, MySQL, SQLite, etc.)
  * - Persistent adapter held open between testConnection() and executeQuery() calls.
  */
-import { loadConnections, upsertConnection, removeConnection, getEnvConnection } from './connections.js';
+import {
+  loadConnections,
+  upsertConnection,
+  removeConnection,
+  getEnvConnection,
+} from './connections.js';
 import { createAdapter, initDbAdapters } from '@tfsdc/infrastructure';
-import type { IConnectionService, DbConnection, QueryResult, AiMessage, AiStreamCallbacks, UserRole } from '@tfsdc/tui';
+import type {
+  IConnectionService,
+  DbConnection,
+  QueryResult,
+  AiMessage,
+  AiStreamCallbacks,
+  UserRole,
+} from '@tfsdc/tui';
 import type { IDbAdapter } from '@tfsdc/infrastructure';
 import { detectQueryType } from '@tfsdc/tui';
 
@@ -22,7 +34,7 @@ function sanitizeErrorMsg(msg: string): string {
   return msg
     .replace(/password[=:'"]\S+/gi, 'password=[REDACTED]')
     .replace(/pwd[=:'"]\S+/gi, 'pwd=[REDACTED]')
-    .replace(/:(\/\/[^:@]*:)[^@]*@/g, '://$1[REDACTED]@');   // URI form: //user:pass@host
+    .replace(/:(\/\/[^:@]*:)[^@]*@/g, '://$1[REDACTED]@'); // URI form: //user:pass@host
 }
 
 let adaptersReady = false;
@@ -67,14 +79,12 @@ export function createCliConnectionService(): IConnectionService {
       try {
         // For PostgreSQL, fall back to 'postgres' default DB when none specified
         // so credential verification always works regardless of what DB the user owns.
-        const dbToConnect =
-          conn.database ||
-          (conn.type === 'postgresql' ? 'postgres' : undefined);
+        const dbToConnect = conn.database || (conn.type === 'postgresql' ? 'postgres' : undefined);
 
         adapter = createAdapter({
-          type:     conn.type,
-          host:     conn.host,
-          port:     conn.port,
+          type: conn.type,
+          host: conn.host,
+          port: conn.port,
           database: dbToConnect,
           username: conn.username,
           password: conn.password,
@@ -86,21 +96,25 @@ export function createCliConnectionService(): IConnectionService {
 
       try {
         const tables = await adapter.listTables();
-        activeAdapter = adapter;   // keep open for executeQuery()
+        activeAdapter = adapter; // keep open for executeQuery()
         activeConnType = conn.type;
         return { error: null, tables };
       } catch (err) {
         const raw = err instanceof Error ? err.message : 'Connection failed';
         await adapter.close().catch(() => {});
-        return { error: sanitizeErrorMsg(raw), tables: [] };  // SEC-006
+        return { error: sanitizeErrorMsg(raw), tables: [] }; // SEC-006
       }
     },
 
     async executeQuery(sql: string): Promise<QueryResult> {
       if (!activeAdapter) {
         return {
-          columns: [], rows: [], rowCount: 0, duration: 0,
-          type: 'other', error: 'Not connected — select a connection first.',
+          columns: [],
+          rows: [],
+          rowCount: 0,
+          duration: 0,
+          type: 'other',
+          error: 'Not connected — select a connection first.',
         };
       }
 
@@ -125,7 +139,7 @@ export function createCliConnectionService(): IConnectionService {
         return {
           columns,
           rows,
-          rowCount: totalRows,   // reflects true total even when truncated
+          rowCount: totalRows, // reflects true total even when truncated
           duration,
           type: detectQueryType(sql),
           ...(truncated && {
@@ -152,15 +166,15 @@ export function createCliConnectionService(): IConnectionService {
       try {
         if (activeConnType === 'mysql') {
           const rows = await activeAdapter.queryRows('SHOW DATABASES');
-          return rows.map(r => String(r['Database'] ?? Object.values(r)[0] ?? ''));
+          return rows.map((r) => String(r['Database'] ?? Object.values(r)[0] ?? ''));
         } else if (activeConnType === 'postgresql') {
           const rows = await activeAdapter.queryRows(
             `SELECT datname FROM pg_database WHERE datistemplate = false ORDER BY datname`,
           );
-          return rows.map(r => String(r['datname'] ?? ''));
+          return rows.map((r) => String(r['datname'] ?? ''));
         } else if (activeConnType === 'mongodb') {
           const rows = await activeAdapter.queryRows('SHOW DATABASES');
-          return rows.map(r => String(r['name'] ?? '')).filter(Boolean);
+          return rows.map((r) => String(r['name'] ?? '')).filter(Boolean);
         } else if (activeConnType === 'redis') {
           return Array.from({ length: 16 }, (_, i) => String(i));
         }
@@ -215,25 +229,28 @@ export function createCliConnectionService(): IConnectionService {
     async login(username: string, password: string) {
       try {
         const res = await fetch(`${API_URL}/api/v1/auth/login`, {
-          method:  'POST',
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ username, password }),
+          body: JSON.stringify({ username, password }),
         });
-        const data = await res.json() as {
-          token?: string; username?: string; role?: string; error?: string;
+        const data = (await res.json()) as {
+          token?: string;
+          username?: string;
+          role?: string;
+          error?: string;
         };
         if (!res.ok) {
           return { ok: false, error: data.error ?? `Login failed (HTTP ${res.status})` };
         }
         return {
-          ok:       true,
-          token:    data.token,
+          ok: true,
+          token: data.token,
           username: data.username,
-          role:     data.role as UserRole,
+          role: data.role as UserRole,
         };
       } catch (err) {
         return {
-          ok:    false,
+          ok: false,
           error: err instanceof Error ? err.message : 'Network error — is the API running?',
         };
       }
@@ -246,9 +263,9 @@ export function createCliConnectionService(): IConnectionService {
     ): Promise<void> {
       try {
         const res = await fetch(`${API_URL}/api/v1/ai/stream`, {
-          method:  'POST',
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ messages, model: opts.model, includeSchema: true }),
+          body: JSON.stringify({ messages, model: opts.model, includeSchema: true }),
         });
 
         if (!res.ok) {
@@ -256,11 +273,14 @@ export function createCliConnectionService(): IConnectionService {
           return;
         }
 
-        const reader  = res.body?.getReader();
+        const reader = res.body?.getReader();
         const decoder = new TextDecoder();
-        if (!reader) { callbacks.onError('No response body'); return; }
+        if (!reader) {
+          callbacks.onError('No response body');
+          return;
+        }
 
-        let buffer      = '';
+        let buffer = '';
         let fullContent = '';
 
         while (true) {
@@ -296,11 +316,15 @@ export function createCliConnectionService(): IConnectionService {
                   callbacks.onError(evt.error ?? 'Unknown AI error');
                   break;
               }
-            } catch { /* skip malformed event */ }
+            } catch {
+              /* skip malformed event */
+            }
           }
         }
       } catch (err) {
-        callbacks.onError(err instanceof Error ? err.message : 'Network error — is the API running?');
+        callbacks.onError(
+          err instanceof Error ? err.message : 'Network error — is the API running?',
+        );
       }
     },
   };

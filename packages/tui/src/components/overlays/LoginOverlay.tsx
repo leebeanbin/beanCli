@@ -20,24 +20,19 @@ type Field = 'username' | 'password';
 // ── LoginOverlay ──────────────────────────────────────────────────────────────
 
 export const LoginOverlay: React.FC = () => {
-  const {
-    connectionService,
-    setStartupPhase,
-    setUserRole,
-    setAuthToken,
-  } = useAppContext();
+  const { connectionService, setStartupPhase, setUserRole, setAuthToken } = useAppContext();
 
-  const [field,    setField]    = useState<Field>('username');
+  const [field, setField] = useState<Field>('username');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [loading,  setLoading]  = useState(false);
-  const [spinIdx,  setSpinIdx]  = useState(0);
-  const [error,    setError]    = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [spinIdx, setSpinIdx] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
   // Spinner while authenticating
   useEffect(() => {
     if (!loading) return;
-    const id = setInterval(() => setSpinIdx(i => (i + 1) % SPINNER.length), 80);
+    const id = setInterval(() => setSpinIdx((i) => (i + 1) % SPINNER.length), 80);
     return () => clearInterval(id);
   }, [loading]);
 
@@ -64,7 +59,7 @@ export const LoginOverlay: React.FC = () => {
     if (!result.ok) {
       setError(result.error ?? 'Login failed. Check credentials.');
     } else {
-      if (result.role)  setUserRole(result.role as UserRole);
+      if (result.role) setUserRole(result.role as UserRole);
       if (result.token) setAuthToken(result.token);
       goNext();
     }
@@ -80,7 +75,7 @@ export const LoginOverlay: React.FC = () => {
     }
 
     if (key.tab) {
-      setField(f => f === 'username' ? 'password' : 'username');
+      setField((f) => (f === 'username' ? 'password' : 'username'));
       return;
     }
 
@@ -94,14 +89,14 @@ export const LoginOverlay: React.FC = () => {
     }
 
     if (key.backspace || key.delete) {
-      if (field === 'username') setUsername(s => s.slice(0, -1));
-      else setPassword(s => s.slice(0, -1));
+      if (field === 'username') setUsername((s) => s.slice(0, -1));
+      else setPassword((s) => s.slice(0, -1));
       return;
     }
 
     if (inp && inp >= ' ' && !key.ctrl && !key.meta) {
-      if (field === 'username') setUsername(s => s + inp);
-      else setPassword(s => s + inp);
+      if (field === 'username') setUsername((s) => s + inp);
+      else setPassword((s) => s + inp);
     }
   });
 
@@ -120,9 +115,11 @@ export const LoginOverlay: React.FC = () => {
         {/* Logo */}
         <Box flexDirection="column" alignItems="center" marginBottom={1}>
           {LOGO_LINES.map((line, i) => (
-            <Text key={i} color="#00d4ff">{line}</Text>
+            <Text key={i} color="#00d4ff">
+              {line}
+            </Text>
           ))}
-          <Text color="#4a5568">  Database Console  ·  v0.1.2  </Text>
+          <Text color="#4a5568"> Database Console · v0.1.2 </Text>
         </Box>
 
         <Text color="#1a2a3a">{'─'.repeat(W - 6)}</Text>
@@ -154,13 +151,13 @@ export const LoginOverlay: React.FC = () => {
         {/* Status line */}
         <Box marginTop={1}>
           {loading ? (
-            <Text color="#f59e0b">  {SPINNER[spinIdx]} Authenticating...</Text>
+            <Text color="#f59e0b"> {SPINNER[spinIdx]} Authenticating...</Text>
           ) : error ? (
-            <Text color="#ef4444">  {error.slice(0, W - 8)}</Text>
+            <Text color="#ef4444"> {error.slice(0, W - 8)}</Text>
           ) : (
             <Text color="#374151">
               {'  Tab:next field  Enter:login'}
-              <Text color="#4a5568">  Esc:skip(dev)</Text>
+              <Text color="#4a5568"> Esc:skip(dev)</Text>
             </Text>
           )}
         </Box>

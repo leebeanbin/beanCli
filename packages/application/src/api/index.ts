@@ -25,7 +25,11 @@ export { WsEventBroadcaster } from './websocket/WsEventBroadcaster.js';
 // Routes
 export { healthHandler } from './routes/health.routes.js';
 export type { HealthDeps, HealthResponse } from './routes/health.routes.js';
-export type { IChangeRouteHandler, CreateChangeInput, ChangeListQuery } from './routes/changes.routes.js';
+export type {
+  IChangeRouteHandler,
+  CreateChangeInput,
+  ChangeListQuery,
+} from './routes/changes.routes.js';
 export { ChangeRouteHandlerImpl } from './routes/ChangeRouteHandlerImpl.js';
 export type { IApprovalRouteHandler } from './routes/approvals.routes.js';
 export { ApprovalRouteHandlerImpl } from './routes/ApprovalRouteHandlerImpl.js';

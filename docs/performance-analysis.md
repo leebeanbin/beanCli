@@ -8,11 +8,11 @@
 
 ## 1. 전체 테스트 현황
 
-| 패키지 | 테스트 스위트 | 테스트 수 | 결과 |
-|--------|-------------|---------|------|
-| @tfsdc/infrastructure | 5 | 29 | ✅ 전체 통과 |
-| @tfsdc/cli | 4 (2 skip) | 83 (39 skip) | ✅ 통과 |
-| 전체 Turbo | 25 tasks | — | ✅ 전체 통과 |
+| 패키지                | 테스트 스위트 | 테스트 수    | 결과         |
+| --------------------- | ------------- | ------------ | ------------ |
+| @tfsdc/infrastructure | 5             | 29           | ✅ 전체 통과 |
+| @tfsdc/cli            | 4 (2 skip)    | 83 (39 skip) | ✅ 통과      |
+| 전체 Turbo            | 25 tasks      | —            | ✅ 전체 통과 |
 
 스킵된 39개 테스트는 실제 MySQL DB 연결이 필요한 통합 테스트(`MYSQL_URL` 미설정).
 
@@ -22,26 +22,26 @@
 
 ### 2a. tinybench (저수준 Node.js crypto 직접 호출)
 
-| 케이스 | ops/s | avg latency | p99 |
-|--------|-------|------------|-----|
-| encrypt 16B  | 467.78 Kops/s | 2.26µs | 3.29µs |
-| encrypt 128B | 459.62 Kops/s | 2.26µs | 2.96µs |
-| encrypt 256B | 448.38 Kops/s | 2.26µs | 3.04µs |
-| encrypt 1KB  | 403.96 Kops/s | 2.65µs | 3.88µs |
-| encrypt 8KB  | 209.80 Kops/s | 5.21µs | 8.05µs |
-| decrypt 16B  | 497.34 Kops/s | 2.08µs | 2.71µs |
-| decrypt 1KB  | 433.87 Kops/s | 2.44µs | 3.38µs |
-| decrypt 8KB  | 227.12 Kops/s | 4.87µs | 7.96µs |
+| 케이스       | ops/s         | avg latency | p99    |
+| ------------ | ------------- | ----------- | ------ |
+| encrypt 16B  | 467.78 Kops/s | 2.26µs      | 3.29µs |
+| encrypt 128B | 459.62 Kops/s | 2.26µs      | 2.96µs |
+| encrypt 256B | 448.38 Kops/s | 2.26µs      | 3.04µs |
+| encrypt 1KB  | 403.96 Kops/s | 2.65µs      | 3.88µs |
+| encrypt 8KB  | 209.80 Kops/s | 5.21µs      | 8.05µs |
+| decrypt 16B  | 497.34 Kops/s | 2.08µs      | 2.71µs |
+| decrypt 1KB  | 433.87 Kops/s | 2.44µs      | 3.38µs |
+| decrypt 8KB  | 227.12 Kops/s | 4.87µs      | 7.96µs |
 
 ### 2b. AesEncryptor (Jest 벤치 — IKeyStore 비동기 경로 포함)
 
-| 페이로드 | ops/s | avg | p99 |
-|---------|-------|-----|-----|
-| 16B (UUID) | 41,729 | 24.0µs | 194.4µs |
-| 128B | 172,157 | 5.8µs | 11.5µs |
-| 1KB | 138,881 / 128,186 | 7.2–7.8µs | 17.5–53.5µs |
-| 8KB | 77,108 | 13.0µs | 46.3µs |
-| 동시 10개 × 512B | 17,921 배치/s → **179,210 ops/s** | 55.8µs | 89.8µs |
+| 페이로드         | ops/s                             | avg       | p99         |
+| ---------------- | --------------------------------- | --------- | ----------- |
+| 16B (UUID)       | 41,729                            | 24.0µs    | 194.4µs     |
+| 128B             | 172,157                           | 5.8µs     | 11.5µs      |
+| 1KB              | 138,881 / 128,186                 | 7.2–7.8µs | 17.5–53.5µs |
+| 8KB              | 77,108                            | 13.0µs    | 46.3µs      |
+| 동시 10개 × 512B | 17,921 배치/s → **179,210 ops/s** | 55.8µs    | 89.8µs      |
 
 **해석**: 저수준 crypto는 400K+ ops/s이지만, `AesEncryptor`는 `IKeyStore.getActiveKey()`를 매번 비동기 호출하는 오버헤드로 약 3–10× 낮다. 16B 케이스(24µs)에서 keyStore 조회 비용이 두드러짐.
 
@@ -51,29 +51,29 @@
 
 ### 3a. tinybench (직접 Node.js crypto)
 
-| 케이스 | ops/s | avg | p99 |
-|--------|-------|-----|-----|
-| hash short ID | 812.66 Kops/s | 1.29µs | 1.54µs |
-| hash UUID | 804.35 Kops/s | 1.30µs | 1.46µs |
-| hash 64B key | 671.86 Kops/s | 1.52µs | 1.71µs |
+| 케이스            | ops/s         | avg    | p99    |
+| ----------------- | ------------- | ------ | ------ |
+| hash short ID     | 812.66 Kops/s | 1.29µs | 1.54µs |
+| hash UUID         | 804.35 Kops/s | 1.30µs | 1.46µs |
+| hash 64B key      | 671.86 Kops/s | 1.52µs | 1.71µs |
 | hash + hex decode | 753.84 Kops/s | 1.42µs | 1.67µs |
 
 ### 3b. HmacHasher (Jest 벤치)
 
-| 케이스 | ops/s | avg | p99 |
-|--------|-------|-----|-----|
-| short ID | 353,873 | 2.8µs | 7.6µs |
-| UUID | 333,752 | 3.0µs | 16.4µs |
-| 64B key | 362,057 | 2.8µs | 6.1µs |
+| 케이스    | ops/s                            | avg     | p99     |
+| --------- | -------------------------------- | ------- | ------- |
+| short ID  | 353,873                          | 2.8µs   | 7.6µs   |
+| UUID      | 333,752                          | 3.0µs   | 16.4µs  |
+| 64B key   | 362,057                          | 2.8µs   | 6.1µs   |
 | 동시 50개 | 9,364 배치/s → **468,200 ops/s** | 106.8µs | 173.5µs |
 
 ### AES vs HMAC 비교
 
-| 항목 | 저수준 | AesEncryptor/HmacHasher |
-|------|--------|------------------------|
-| AES-256-GCM 256B | 448K ops/s | 105K ops/s |
-| HMAC-SHA256 | 835K ops/s | 424K ops/s |
-| **HMAC 배수** | **1.9×** | **4.0×** |
+| 항목             | 저수준     | AesEncryptor/HmacHasher |
+| ---------------- | ---------- | ----------------------- |
+| AES-256-GCM 256B | 448K ops/s | 105K ops/s              |
+| HMAC-SHA256      | 835K ops/s | 424K ops/s              |
+| **HMAC 배수**    | **1.9×**   | **4.0×**                |
 
 **결론**: HMAC은 AES보다 약 2–4× 빠르다. 엔티티 ID 해싱(HMAC)이 데이터 암호화(AES)보다 훨씬 저비용. 해싱 전략이 올바른 선택.
 
@@ -81,15 +81,16 @@
 
 ## 4. 정규식 성능 — SEC-001 / SQL 파싱
 
-| 케이스 | tinybench | Jest 벤치 |
-|--------|-----------|----------|
-| DB 이름 검증 (유효) | 9.66 Mops/s | 24,969,352 ops/s |
-| DB 이름 검증 (injection 시도) | 4.58 Mops/s | — |
-| LIMIT 절 파싱 | 9.80 Mops/s | 4,734,886 ops/s |
-| FROM 절 추출 | 7.62 Mops/s | 23,798,075 ops/s |
-| LIMIT + FROM 트리아지 | 7.62 Mops/s | — |
+| 케이스                        | tinybench   | Jest 벤치        |
+| ----------------------------- | ----------- | ---------------- |
+| DB 이름 검증 (유효)           | 9.66 Mops/s | 24,969,352 ops/s |
+| DB 이름 검증 (injection 시도) | 4.58 Mops/s | —                |
+| LIMIT 절 파싱                 | 9.80 Mops/s | 4,734,886 ops/s  |
+| FROM 절 추출                  | 7.62 Mops/s | 23,798,075 ops/s |
+| LIMIT + FROM 트리아지         | 7.62 Mops/s | —                |
 
 **해석**:
+
 - SQL injection 문자열 검증은 유효 이름 대비 약 2× 느리지만 여전히 4M+ ops/s — 병목 아님.
 - 서로 다른 측정값 차이는 tinybench의 통계적 샘플링 vs Jest 루프 방식 차이. 실제 성능은 수 Mops/s 수준.
 
@@ -99,23 +100,23 @@
 
 ### tinybench (setImmediate RTT 시뮬레이션)
 
-| 키 수 | Naïve ops/s | Pipeline ops/s | 배속 |
-|------|-------------|---------------|------|
-| 5 | 7.58 K | 37.71 K | **5.0×** |
-| 10 | 3.78 K | 37.68 K | **10.0×** |
-| 20 | 1.90 K | 37.59 K | **19.8×** |
-| 50 | 756 | 37.55 K | **49.6×** |
-| 100 | 355 | 37.12 K | **104.3×** |
+| 키 수 | Naïve ops/s | Pipeline ops/s | 배속       |
+| ----- | ----------- | -------------- | ---------- |
+| 5     | 7.58 K      | 37.71 K        | **5.0×**   |
+| 10    | 3.78 K      | 37.68 K        | **10.0×**  |
+| 20    | 1.90 K      | 37.59 K        | **19.8×**  |
+| 50    | 756         | 37.55 K        | **49.6×**  |
+| 100   | 355         | 37.12 K        | **104.3×** |
 
 ### Jest 벤치 (0.5ms RTT 시뮬레이션 — localhost Redis)
 
-| 키 수 | Naïve | Pipeline | 배속 | 절감 |
-|------|-------|----------|------|------|
-| 30 | 68.82ms | 2.35ms | **29.3×** | ~66ms |
-| 10 @ 0ms | 0.36ms | 0.04ms | **9.0×** | — |
-| 100 @ 1ms RTT | 234ms | 2.26ms | **103.6×** | ~232ms |
-| 5 @ 0.5ms | 11.44ms | 2.32ms | **4.9×** | — |
-| 50 @ 0.5ms | 114.96ms | 2.25ms | **51.1×** | — |
+| 키 수               | Naïve     | Pipeline   | 배속       | 절감      |
+| ------------------- | --------- | ---------- | ---------- | --------- |
+| 30                  | 68.82ms   | 2.35ms     | **29.3×**  | ~66ms     |
+| 10 @ 0ms            | 0.36ms    | 0.04ms     | **9.0×**   | —         |
+| 100 @ 1ms RTT       | 234ms     | 2.26ms     | **103.6×** | ~232ms    |
+| 5 @ 0.5ms           | 11.44ms   | 2.32ms     | **4.9×**   | —         |
+| 50 @ 0.5ms          | 114.96ms  | 2.25ms     | **51.1×**  | —         |
 | **100 @ 2ms (WAN)** | **455ms** | **4.37ms** | **104.2×** | **450ms** |
 
 **결론**: 파이프라인 배속은 키 수에 선형 비례. 100키 기준 WAN 환경에서 query당 450ms 절감. 이미 `RedisAdapter.queryRows()`에 적용 완료 (commit: `da96c6d`).
@@ -124,16 +125,17 @@
 
 ## 6. 보안 수정 이력
 
-| ID | 설명 | CVSS | 상태 |
-|----|------|------|------|
-| SEC-001 | DB 이름 allowlist 정규식 `/^[a-zA-Z_][a-zA-Z0-9_$\-]{0,63}$/` | 7.5 | ✅ 완료 |
-| SEC-002/003 | `\d` 메타 커맨드 테이블 화이트리스트 검증 | 6.5 | ✅ 완료 |
-| SEC-004 | AES-256-GCM 연결 정보 암호화 | 8.1 | ✅ 완료 |
-| SEC-INJ-001 | MySQL `listTables()` SQL injection — 파라미터 바인딩 전환 | 8.1 | ✅ 완료 |
-| **SEC-005** | **쿼리 타임아웃 없음 / 행 수 무제한** | 5.3 | ✅ 완료 |
-| **SEC-006** | **로거 크리덴셜 노출 (password, Authorization 헤더)** | 5.3 | ✅ 완료 |
+| ID          | 설명                                                          | CVSS | 상태    |
+| ----------- | ------------------------------------------------------------- | ---- | ------- |
+| SEC-001     | DB 이름 allowlist 정규식 `/^[a-zA-Z_][a-zA-Z0-9_$\-]{0,63}$/` | 7.5  | ✅ 완료 |
+| SEC-002/003 | `\d` 메타 커맨드 테이블 화이트리스트 검증                     | 6.5  | ✅ 완료 |
+| SEC-004     | AES-256-GCM 연결 정보 암호화                                  | 8.1  | ✅ 완료 |
+| SEC-INJ-001 | MySQL `listTables()` SQL injection — 파라미터 바인딩 전환     | 8.1  | ✅ 완료 |
+| **SEC-005** | **쿼리 타임아웃 없음 / 행 수 무제한**                         | 5.3  | ✅ 완료 |
+| **SEC-006** | **로거 크리덴셜 노출 (password, Authorization 헤더)**         | 5.3  | ✅ 완료 |
 
 ### SEC-005 구현 세부사항
+
 ```
 cliConnectionService.ts:
   - Promise.race([adapter.queryRows(sql), timeout(30s)])
@@ -154,6 +156,7 @@ RedisAdapter.ts (2026-03-03 추가):
 ```
 
 ### SEC-006 구현 세부사항
+
 ```
 apps/api/src/server.ts:
   - Fastify logger.redact: req.headers.authorization, body.password,
@@ -170,6 +173,7 @@ apps/cli/src/cliConnectionService.ts:
 ### 7-1. 성능 개선 (HIGH)
 
 #### ~~AesEncryptor KeyStore 캐싱~~ ✅ 완료 (2026-03-03)
+
 ```
 구현: CachedKeyStore Decorator (packages/infrastructure/src/security/CachedKeyStore.ts)
   - TTL=5분 인메모리 캐시, __active__ 키로 active key 별도 관리
@@ -178,6 +182,7 @@ apps/cli/src/cliConnectionService.ts:
 ```
 
 #### ~~SEC-005 — LIMIT 자동 주입~~ ✅ 완료 (2026-03-03)
+
 ```
 구현: 각 어댑터 queryRows() 에 injectLimit() 헬퍼 추가
   PgAdapter / MySqlAdapter / SqliteAdapter: SELECT에 LIMIT 없으면 LIMIT 5001 자동 주입
@@ -189,6 +194,7 @@ apps/cli/src/cliConnectionService.ts:
 ### 7-2. 보안 강화 (HIGH)
 
 #### ~~MySQL/MongoDB/Redis 타임아웃 없음~~ ✅ 완료 (2026-03-03)
+
 ```
 구현: 각 어댑터에 30s 쿼리 타임아웃 적용
   MySqlAdapter:  execute({ sql, timeout: 30_000, values })
@@ -197,6 +203,7 @@ apps/cli/src/cliConnectionService.ts:
 ```
 
 #### ~~API 엔드포인트 rate limiting 없음~~ ✅ 완료 (2026-03-03)
+
 ```
 구현: @fastify/rate-limit 설치 (apps/api)
   전역:                 60 req/min per IP
@@ -205,6 +212,7 @@ apps/cli/src/cliConnectionService.ts:
 ```
 
 #### ~~JWT 만료 시간 검증 강화~~ ✅ 완료 (2026-03-03)
+
 ```
 구현: apps/api/src/index.ts — main() 진입 직후 APP_ENV=prod 검사
   1. JWT_SECRET 미설정 또는 기본값 → FATAL + process.exit(1)
@@ -214,6 +222,7 @@ apps/cli/src/cliConnectionService.ts:
 ### 7-3. 테스트 강화 (MEDIUM)
 
 #### ~~MySQL/MongoDB/Redis 통합 테스트~~ ✅ 완료 (2026-03-03)
+
 ```
 구현: .github/workflows/ci.yml
   services: postgres:15, mysql:8, mongo:7, redis:7 (각 헬스체크 포함)
@@ -222,6 +231,7 @@ apps/cli/src/cliConnectionService.ts:
 ```
 
 #### ~~암호화 키 로테이션 테스트 없음~~ ✅ 완료 (2026-03-03)
+
 ```
 구현:
   AesEncryptor.test.ts — 'key rotation' describe 블록
@@ -232,6 +242,7 @@ apps/cli/src/cliConnectionService.ts:
 ```
 
 #### ~~API E2E 테스트 없음~~ ✅ 완료 (2026-03-03)
+
 ```
 구현: apps/api/jest.config.cjs + src/__tests__/server.test.ts
   7개 케이스: GET /health, 로그인 valid/invalid, /audit no-auth,
@@ -240,6 +251,7 @@ apps/cli/src/cliConnectionService.ts:
 ```
 
 #### ~~로드 테스트 CI 통합~~ ✅ 완료 (2026-03-03)
+
 ```
 구현: apps/api/scripts/loadtest.ts
   printSummary() 반환 타입: void → number (SLO 위반 수 반환)
@@ -250,6 +262,7 @@ apps/cli/src/cliConnectionService.ts:
 ### 7-4. 기능 보완 (MEDIUM)
 
 #### ~~ResultPanel — 5000행 truncation UI 개선~~ ✅ 완료 (2026-03-03)
+
 ```
 구현:
   - QueryResult 인터페이스에 warning?: string 추가 (packages/tui/src/services/types.ts)
@@ -259,6 +272,7 @@ apps/cli/src/cliConnectionService.ts:
 ```
 
 #### ~~쿼리 히스토리 persist~~ ✅ 완료 (2026-03-03)
+
 ```
 구현:
   - apps/cli/src/historyStore.ts: loadHistory / appendHistory

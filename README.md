@@ -24,17 +24,15 @@
 
 ## 특징
 
-
-|              |                                               |
-| ------------ | --------------------------------------------- |
-| **5개 DB 지원** | PostgreSQL · MySQL · SQLite · MongoDB · Redis |
-| **3-패널 TUI** | Schema 트리 / SQL 에디터 / 결과 뷰어                   |
-| **CRUD**     | 행 탐색·편집·삽입·삭제 (역할 기반)                         |
-| **변경 심사**    | SQL → 위험도 평가 → AUTO / CONFIRM / MANUAL 실행     |
-| **AI 어시스턴트** | beanllm SSE 스트리밍 (자연어 → SQL)                  |
-| **감사 로그**    | 모든 변경 이력 불변 기록                                |
-| **Mock 모드**  | DB 없이 즉시 실행 (개발·데모용)                          |
-
+|                   |                                                  |
+| ----------------- | ------------------------------------------------ |
+| **5개 DB 지원**   | PostgreSQL · MySQL · SQLite · MongoDB · Redis    |
+| **3-패널 TUI**    | Schema 트리 / SQL 에디터 / 결과 뷰어             |
+| **CRUD**          | 행 탐색·편집·삽입·삭제 (역할 기반)               |
+| **변경 심사**     | SQL → 위험도 평가 → AUTO / CONFIRM / MANUAL 실행 |
+| **AI 어시스턴트** | beanllm SSE 스트리밍 (자연어 → SQL)              |
+| **감사 로그**     | 모든 변경 이력 불변 기록                         |
+| **Mock 모드**     | DB 없이 즉시 실행 (개발·데모용)                  |
 
 ---
 
@@ -62,7 +60,7 @@ beancli
 pnpm dev:all
 ```
 
-> `**beancli`를 처음 등록할 때**: `pnpm setup` 이후 새 터미널을 열면 바로 사용 가능.
+> `**beancli`를 처음 등록할 때\*\*: `pnpm setup` 이후 새 터미널을 열면 바로 사용 가능.
 > 이미 설치된 경우: `pnpm link:global` 한 번만 실행하면 됩니다.
 
 ---
@@ -84,82 +82,70 @@ pnpm dev:all
 
 ### 글로벌
 
-
-| 키                   | 동작         |
-| ------------------- | ---------- |
-| `Ctrl+P`            | 커맨드 팔레트    |
+| 키                  | 동작               |
+| ------------------- | ------------------ |
+| `Ctrl+P`            | 커맨드 팔레트      |
 | `?`                 | 전체 단축키 도움말 |
-| `Tab` / `Shift+Tab` | 패널 이동      |
-| `q`                 | 종료         |
-
+| `Tab` / `Shift+Tab` | 패널 이동          |
+| `q`                 | 종료               |
 
 ### 패널 포커스
 
-
-| 키   | 패널              |
-| --- | --------------- |
+| 키  | 패널                 |
+| --- | -------------------- |
 | `1` | Schema (테이블 목록) |
-| `2` | Query Editor    |
-| `3` | Results         |
+| `2` | Query Editor         |
+| `3` | Results              |
 | `4` | AI 어시스턴트        |
-
 
 ### 모드 전환
 
-
-| 키   | 모드               |
-| --- | ---------------- |
+| 키  | 모드                  |
+| --- | --------------------- |
 | `t` | 테이블 피커           |
-| `b` | Browse (행 탐색)    |
+| `b` | Browse (행 탐색)      |
 | `m` | Monitor (스트림 상태) |
-| `A` | Audit 로그         |
-| `R` | DLQ Recovery     |
-| `I` | Index Lab        |
-
+| `A` | Audit 로그            |
+| `R` | DLQ Recovery          |
+| `I` | Index Lab             |
 
 ### SQL 에디터
 
-
-| 키                   | 동작               |
-| ------------------- | ---------------- |
+| 키                  | 동작               |
+| ------------------- | ------------------ |
 | `Enter`             | SQL 실행           |
-| `Shift+Enter`       | 줄 바꿈             |
-| `↑` / `↓` (빈 버퍼)    | 히스토리             |
-| `Ctrl+A` / `Ctrl+E` | 줄 처음/끝           |
-| `\dt`               | 테이블 목록           |
-| `\d <table>`        | 스키마 조회           |
+| `Shift+Enter`       | 줄 바꿈            |
+| `↑` / `↓` (빈 버퍼) | 히스토리           |
+| `Ctrl+A` / `Ctrl+E` | 줄 처음/끝         |
+| `\dt`               | 테이블 목록        |
+| `\d <table>`        | 스키마 조회        |
 | `\x`                | Expanded mode 토글 |
-
 
 ### Browse / Explore 모드
 
-
-| 키         | 동작                           |
-| --------- | ---------------------------- |
-| `j` / `k` | 행 이동                         |
-| `h` / `l` | 컬럼 이동                        |
-| `Enter`   | 행 상세                         |
-| `e`       | 편집 (DBA/MANAGER)             |
-| `i`       | 삽입 (DBA/MANAGER)             |
-| `D`       | 삭제 (DBA)                     |
+| 키        | 동작                              |
+| --------- | --------------------------------- |
+| `j` / `k` | 행 이동                           |
+| `h` / `l` | 컬럼 이동                         |
+| `Enter`   | 행 상세                           |
+| `e`       | 편집 (DBA/MANAGER)                |
+| `i`       | 삽입 (DBA/MANAGER)                |
+| `D`       | 삭제 (DBA)                        |
 | `Q`       | 현재 테이블 SELECT → Query Editor |
-| `r`       | 새로고침                         |
-| `f`       | 필터                           |
-
+| `r`       | 새로고침                          |
+| `f`       | 필터                              |
 
 ---
 
 ## 지원 DB
 
-
-| 타입           | 기본 포트 | 특이사항                               |
-| ------------ | ----- | ---------------------------------- |
-| `postgresql` | 5432  | 완전 지원. Pool max=2                  |
-| `mysql`      | 3306  | MariaDB 호환. 백틱 인용                  |
-| `sqlite`     | —     | `node:sqlite` 내장 모듈 사용             |
-| `mongodb`    | 27017 | 컬렉션 = 테이블                          |
-| `redis`      | 6379  | 키 접두어 = 테이블. HASH·LIST·SET·ZSET 지원 |
-
+| 타입         | 기본 포트 | 특이사항                                    |
+| ------------ | --------- | ------------------------------------------- |
+| `postgresql` | 5432      | 완전 지원. Pool max=2                       |
+| `mysql`      | 3306      | MariaDB 호환. 백틱 인용                     |
+| `sqlite`     | —         | `node:sqlite` 내장 모듈 사용                |
+| `mongodb`    | 27017     | 컬렉션 = 테이블                             |
+| `redis`      | 6379      | 키 접두어 = 테이블. HASH·LIST·SET·ZSET 지원 |
 
 ---
 
@@ -201,25 +187,21 @@ SQL 제출
 
 ### 환경별 실행 정책
 
-
-| 환경          | L0      | L1      | L2      |
+| 환경        | L0      | L1      | L2      |
 | ----------- | ------- | ------- | ------- |
 | LOCAL / DEV | AUTO    | AUTO    | CONFIRM |
 | PROD        | CONFIRM | CONFIRM | MANUAL  |
-
 
 ---
 
 ## 역할 (RBAC)
 
-
-| 역할               | SELECT | INSERT | UPDATE | DELETE | DDL |
+| 역할             | SELECT | INSERT | UPDATE | DELETE | DDL |
 | ---------------- | ------ | ------ | ------ | ------ | --- |
-| `ANALYST`        | ✅      |        |        |        |     |
-| `MANAGER`        | ✅      | ✅      | ✅      |        |     |
-| `DBA`            | ✅      | ✅      | ✅      | ✅      | ✅   |
-| `SECURITY_ADMIN` | ✅      |        |        |        |     |
-
+| `ANALYST`        | ✅     |        |        |        |     |
+| `MANAGER`        | ✅     | ✅     | ✅     |        |     |
+| `DBA`            | ✅     | ✅     | ✅     | ✅     | ✅  |
+| `SECURITY_ADMIN` | ✅     |        |        |        |     |
 
 ---
 
@@ -278,16 +260,14 @@ pnpm link:global                      # beancli를 전역 PATH에 등록
 
 `.claude/commands/` 에 등록된 슬래시 커맨드:
 
-
-| 커맨드          | 설명                  |
-| ------------ | ------------------- |
-| `/commit`    | 테마별 커밋 가이드라인        |
+| 커맨드       | 설명                      |
+| ------------ | ------------------------- |
+| `/commit`    | 테마별 커밋 가이드라인    |
 | `/typecheck` | 전 패키지 TypeScript 검사 |
-| `/test`      | 테스트 실행 가이드          |
-| `/issue`     | GitHub Issue/PR 생성  |
-| `/seed`      | DB 시드 데이터 투입        |
-| `/perf`      | 성능 점검               |
-
+| `/test`      | 테스트 실행 가이드        |
+| `/issue`     | GitHub Issue/PR 생성      |
+| `/seed`      | DB 시드 데이터 투입       |
+| `/perf`      | 성능 점검                 |
 
 ---
 
@@ -295,76 +275,63 @@ pnpm link:global                      # beancli를 전역 PATH에 등록
 
 Base URL: `http://localhost:3100`
 
-
-| Method | Path                          | 설명          |
-| ------ | ----------------------------- | ----------- |
-| `POST` | `/api/v1/changes`             | SQL 변경 제출   |
-| `GET`  | `/api/v1/changes`             | 변경 목록       |
-| `POST` | `/api/v1/changes/:id/execute` | 승인된 변경 실행   |
-| `GET`  | `/api/v1/audit`               | 감사 로그       |
-| `GET`  | `/api/v1/health`              | 헬스체크        |
-| `GET`  | `/api/v1/monitoring/metrics`  | DB 지연·풀 상태  |
+| Method | Path                          | 설명                 |
+| ------ | ----------------------------- | -------------------- |
+| `POST` | `/api/v1/changes`             | SQL 변경 제출        |
+| `GET`  | `/api/v1/changes`             | 변경 목록            |
+| `POST` | `/api/v1/changes/:id/execute` | 승인된 변경 실행     |
+| `GET`  | `/api/v1/audit`               | 감사 로그            |
+| `GET`  | `/api/v1/health`              | 헬스체크             |
+| `GET`  | `/api/v1/monitoring/metrics`  | DB 지연·풀 상태      |
 | `WS`   | `/ws`                         | 실시간 이벤트 스트림 |
-
 
 ---
 
 ## 환경 변수
 
-
-| 변수                        | 기본값                     | 설명                       |
+| 변수                      | 기본값                  | 설명                     |
 | ------------------------- | ----------------------- | ------------------------ |
 | `APP_ENV`                 | `dev`                   | `local` / `dev` / `prod` |
-| `DATABASE_URL`            | —                       | PostgreSQL 연결 문자열        |
-| `KAFKA_BROKER`            | `localhost:9092`        | Kafka 부트스트랩              |
-| `JWT_SECRET`              | —                       | HS256 서명 키               |
-| `ENTITY_ID_PLAIN_ENABLED` | `true` (dev)            | 평문 ID 저장 여부              |
-| `API_URL`                 | `http://localhost:3100` | TUI → API 주소             |
-| `MOCK`                    | —                       | `true` 설정 시 Mock 모드      |
-
+| `DATABASE_URL`            | —                       | PostgreSQL 연결 문자열   |
+| `KAFKA_BROKER`            | `localhost:9092`        | Kafka 부트스트랩         |
+| `JWT_SECRET`              | —                       | HS256 서명 키            |
+| `ENTITY_ID_PLAIN_ENABLED` | `true` (dev)            | 평문 ID 저장 여부        |
+| `API_URL`                 | `http://localhost:3100` | TUI → API 주소           |
+| `MOCK`                    | —                       | `true` 설정 시 Mock 모드 |
 
 ---
 
 ## Docker 인프라
 
-
-| 서비스           | 포트   | 설명               |
-| ------------- | ---- | ---------------- |
-| PostgreSQL 15 | 5432 | 주 데이터베이스         |
-| Kafka         | 9092 | 이벤트 스트리밍         |
+| 서비스        | 포트 | 설명                 |
+| ------------- | ---- | -------------------- |
+| PostgreSQL 15 | 5432 | 주 데이터베이스      |
+| Kafka         | 9092 | 이벤트 스트리밍      |
 | Kafka UI      | 8080 | Kafka 브라우저 (dev) |
-| Zookeeper     | 2181 | Kafka 코디네이션      |
-
+| Zookeeper     | 2181 | Kafka 코디네이션     |
 
 ---
 
 ## 로드맵
 
-
-| 항목                                                                 | 상태     |
-| ------------------------------------------------------------------ | ------ |
-| Ink TUI 3-패널 레이아웃                                                  | ✅ Done |
-| 5개 DB 어댑터                                                          | ✅ Done |
-| CRUD (e/i/D) + 역할 제어                                               | ✅ Done |
-| 멀티라인 SQL 에디터                                                       | ✅ Done |
-| AI 패널 (beanllm SSE)                                                | ✅ Done |
-| ConnectionPicker → DatabasePicker 흐름                               | ✅ Done |
-| SEC-005: 쿼리 타임아웃 + 행 수 제한 (전 어댑터)                                  | ✅ Done |
-| SEC-006: Fastify 로거 자격증명 redact                                    | ✅ Done |
-| CachedKeyStore: AES/HMAC KeyStore TTL 캐시 (5분)                      | ✅ Done |
-| API rate limiting: 전역 60/min + 민감 엔드포인트 강화                         | ✅ Done |
-| QueryResult.warning + ResultPanel amber 경고 UI                      | ✅ Done |
-| 쿼리 히스토리 파일 저장 (~/.config/beanCli/history.json)                     | ✅ Done |
-| ARCH-006: 구 ui-tui 패키지 삭제                                          | ✅ Done |
-| `beancli` 글로벌 커맨드 (`pnpm setup` → `beancli`)                       | ✅ Done |
-| Web Console (Next.js) — State 테이블 뷰어, Changes, Approvals, Audit    | ✅ Done |
-| Web Console — WebSocket LiveTableRefresh (router.refresh 자동 갱신)    | ✅ Done |
-| Web Console — RBAC AccessGuard (parseRole + hasAccess 페이지 접근 제어)   | ✅ Done |
+| 항목                                                                        | 상태    |
+| --------------------------------------------------------------------------- | ------- |
+| Ink TUI 3-패널 레이아웃                                                     | ✅ Done |
+| 5개 DB 어댑터                                                               | ✅ Done |
+| CRUD (e/i/D) + 역할 제어                                                    | ✅ Done |
+| 멀티라인 SQL 에디터                                                         | ✅ Done |
+| AI 패널 (beanllm SSE)                                                       | ✅ Done |
+| ConnectionPicker → DatabasePicker 흐름                                      | ✅ Done |
+| SEC-005: 쿼리 타임아웃 + 행 수 제한 (전 어댑터)                             | ✅ Done |
+| SEC-006: Fastify 로거 자격증명 redact                                       | ✅ Done |
+| CachedKeyStore: AES/HMAC KeyStore TTL 캐시 (5분)                            | ✅ Done |
+| API rate limiting: 전역 60/min + 민감 엔드포인트 강화                       | ✅ Done |
+| QueryResult.warning + ResultPanel amber 경고 UI                             | ✅ Done |
+| 쿼리 히스토리 파일 저장 (~/.config/beanCli/history.json)                    | ✅ Done |
+| ARCH-006: 구 ui-tui 패키지 삭제                                             | ✅ Done |
+| `beancli` 글로벌 커맨드 (`pnpm setup` → `beancli`)                          | ✅ Done |
+| Web Console (Next.js) — State 테이블 뷰어, Changes, Approvals, Audit        | ✅ Done |
+| Web Console — WebSocket LiveTableRefresh (router.refresh 자동 갱신)         | ✅ Done |
+| Web Console — RBAC AccessGuard (parseRole + hasAccess 페이지 접근 제어)     | ✅ Done |
 | Web Console — Recovery 페이지 개선 (Client Component, Clone 버튼, SQL 접기) | ✅ Done |
-| ui-web — WsEventManager + ApiClient + useAccessControl 단위 테스트      | ✅ Done |
-
-
-
-
-
-
+| ui-web — WsEventManager + ApiClient + useAccessControl 단위 테스트          | ✅ Done |

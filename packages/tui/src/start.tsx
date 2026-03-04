@@ -28,9 +28,15 @@ export function start(options?: StartOptions): void {
   };
 
   // Restore on unexpected exit (Ctrl+C, SIGTERM, etc.)
-  process.once('exit',    restore);
-  process.once('SIGINT',  () => { restore(); process.exit(0); });
-  process.once('SIGTERM', () => { restore(); process.exit(0); });
+  process.once('exit', restore);
+  process.once('SIGINT', () => {
+    restore();
+    process.exit(0);
+  });
+  process.once('SIGTERM', () => {
+    restore();
+    process.exit(0);
+  });
 
   const instance = render(
     <AppContextProvider

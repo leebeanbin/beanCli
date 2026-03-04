@@ -43,7 +43,7 @@ describe('getEnvConnection()', () => {
     const conn = getEnvConnection();
     expect(conn!.type).toBe('postgresql');
     expect(conn!.host).toBe('localhost');
-    expect(conn!.port).toBe(5432);   // default port
+    expect(conn!.port).toBe(5432); // default port
     expect(conn!.database).toBe('testdb');
   });
 

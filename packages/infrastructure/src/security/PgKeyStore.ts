@@ -1,7 +1,10 @@
 import type { IKeyStore, HmacKey } from '@tfsdc/domain';
 
 export interface IDbQuery {
-  query(sql: string, params?: unknown[]): Promise<{ rows: Record<string, unknown>[]; rowCount: number | null }>;
+  query(
+    sql: string,
+    params?: unknown[],
+  ): Promise<{ rows: Record<string, unknown>[]; rowCount: number | null }>;
 }
 
 export class PgKeyStore implements IKeyStore {

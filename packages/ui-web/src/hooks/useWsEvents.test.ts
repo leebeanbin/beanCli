@@ -6,10 +6,18 @@ class MockWebSocket {
   onclose: (() => void) | null = null;
   sentMessages: string[] = [];
 
-  close() { this.onclose?.(); }
-  send(data: string) { this.sentMessages.push(data); }
-  triggerOpen() { this.onopen?.(); }
-  triggerMessage(data: string) { this.onmessage?.({ data }); }
+  close() {
+    this.onclose?.();
+  }
+  send(data: string) {
+    this.sentMessages.push(data);
+  }
+  triggerOpen() {
+    this.onopen?.();
+  }
+  triggerMessage(data: string) {
+    this.onmessage?.({ data });
+  }
 }
 
 describe('WsEventManager', () => {
@@ -44,7 +52,7 @@ describe('WsEventManager', () => {
     mockWs.triggerOpen();
 
     const received: unknown[] = [];
-    manager.onMessage(msg => received.push(msg));
+    manager.onMessage((msg) => received.push(msg));
 
     mockWs.triggerMessage(JSON.stringify({ type: 'PONG' }));
     expect(received).toHaveLength(1);
@@ -57,7 +65,7 @@ describe('WsEventManager', () => {
     mockWs.triggerOpen();
 
     const received: unknown[] = [];
-    const unsub = manager.onMessage(msg => received.push(msg));
+    const unsub = manager.onMessage((msg) => received.push(msg));
 
     mockWs.triggerMessage(JSON.stringify({ type: 'PONG' }));
     expect(received).toHaveLength(1);

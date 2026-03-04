@@ -17,7 +17,8 @@ export function AccessGuard({ page, children }: Props) {
         <div className="border-2 border-danger shadow-px-d p-8 text-center max-w-sm w-full">
           <p className="font-pixel text-4xl text-danger mb-3">ACCESS DENIED</p>
           <p className="font-mono text-xs text-fg-2">
-            role: <span className="text-fg">{role ?? 'none'}</span> — not permitted to view this page.
+            role: <span className="text-fg">{role ?? 'none'}</span> — not permitted to view this
+            page.
           </p>
         </div>
       </div>

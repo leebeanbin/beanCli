@@ -36,36 +36,45 @@ const TAB_LABELS: Record<TabKey, string> = { indexes: 'INDEXES', tables: 'TABLE 
 function idxBar(seqScan: number, idxScan: number): string {
   const total = seqScan + idxScan;
   if (total === 0) return '[░░░░░░░░░░]  0%';
-  const pct    = Math.round((idxScan / total) * 100);
+  const pct = Math.round((idxScan / total) * 100);
   const filled = Math.floor((idxScan / total) * 10);
   return `[${'█'.repeat(filled)}${'░'.repeat(10 - filled)}] ${String(pct).padStart(3)}%`;
 }
 
 export const IndexPanel: React.FC = () => {
-  const { focusedPanel, overlay, paletteOpen, connectionService, activeConnection } = useAppContext();
+  const { focusedPanel, overlay, paletteOpen, connectionService, activeConnection } =
+    useAppContext();
 
-  const [tabIdx,     setTabIdx]     = useState(0);
-  const [idxRows,    setIdxRows]    = useState<Record<string, unknown>[]>([]);
-  const [tableRows,  setTableRows]  = useState<Record<string, unknown>[]>([]);
-  const [loading,    setLoading]    = useState(false);
-  const [error,      setError]      = useState<string | null>(null);
-  const [filter,     setFilter]     = useState('');
-  const [filtering,  setFiltering]  = useState(false);
-  const [spinIdx,    setSpinIdx]    = useState(0);
+  const [tabIdx, setTabIdx] = useState(0);
+  const [idxRows, setIdxRows] = useState<Record<string, unknown>[]>([]);
+  const [tableRows, setTableRows] = useState<Record<string, unknown>[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState('');
+  const [filtering, setFiltering] = useState(false);
+  const [spinIdx, setSpinIdx] = useState(0);
 
-  const isActive = (focusedPanel === 'query' || focusedPanel === 'result') && !overlay && !paletteOpen;
-  const tab      = TABS[tabIdx] ?? 'indexes';
-  const allRows  = tab === 'indexes' ? idxRows : tableRows;
+  const isActive =
+    (focusedPanel === 'query' || focusedPanel === 'result') && !overlay && !paletteOpen;
+  const tab = TABS[tabIdx] ?? 'indexes';
+  const allRows = tab === 'indexes' ? idxRows : tableRows;
   const filtered = useMemo(
-    () => filter
-      ? allRows.filter(r => Object.values(r).some(v => String(v ?? '').toLowerCase().includes(filter.toLowerCase())))
-      : allRows,
+    () =>
+      filter
+        ? allRows.filter((r) =>
+            Object.values(r).some((v) =>
+              String(v ?? '')
+                .toLowerCase()
+                .includes(filter.toLowerCase()),
+            ),
+          )
+        : allRows,
     [allRows, filter],
   );
 
   useEffect(() => {
     if (!loading) return;
-    const id = setInterval(() => setSpinIdx(i => (i + 1) % SPINNER.length), 80);
+    const id = setInterval(() => setSpinIdx((i) => (i + 1) % SPINNER.length), 80);
     return () => clearInterval(id);
   }, [loading]);
 
@@ -78,40 +87,73 @@ export const IndexPanel: React.FC = () => {
       connectionService.executeQuery(TABLES_SQL),
     ]);
     setLoading(false);
-    if (iRes.error) { setError(iRes.error); return; }
-    if (tRes.error) { setError(tRes.error); return; }
+    if (iRes.error) {
+      setError(iRes.error);
+      return;
+    }
+    if (tRes.error) {
+      setError(tRes.error);
+      return;
+    }
     setIdxRows(iRes.rows);
     setTableRows(tRes.rows);
   }, [connectionService, activeConnection]);
 
   const fetchRef = useRef(fetchData);
   fetchRef.current = fetchData;
-  useEffect(() => { void fetchRef.current(); }, []);
+  useEffect(() => {
+    void fetchRef.current();
+  }, []);
 
   const [cursor, setCursor] = useCursor(filtered.length, isActive && !filtering);
 
   useInput((inp, key) => {
     if (!isActive) return;
     if (filtering) {
-      if (key.escape || key.return) { setFiltering(false); return; }
-      if (key.backspace) { setFilter(s => s.slice(0, -1)); return; }
-      if (inp && inp >= ' ' && !key.ctrl) { setFilter(s => s + inp); }
+      if (key.escape || key.return) {
+        setFiltering(false);
+        return;
+      }
+      if (key.backspace) {
+        setFilter((s) => s.slice(0, -1));
+        return;
+      }
+      if (inp && inp >= ' ' && !key.ctrl) {
+        setFilter((s) => s + inp);
+      }
       return;
     }
-    if (inp === 'f') { setTabIdx(t => (t + 1) % TABS.length); setCursor(0); return; }
-    if (inp === '/')  { setFiltering(true); setFilter(''); return; }
-    if (key.escape)  { setFilter(''); setFiltering(false); return; }
-    if (inp === 'r') { void fetchData(); return; }
+    if (inp === 'f') {
+      setTabIdx((t) => (t + 1) % TABS.length);
+      setCursor(0);
+      return;
+    }
+    if (inp === '/') {
+      setFiltering(true);
+      setFilter('');
+      return;
+    }
+    if (key.escape) {
+      setFilter('');
+      setFiltering(false);
+      return;
+    }
+    if (inp === 'r') {
+      void fetchData();
+      return;
+    }
   });
 
-  const cols       = process.stdout.columns ?? 80;
+  const cols = process.stdout.columns ?? 80;
   const panelWidth = cols - 54;
 
   if (!activeConnection) {
     return (
       <Box flexDirection="column" flexGrow={1}>
         <Text color="#374151">── not connected ──</Text>
-        <Text color="#4a5568" dimColor>Connect to a PostgreSQL database first</Text>
+        <Text color="#4a5568" dimColor>
+          Connect to a PostgreSQL database first
+        </Text>
       </Box>
     );
   }
@@ -133,10 +175,18 @@ export const IndexPanel: React.FC = () => {
         {loading && <Text color="#f59e0b">{SPINNER[spinIdx]}</Text>}
       </Box>
 
-      {error && <Text color="#ef4444" wrap="truncate">{error}</Text>}
+      {error && (
+        <Text color="#ef4444" wrap="truncate">
+          {error}
+        </Text>
+      )}
 
       {filtering && (
-        <Box><Text color="#00d4ff">  / </Text><Text color="#e0e0e0">{filter}</Text><Text color="#00d4ff">█</Text></Box>
+        <Box>
+          <Text color="#00d4ff"> / </Text>
+          <Text color="#e0e0e0">{filter}</Text>
+          <Text color="#00d4ff">█</Text>
+        </Box>
       )}
 
       <Text color="#1a2a3a">{'─'.repeat(Math.min(panelWidth, 80))}</Text>
@@ -145,33 +195,66 @@ export const IndexPanel: React.FC = () => {
       {tab === 'indexes' && (
         <>
           <Box>
-            <Text color="#00d4ff" bold>{'TABLE'.padEnd(16)}</Text>
-            <Text color="#00d4ff" bold>{'INDEX NAME'.padEnd(24)}</Text>
-            <Text color="#00d4ff" bold>{'SCANS'.padEnd(8)}</Text>
-            <Text color="#00d4ff" bold>{'SIZE'.padEnd(8)}</Text>
-            <Text color="#00d4ff" bold>{'U'}</Text>
+            <Text color="#00d4ff" bold>
+              {'TABLE'.padEnd(16)}
+            </Text>
+            <Text color="#00d4ff" bold>
+              {'INDEX NAME'.padEnd(24)}
+            </Text>
+            <Text color="#00d4ff" bold>
+              {'SCANS'.padEnd(8)}
+            </Text>
+            <Text color="#00d4ff" bold>
+              {'SIZE'.padEnd(8)}
+            </Text>
+            <Text color="#00d4ff" bold>
+              {'U'}
+            </Text>
           </Box>
           <Text color="#1a2a3a">{'─'.repeat(Math.min(panelWidth, 60))}</Text>
           {filtered.length === 0 && !loading && (
-            <Text color="#4a5568" dimColor>No indexes found (PostgreSQL system catalog)</Text>
+            <Text color="#4a5568" dimColor>
+              No indexes found (PostgreSQL system catalog)
+            </Text>
           )}
           {filtered.map((row, i) => {
             const isCursor = i === cursor;
             return (
               <Box key={i}>
-                <Text color={isCursor ? '#0a1628' : '#e0e0e0'} backgroundColor={isCursor ? '#00d4ff' : undefined}>
-                  {String(row['table'] ?? '').slice(0, 15).padEnd(16)}
+                <Text
+                  color={isCursor ? '#0a1628' : '#e0e0e0'}
+                  backgroundColor={isCursor ? '#00d4ff' : undefined}
+                >
+                  {String(row['table'] ?? '')
+                    .slice(0, 15)
+                    .padEnd(16)}
                 </Text>
-                <Text color={isCursor ? '#0a1628' : '#a0aec0'} backgroundColor={isCursor ? '#00d4ff' : undefined}>
-                  {String(row['name'] ?? '').slice(0, 23).padEnd(24)}
+                <Text
+                  color={isCursor ? '#0a1628' : '#a0aec0'}
+                  backgroundColor={isCursor ? '#00d4ff' : undefined}
+                >
+                  {String(row['name'] ?? '')
+                    .slice(0, 23)
+                    .padEnd(24)}
                 </Text>
-                <Text color={isCursor ? '#0a1628' : '#6b7280'} backgroundColor={isCursor ? '#00d4ff' : undefined}>
+                <Text
+                  color={isCursor ? '#0a1628' : '#6b7280'}
+                  backgroundColor={isCursor ? '#00d4ff' : undefined}
+                >
                   {String(row['scans'] ?? '0').padStart(7) + ' '}
                 </Text>
-                <Text color={isCursor ? '#0a1628' : '#6b7280'} backgroundColor={isCursor ? '#00d4ff' : undefined}>
-                  {String(row['size'] ?? '').slice(0, 7).padEnd(8)}
+                <Text
+                  color={isCursor ? '#0a1628' : '#6b7280'}
+                  backgroundColor={isCursor ? '#00d4ff' : undefined}
+                >
+                  {String(row['size'] ?? '')
+                    .slice(0, 7)
+                    .padEnd(8)}
                 </Text>
-                <Text color={isCursor ? '#0a1628' : '#10b981'} backgroundColor={isCursor ? '#00d4ff' : undefined}>
+                <Text
+                  color={isCursor ? '#0a1628' : '#10b981'}
+                  backgroundColor={isCursor ? '#00d4ff' : undefined}
+                >
                   {String(row['unique_flag'] ?? '')}
                 </Text>
               </Box>
@@ -184,34 +267,63 @@ export const IndexPanel: React.FC = () => {
       {tab === 'tables' && (
         <>
           <Box>
-            <Text color="#00d4ff" bold>{'TABLE'.padEnd(20)}</Text>
-            <Text color="#00d4ff" bold>{'IDX EFFICIENCY'.padEnd(18)}</Text>
-            <Text color="#00d4ff" bold>{'LIVE'.padEnd(8)}</Text>
-            <Text color="#00d4ff" bold>{'DEAD'.padEnd(6)}</Text>
-            <Text color="#00d4ff" bold>{'SIZE'}</Text>
+            <Text color="#00d4ff" bold>
+              {'TABLE'.padEnd(20)}
+            </Text>
+            <Text color="#00d4ff" bold>
+              {'IDX EFFICIENCY'.padEnd(18)}
+            </Text>
+            <Text color="#00d4ff" bold>
+              {'LIVE'.padEnd(8)}
+            </Text>
+            <Text color="#00d4ff" bold>
+              {'DEAD'.padEnd(6)}
+            </Text>
+            <Text color="#00d4ff" bold>
+              {'SIZE'}
+            </Text>
           </Box>
           <Text color="#1a2a3a">{'─'.repeat(Math.min(panelWidth, 60))}</Text>
           {filtered.length === 0 && !loading && (
-            <Text color="#4a5568" dimColor>No tables found</Text>
+            <Text color="#4a5568" dimColor>
+              No tables found
+            </Text>
           )}
           {filtered.map((row, i) => {
             const isCursor = i === cursor;
             const bar = idxBar(Number(row['seq_scan'] ?? 0), Number(row['idx_scan'] ?? 0));
             return (
               <Box key={i}>
-                <Text color={isCursor ? '#0a1628' : '#e0e0e0'} backgroundColor={isCursor ? '#00d4ff' : undefined}>
-                  {String(row['table'] ?? '').slice(0, 19).padEnd(20)}
+                <Text
+                  color={isCursor ? '#0a1628' : '#e0e0e0'}
+                  backgroundColor={isCursor ? '#00d4ff' : undefined}
+                >
+                  {String(row['table'] ?? '')
+                    .slice(0, 19)
+                    .padEnd(20)}
                 </Text>
-                <Text color={isCursor ? '#0a1628' : '#10b981'} backgroundColor={isCursor ? '#00d4ff' : undefined}>
+                <Text
+                  color={isCursor ? '#0a1628' : '#10b981'}
+                  backgroundColor={isCursor ? '#00d4ff' : undefined}
+                >
                   {bar.padEnd(18)}
                 </Text>
-                <Text color={isCursor ? '#0a1628' : '#6b7280'} backgroundColor={isCursor ? '#00d4ff' : undefined}>
+                <Text
+                  color={isCursor ? '#0a1628' : '#6b7280'}
+                  backgroundColor={isCursor ? '#00d4ff' : undefined}
+                >
                   {String(row['live_rows'] ?? '0').padStart(7) + ' '}
                 </Text>
-                <Text color={isCursor ? '#0a1628' : '#ef4444'} backgroundColor={isCursor ? '#00d4ff' : undefined}>
+                <Text
+                  color={isCursor ? '#0a1628' : '#ef4444'}
+                  backgroundColor={isCursor ? '#00d4ff' : undefined}
+                >
                   {String(row['dead_rows'] ?? '0').padStart(5) + ' '}
                 </Text>
-                <Text color={isCursor ? '#0a1628' : '#6b7280'} backgroundColor={isCursor ? '#00d4ff' : undefined}>
+                <Text
+                  color={isCursor ? '#0a1628' : '#6b7280'}
+                  backgroundColor={isCursor ? '#00d4ff' : undefined}
+                >
                   {String(row['size'] ?? '')}
                 </Text>
               </Box>

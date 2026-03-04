@@ -10,14 +10,24 @@ import { createMockConnectionService } from '../mockConnectionService';
 // ── fixtures ──────────────────────────────────────────────────────────────────
 
 const MOCK_CONN = {
-  id: 'test-001', label: 'test', type: 'postgresql' as const,
-  host: 'localhost', port: 5432, database: 'tfsdc_demo', username: 'demo',
+  id: 'test-001',
+  label: 'test',
+  type: 'postgresql' as const,
+  host: 'localhost',
+  port: 5432,
+  database: 'tfsdc_demo',
+  username: 'demo',
 };
 
 const EXPECTED_TABLES = [
-  'state_users', 'state_orders', 'state_products',
-  'state_payments', 'state_shipments', 'events_raw',
-  'audit_events', 'dlq_events',
+  'state_users',
+  'state_orders',
+  'state_products',
+  'state_payments',
+  'state_shipments',
+  'events_raw',
+  'audit_events',
+  'dlq_events',
 ];
 
 // ── loadConnections ───────────────────────────────────────────────────────────
@@ -81,7 +91,7 @@ describe('MockConnectionService.listDatabases()', () => {
     const svc = createMockConnectionService();
     const dbs = await svc.listDatabases!();
     expect(Array.isArray(dbs)).toBe(true);
-    dbs.forEach(db => expect(typeof db).toBe('string'));
+    dbs.forEach((db) => expect(typeof db).toBe('string'));
   });
 
   it('returns at least one database', async () => {
@@ -183,7 +193,7 @@ describe('MockConnectionService.executeQuery() — SELECT', () => {
     const svc = createMockConnectionService();
     const r = await svc.executeQuery("SELECT * FROM state_orders WHERE status = 'PENDING'");
     expect(r.error).toBeUndefined();
-    r.rows.forEach(row => expect(String(row['status']).toUpperCase()).toBe('PENDING'));
+    r.rows.forEach((row) => expect(String(row['status']).toUpperCase()).toBe('PENDING'));
   });
 
   it('information_schema query returns table stats shape', async () => {
@@ -200,25 +210,25 @@ describe('MockConnectionService.executeQuery() — SELECT', () => {
 // ── executeQuery — schema introspection ───────────────────────────────────────
 
 describe('MockConnectionService.executeQuery() — schema', () => {
-  it("information_schema.columns for state_users returns expected columns", async () => {
+  it('information_schema.columns for state_users returns expected columns', async () => {
     const svc = createMockConnectionService();
     const r = await svc.executeQuery(
       "SELECT * FROM information_schema.columns WHERE table_name = 'state_users'",
     );
     expect(r.error).toBeUndefined();
     expect(r.columns).toEqual(expect.arrayContaining(['column', 'type', 'nullable', 'default']));
-    const colNames = r.rows.map(row => row['column']);
+    const colNames = r.rows.map((row) => row['column']);
     expect(colNames).toContain('id');
     expect(colNames).toContain('username');
     expect(colNames).toContain('balance_cents');
   });
 
-  it("information_schema.columns for state_orders has correct types", async () => {
+  it('information_schema.columns for state_orders has correct types', async () => {
     const svc = createMockConnectionService();
     const r = await svc.executeQuery(
       "SELECT * FROM information_schema.columns WHERE table_name = 'state_orders'",
     );
-    const idRow = r.rows.find(row => row['column'] === 'id');
+    const idRow = r.rows.find((row) => row['column'] === 'id');
     expect(idRow?.['nullable']).toBe('NO');
   });
 });
@@ -228,7 +238,9 @@ describe('MockConnectionService.executeQuery() — schema', () => {
 describe('MockConnectionService.executeQuery() — DML', () => {
   it('INSERT INTO state_products returns INSERT 1', async () => {
     const svc = createMockConnectionService();
-    const r = await svc.executeQuery("INSERT INTO state_products VALUES (DEFAULT, 'SKU-NEW', 'Test', 999, 10, 'test', true)");
+    const r = await svc.executeQuery(
+      "INSERT INTO state_products VALUES (DEFAULT, 'SKU-NEW', 'Test', 999, 10, 'test', true)",
+    );
     expect(r.type).toBe('dml');
     expect(r.message).toContain('INSERT');
   });
@@ -236,7 +248,7 @@ describe('MockConnectionService.executeQuery() — DML', () => {
   it('UPDATE returns UPDATE 1 when row found via WHERE', async () => {
     const svc = createMockConnectionService();
     // First get a real entity_id_hash from the store
-    const sel = await svc.executeQuery("SELECT * FROM state_orders LIMIT 1");
+    const sel = await svc.executeQuery('SELECT * FROM state_orders LIMIT 1');
     const hash = String(sel.rows[0]?.['entity_id_hash'] ?? '');
     const r = await svc.executeQuery(
       `UPDATE state_orders SET status = 'CANCELLED' WHERE entity_id_hash = '${hash}'`,
@@ -247,9 +259,7 @@ describe('MockConnectionService.executeQuery() — DML', () => {
 
   it('DELETE returns DELETE N when row found', async () => {
     const svc = createMockConnectionService();
-    const r = await svc.executeQuery(
-      "DELETE FROM dlq_events WHERE id = '1'",
-    );
+    const r = await svc.executeQuery("DELETE FROM dlq_events WHERE id = '1'");
     expect(r.type).toBe('dml');
     expect(r.message).toMatch(/DELETE \d+/);
   });

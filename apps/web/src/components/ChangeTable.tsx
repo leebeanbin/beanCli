@@ -41,18 +41,23 @@ export function ChangeTable({ rows, onSubmit, onExecute }: ChangeTableProps) {
         </thead>
         <tbody>
           {rows.map((row) => {
-            const riskCls = row.risk_level === 'L2'
-              ? 'text-danger'
-              : row.risk_level === 'L1'
-              ? 'text-warn'
-              : 'text-ok';
+            const riskCls =
+              row.risk_level === 'L2'
+                ? 'text-danger'
+                : row.risk_level === 'L1'
+                  ? 'text-warn'
+                  : 'text-ok';
             return (
               <tr key={row.id} className="border-b border-rim hover:bg-bg transition-none">
                 <td className="px-3 py-2 text-fg-2">{row.id.slice(0, 8)}…</td>
-                <td className="px-3 py-2"><StatusBadge status={row.status} /></td>
+                <td className="px-3 py-2">
+                  <StatusBadge status={row.status} />
+                </td>
                 <td className="px-3 py-2 text-fg">{row.actor}</td>
                 <td className="px-3 py-2 text-accent">{row.target_table}</td>
-                <td className="px-3 py-2"><span className={riskCls}>{row.risk_level}</span></td>
+                <td className="px-3 py-2">
+                  <span className={riskCls}>{row.risk_level}</span>
+                </td>
                 <td className="px-3 py-2 text-fg-2">{row.environment}</td>
                 <td className="px-3 py-2 text-fg-2">{new Date(row.created_at).toLocaleString()}</td>
                 <td className="px-3 py-2 space-x-2">
@@ -64,14 +69,15 @@ export function ChangeTable({ rows, onSubmit, onExecute }: ChangeTableProps) {
                       Submit
                     </button>
                   )}
-                  {(row.status === 'APPROVED' || row.status === 'WAITING_EXECUTION') && onExecute && (
-                    <button
-                      onClick={() => onExecute(row.id)}
-                      className="px-2 py-0.5 border border-ok text-ok hover:bg-ok hover:text-bg shadow-px-o transition-none"
-                    >
-                      Execute
-                    </button>
-                  )}
+                  {(row.status === 'APPROVED' || row.status === 'WAITING_EXECUTION') &&
+                    onExecute && (
+                      <button
+                        onClick={() => onExecute(row.id)}
+                        className="px-2 py-0.5 border border-ok text-ok hover:bg-ok hover:text-bg shadow-px-o transition-none"
+                      >
+                        Execute
+                      </button>
+                    )}
                 </td>
               </tr>
             );
