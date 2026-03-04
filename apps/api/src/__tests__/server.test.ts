@@ -9,9 +9,9 @@ import { createHmac } from 'crypto';
 // ── Mock @tfsdc/infrastructure (no real DB connections) ────────────────────
 jest.mock('@tfsdc/infrastructure', () => ({
   SchemaIntrospector: jest.fn().mockImplementation(() => ({
-    getTables: jest.fn().mockResolvedValue([
-      { name: 'state_users', estimatedRows: 0, schema: 'public' },
-    ]),
+    getTables: jest
+      .fn()
+      .mockResolvedValue([{ name: 'state_users', estimatedRows: 0, schema: 'public' }]),
     getIndexes: jest.fn().mockResolvedValue([]),
     getIndexUsageStats: jest.fn().mockResolvedValue([]),
     getSchemaContext: jest.fn().mockResolvedValue(''),
@@ -44,15 +44,10 @@ jest.mock('@tfsdc/application', () => ({
 
 // ── Defer import until after mocks are registered ─────────────────────────
 import { buildServer } from '../server.js';
-import {
-  authenticate,
-  checkRole,
-  healthHandler,
-  listAuditLogs,
-} from '@tfsdc/application';
+import { authenticate, checkRole, healthHandler, listAuditLogs } from '@tfsdc/application';
 
-const mockAuthenticate  = authenticate  as jest.Mock;
-const mockCheckRole     = checkRole     as jest.Mock;
+const mockAuthenticate = authenticate as jest.Mock;
+const mockCheckRole = checkRole as jest.Mock;
 const mockHealthHandler = healthHandler as jest.Mock;
 const _mockListAuditLogs = listAuditLogs as jest.Mock;
 
@@ -60,7 +55,7 @@ const _mockListAuditLogs = listAuditLogs as jest.Mock;
 const TEST_SECRET = 'test-secret-32-bytes-padding!!!!';
 
 function makeToken(sub: string, role: string): string {
-  const header  = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
+  const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
   const payload = Buffer.from(
     JSON.stringify({ sub, role, exp: Math.floor(Date.now() / 1000) + 3600 }),
   ).toString('base64url');
@@ -71,10 +66,10 @@ function makeToken(sub: string, role: string): string {
 // ── Mock deps factory ──────────────────────────────────────────────────────
 function makeMockPgPool() {
   return {
-    query:         jest.fn().mockResolvedValue({ rows: [], rowCount: 0 }),
+    query: jest.fn().mockResolvedValue({ rows: [], rowCount: 0 }),
     createSession: jest.fn(),
-    healthCheck:   jest.fn().mockResolvedValue({ status: 'ok' }),
-    end:           jest.fn().mockResolvedValue(undefined),
+    healthCheck: jest.fn().mockResolvedValue({ status: 'ok' }),
+    end: jest.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -95,33 +90,34 @@ function makeDeps(pgPool: ReturnType<typeof makeMockPgPool>) {
     jwtSign: (sub: string, role: string) => makeToken(sub, role),
     auditWriter: { write: jest.fn().mockResolvedValue(undefined) },
     dbSessionFactory: jest.fn(() => ({
-      query:   jest.fn().mockResolvedValue({ rows: [], rowCount: 0 }),
+      query: jest.fn().mockResolvedValue({ rows: [], rowCount: 0 }),
       release: jest.fn(),
     })),
     healthDeps: {
-      dbCheck:    jest.fn().mockResolvedValue({ status: 'ok' }),
+      dbCheck: jest.fn().mockResolvedValue({ status: 'ok' }),
       kafkaCheck: jest.fn().mockResolvedValue({ status: 'ok', consumerLag: 0 }),
       wsManager: {
-        broadcast:       jest.fn(),
-        handleMessage:   jest.fn(),
-        registerSse:     jest.fn(),
-        unregisterSse:   jest.fn(),
+        broadcast: jest.fn(),
+        handleMessage: jest.fn(),
+        registerSse: jest.fn(),
+        unregisterSse: jest.fn(),
         getConnectionCount: jest.fn().mockReturnValue(0),
-      },
+        register: jest.fn(),
+      } as unknown as import('@tfsdc/application').WsConnectionManager,
       startTime: Date.now(),
     },
     changeHandler: {
-      create:  jest.fn(),
-      list:    jest.fn().mockResolvedValue([]),
+      create: jest.fn(),
+      list: jest.fn().mockResolvedValue([]),
       getById: jest.fn().mockResolvedValue(null),
-      submit:  jest.fn(),
+      submit: jest.fn(),
       execute: jest.fn(),
-      revert:  jest.fn(),
+      revert: jest.fn(),
     },
     approvalHandler: {
       listPending: jest.fn().mockResolvedValue([]),
-      approve:     jest.fn(),
-      reject:      jest.fn(),
+      approve: jest.fn(),
+      reject: jest.fn(),
     },
     pgPool: pgPool as unknown as import('@tfsdc/infrastructure').PgPool,
   };
@@ -189,8 +185,8 @@ describe('server routes', () => {
   it('GET /api/v1/audit without Authorization header returns 401', async () => {
     mockAuthenticate.mockResolvedValueOnce({
       success: false,
-      status:  401,
-      error:   'Unauthorized',
+      status: 401,
+      error: 'Unauthorized',
     });
 
     const res = await app.inject({ method: 'GET', url: '/api/v1/audit' });
@@ -213,14 +209,14 @@ describe('server routes', () => {
     });
     mockCheckRole.mockResolvedValueOnce({
       allowed: false,
-      status:  403,
-      error:   'Access denied for role ANALYST',
+      status: 403,
+      error: 'Access denied for role ANALYST',
     });
 
     const token = makeToken('analyst', 'ANALYST');
     const res = await app.inject({
-      method:  'POST',
-      url:     '/api/v1/sql/execute',
+      method: 'POST',
+      url: '/api/v1/sql/execute',
       headers: { authorization: `Bearer ${token}` },
       payload: { sql: 'DELETE FROM state_users' },
     });

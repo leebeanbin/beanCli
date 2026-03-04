@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { ChangeTable } from '../../components/ChangeTable';
 import { apiClient, getToken } from '../../lib/api';
 import type { ChangeRow } from '../../components/ChangeTable';
 
-export default function ChangesPage() {
+function ChangesPageContent() {
   const searchParams = useSearchParams();
   const [changes, setChanges] = useState<ChangeRow[]>([]);
   const [total, setTotal] = useState(0);
@@ -19,7 +19,9 @@ export default function ChangesPage() {
 
   const fetchChanges = useCallback(async () => {
     setLoading(true);
-    const res = await apiClient.get<{ items: ChangeRow[]; total: number }>('/api/v1/changes?limit=50');
+    const res = await apiClient.get<{ items: ChangeRow[]; total: number }>(
+      '/api/v1/changes?limit=50',
+    );
     if (res.ok && res.data) {
       setChanges(res.data.items ?? []);
       setTotal(res.data.total ?? 0);
@@ -29,7 +31,9 @@ export default function ChangesPage() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { void fetchChanges(); }, [fetchChanges]);
+  useEffect(() => {
+    void fetchChanges();
+  }, [fetchChanges]);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -59,7 +63,10 @@ export default function ChangesPage() {
     return (
       <div className="text-xs font-mono text-fg-2">
         Please set a JWT token in the{' '}
-        <a href="/auth" className="text-accent hover:underline">Auth</a> page first.
+        <a href="/auth" className="text-accent hover:underline">
+          Auth
+        </a>{' '}
+        page first.
       </div>
     );
   }
@@ -70,9 +77,13 @@ export default function ChangesPage() {
 
       {/* New change form */}
       <form onSubmit={handleCreate} className="bg-bg-2 border border-rim shadow-px p-4 mb-6">
-        <div className="text-xs text-fg-2 font-mono uppercase tracking-widest mb-3">[ New Change Request ]</div>
+        <div className="text-xs text-fg-2 font-mono uppercase tracking-widest mb-3">
+          [ New Change Request ]
+        </div>
         <div className="mb-3">
-          <label className="block text-xs font-mono text-fg-2 uppercase tracking-widest mb-1">SQL Statement</label>
+          <label className="block text-xs font-mono text-fg-2 uppercase tracking-widest mb-1">
+            SQL Statement
+          </label>
           <textarea
             value={sql}
             onChange={(e) => setSql(e.target.value)}
@@ -82,9 +93,14 @@ export default function ChangesPage() {
           />
         </div>
         <div className="mb-3 flex gap-4 items-center">
-          <span className="text-xs font-mono text-fg-2 uppercase tracking-widest">Environment:</span>
+          <span className="text-xs font-mono text-fg-2 uppercase tracking-widest">
+            Environment:
+          </span>
           {(['DEV', 'LOCAL', 'PROD'] as const).map((env) => (
-            <label key={env} className="flex items-center gap-1 text-xs font-mono text-fg cursor-pointer">
+            <label
+              key={env}
+              className="flex items-center gap-1 text-xs font-mono text-fg cursor-pointer"
+            >
               <input
                 type="radio"
                 value={env}
@@ -126,5 +142,13 @@ export default function ChangesPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function ChangesPage() {
+  return (
+    <Suspense fallback={<p className="text-fg-2 text-xs font-mono">Loading…</p>}>
+      <ChangesPageContent />
+    </Suspense>
   );
 }
