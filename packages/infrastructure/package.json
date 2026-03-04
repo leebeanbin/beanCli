@@ -14,13 +14,17 @@
     "@tfsdc/application": "workspace:*",
     "@tfsdc/domain": "workspace:*",
     "@tfsdc/kernel": "workspace:*",
+    "@elastic/elasticsearch": "^8.17.0",
+    "amqplib": "^0.10.4",
     "ioredis": "^5.4.2",
     "kafkajs": "^2.2.4",
     "mongodb": "^6.10.0",
     "mysql2": "^3.11.3",
+    "nats": "^2.29.0",
     "pg": "^8.18.0"
   },
   "devDependencies": {
+    "@types/amqplib": "^0.10.6",
     "@types/pg": "^8.11.14",
     "tinybench": "^6.0.0"
   }

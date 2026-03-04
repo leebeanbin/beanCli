@@ -37,6 +37,10 @@ export { MySqlAdapter } from './db/adapters/MySqlAdapter.js';
 export { SqliteAdapter } from './db/adapters/SqliteAdapter.js';
 export { MongoAdapter } from './db/adapters/MongoAdapter.js';
 export { RedisAdapter } from './db/adapters/RedisAdapter.js';
+export { KafkaAdapter } from './db/adapters/KafkaAdapter.js';
+export { RabbitMqAdapter } from './db/adapters/RabbitMqAdapter.js';
+export { ElasticsearchAdapter } from './db/adapters/ElasticsearchAdapter.js';
+export { NatsAdapter } from './db/adapters/NatsAdapter.js';
 
 /**
  * Register all built-in DB adapters.
