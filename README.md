@@ -63,14 +63,15 @@ Both interfaces support **9 database types**, role-based access control, immutab
 |---|---|
 | **9 Database Types** | PostgreSQL · MySQL · SQLite · MongoDB · Redis · Kafka · RabbitMQ · Elasticsearch · NATS |
 | **TUI (Terminal UI)** | 3-panel Ink layout — Schema tree / SQL editor / Results viewer |
-| **Web Console** | Game Boy–styled Next.js app — 14 pages, dark/light theme |
+| **Web Console** | Game Boy–styled Next.js app — 13 pages, dark/light theme, EN/KO toggle |
 | **Multi-line SQL Editor** | Line numbers, cursor movement, history, psql meta-commands (`\dt`, `\d`, `\x`) |
 | **Role-Based CRUD** | Row browse · edit · insert · delete (DBA / MANAGER / ANALYST) |
 | **Change Review** | SQL → AST parse → risk score → AUTO / CONFIRM / MANUAL workflow |
-| **AI Assistant** | SSE streaming chat — natural language → SQL, schema analysis |
+| **AI Assistant** | Floating `◈ AI` widget on every page + full `/ai` chat page |
 | **Audit Log** | Immutable `audit_events` table — every change recorded |
 | **Mock Mode** | Full demo with no DB or API — ideal for development & demos |
 | **Connection Manager** | GUI form for registering, testing, and saving DB connections |
+| **EN/KO Language Toggle** | UI language switch (English / Korean) persisted in browser |
 | **Security** | AES-256-GCM encrypted credentials, rate limiting, logger redact |
 
 ---
@@ -135,10 +136,10 @@ pnpm dev:all
 | Indexes | `/indexes` | Index listing, create, drop |
 | Audit | `/audit` | Immutable audit log with category filter |
 | Recovery | `/recovery` | DLQ failed-change re-submission |
-| AI | `/ai` | Full-page AI chat with quick prompts |
+| AI | `/ai` | Full-page AI chat — accessible via `◈ AI` floating button |
 | Changes | `/changes` | Change request list and submission |
 | Approvals | `/approvals` | Pending approval queue |
-| Auth | `/auth` | Login / logout |
+| Auth | `/auth` | Dev JWT generator (HS256, stored in localStorage) |
 | Connections | `/connections` | DB connection registration & test |
 
 ---
@@ -403,6 +404,7 @@ pnpm link:global      # Register beancli in global PATH
 | Web Console — Connections page (DB registration, test, manage) | ✅ Done |
 | Web Console — NavBar dropdown groups + back navigation | ✅ Done |
 | Web Console — Floating AI chat widget (all pages) | ✅ Done |
+| Web Console — EN/KO language toggle (persisted in localStorage) | ✅ Done |
 | Web Console — WebSocket LiveTableRefresh | ✅ Done |
 | Web Console — RBAC AccessGuard | ✅ Done |
 | Plugin adapter API for custom DB types | 🔜 Planned |
