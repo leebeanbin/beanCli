@@ -50,7 +50,7 @@ export default function ApprovalsPage() {
         </div>
 
         {message && (
-          <div className="mb-4 p-3 bg-bg-2 border border-accent text-xs font-mono text-accent shadow-px-a">
+          <div className="mb-4 p-3 bg-bg-2 border border-accent font-pixel text-xl text-accent shadow-px-a">
             {message}
           </div>
         )}

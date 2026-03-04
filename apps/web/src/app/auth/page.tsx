@@ -68,9 +68,7 @@ export default function AuthPage() {
 
       <div className="bg-bg-2 border border-rim shadow-px p-6 space-y-4">
         <div>
-          <label className="block text-xs font-mono text-fg-2 uppercase tracking-widest mb-1">
-            Subject (actor)
-          </label>
+          <label className="block font-pixel text-lg text-fg-2 mb-1">Subject (actor)</label>
           <input
             type="text"
             value={sub}
@@ -80,9 +78,7 @@ export default function AuthPage() {
         </div>
 
         <div>
-          <label className="block text-xs font-mono text-fg-2 uppercase tracking-widest mb-1">
-            Role
-          </label>
+          <label className="block font-pixel text-lg text-fg-2 mb-1">Role</label>
           <select
             value={role}
             onChange={(e) => setRole(e.target.value)}
@@ -97,9 +93,7 @@ export default function AuthPage() {
         </div>
 
         <div>
-          <label className="block text-xs font-mono text-fg-2 uppercase tracking-widest mb-1">
-            JWT Secret
-          </label>
+          <label className="block font-pixel text-lg text-fg-2 mb-1">JWT Secret</label>
           <input
             type="password"
             value={secret}
@@ -111,7 +105,7 @@ export default function AuthPage() {
         <button
           onClick={handleGenerate}
           disabled={!sub || !secret}
-          className="w-full border border-accent text-accent hover:bg-accent hover:text-bg px-4 py-2 text-sm font-mono shadow-px-a disabled:opacity-40 disabled:cursor-not-allowed transition-none"
+          className="w-full border border-accent text-accent hover:bg-accent hover:text-bg px-4 py-2 font-pixel text-xl shadow-px-a disabled:opacity-40 disabled:cursor-not-allowed transition-none"
         >
           [ Generate Token ]
         </button>
@@ -119,9 +113,7 @@ export default function AuthPage() {
 
       {token && (
         <div className="mt-6 bg-bg-2 border border-rim shadow-px p-6 space-y-4">
-          <div className="text-xs font-mono text-fg-2 uppercase tracking-widest">
-            Generated Token
-          </div>
+          <div className="font-pixel text-xl text-fg-2">Generated Token</div>
           <textarea
             readOnly
             value={token}
@@ -131,13 +123,13 @@ export default function AuthPage() {
           <div className="flex gap-3">
             <button
               onClick={handleSave}
-              className="flex-1 border border-ok text-ok hover:bg-ok hover:text-bg px-4 py-2 text-sm font-mono shadow-px-o transition-none"
+              className="flex-1 border border-ok text-ok hover:bg-ok hover:text-bg px-4 py-2 font-pixel text-xl shadow-px-o transition-none"
             >
               {saved ? '● Saved to localStorage' : '[ Save to localStorage ]'}
             </button>
             <button
               onClick={handleClear}
-              className="flex-1 border border-rim text-fg-2 hover:border-danger hover:text-danger px-4 py-2 text-sm font-mono transition-none"
+              className="flex-1 border border-rim text-fg-2 hover:border-danger hover:text-danger px-4 py-2 font-pixel text-xl transition-none"
             >
               [ Clear Token ]
             </button>

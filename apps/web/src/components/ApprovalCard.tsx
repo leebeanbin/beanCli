@@ -33,9 +33,9 @@ export function ApprovalCard({ item, onApprove, onReject }: ApprovalCardProps) {
         <div className="flex items-center gap-2">
           <span className="font-mono text-xs text-fg-2">{item.id.slice(0, 8)}…</span>
           <StatusBadge status={item.status} />
-          <span className={`text-xs font-mono ${riskCls}`}>{item.risk_level}</span>
+          <span className={`font-pixel text-lg ${riskCls}`}>{item.risk_level}</span>
         </div>
-        <span className="text-xs text-fg-2 font-mono">{item.environment}</span>
+        <span className="font-pixel text-lg text-fg-2">{item.environment}</span>
       </div>
 
       <div className="text-xs text-fg-2 mb-1 font-mono">
@@ -51,13 +51,13 @@ export function ApprovalCard({ item, onApprove, onReject }: ApprovalCardProps) {
       <div className="flex gap-2 justify-end">
         <button
           onClick={() => onReject(item.id)}
-          className="px-3 py-1 text-xs font-mono border border-danger text-danger hover:bg-danger hover:text-bg shadow-px-d transition-none"
+          className="px-3 py-1 font-pixel text-xl border border-danger text-danger hover:bg-danger hover:text-bg shadow-px-d transition-none"
         >
           [ Reject ]
         </button>
         <button
           onClick={() => onApprove(item.id)}
-          className="px-3 py-1 text-xs font-mono border border-ok text-ok hover:bg-ok hover:text-bg shadow-px-o transition-none"
+          className="px-3 py-1 font-pixel text-xl border border-ok text-ok hover:bg-ok hover:text-bg shadow-px-o transition-none"
         >
           [ Approve ]
         </button>

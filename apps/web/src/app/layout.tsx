@@ -10,12 +10,8 @@ export const metadata: Metadata = {
 
 const NAV_ITEMS = [
   { href: '/', label: 'Dashboard' },
-  { href: '/connections', label: 'Connections' },
   { href: '/changes', label: 'Changes' },
   { href: '/approvals', label: 'Approvals' },
-  { href: '/state/state_orders', label: 'State' },
-  { href: '/audit', label: 'Audit' },
-  { href: '/recovery', label: 'Recovery' },
   { href: '/auth', label: 'Auth' },
 ];
 
@@ -37,7 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link
               key={item.href}
               href={item.href}
-              className="font-mono text-xs text-fg-2 hover:text-accent uppercase tracking-widest px-2 py-1 border border-transparent hover:border-rim transition-none"
+              className="font-pixel text-xl text-fg-2 hover:text-accent px-2 py-1 border border-transparent hover:border-rim transition-none"
             >
               {item.label}
             </Link>

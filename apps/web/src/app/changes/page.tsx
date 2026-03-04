@@ -61,7 +61,7 @@ function ChangesPageContent() {
 
   if (!getToken()) {
     return (
-      <div className="text-xs font-mono text-fg-2">
+      <div className="font-pixel text-xl text-fg-2">
         Please set a JWT token in the{' '}
         <a href="/auth" className="text-accent hover:underline">
           Auth
@@ -77,13 +77,9 @@ function ChangesPageContent() {
 
       {/* New change form */}
       <form onSubmit={handleCreate} className="bg-bg-2 border border-rim shadow-px p-4 mb-6">
-        <div className="text-xs text-fg-2 font-mono uppercase tracking-widest mb-3">
-          [ New Change Request ]
-        </div>
+        <div className="font-pixel text-xl text-fg-2 mb-3">[ New Change Request ]</div>
         <div className="mb-3">
-          <label className="block text-xs font-mono text-fg-2 uppercase tracking-widest mb-1">
-            SQL Statement
-          </label>
+          <label className="block font-pixel text-lg text-fg-2 mb-1">SQL Statement</label>
           <textarea
             value={sql}
             onChange={(e) => setSql(e.target.value)}
@@ -93,13 +89,11 @@ function ChangesPageContent() {
           />
         </div>
         <div className="mb-3 flex gap-4 items-center">
-          <span className="text-xs font-mono text-fg-2 uppercase tracking-widest">
-            Environment:
-          </span>
+          <span className="font-pixel text-lg text-fg-2">Environment:</span>
           {(['DEV', 'LOCAL', 'PROD'] as const).map((env) => (
             <label
               key={env}
-              className="flex items-center gap-1 text-xs font-mono text-fg cursor-pointer"
+              className="flex items-center gap-1 font-pixel text-lg text-fg cursor-pointer"
             >
               <input
                 type="radio"
@@ -116,7 +110,7 @@ function ChangesPageContent() {
         <button
           type="submit"
           disabled={submitting || !sql.trim()}
-          className="px-3 py-1 text-xs font-mono border border-accent text-accent hover:bg-accent hover:text-bg shadow-px-a disabled:opacity-40 disabled:cursor-not-allowed transition-none"
+          className="px-3 py-1 font-pixel text-xl border border-accent text-accent hover:bg-accent hover:text-bg shadow-px-a disabled:opacity-40 disabled:cursor-not-allowed transition-none"
         >
           {submitting ? 'Creating…' : '[ Create Change ]'}
         </button>
@@ -125,12 +119,10 @@ function ChangesPageContent() {
       {/* Changes list */}
       <div className="bg-bg-2 border border-rim shadow-px p-4">
         <div className="flex items-center justify-between mb-3">
-          <div className="text-xs text-fg-2 font-mono uppercase tracking-widest">
-            [ All Changes ({total}) ]
-          </div>
+          <div className="font-pixel text-xl text-fg-2">[ All Changes ({total}) ]</div>
           <button
             onClick={fetchChanges}
-            className="text-xs font-mono text-fg-2 hover:text-accent border border-rim hover:border-accent px-2 py-0.5 transition-none"
+            className="font-pixel text-lg text-fg-2 hover:text-accent border border-rim hover:border-accent px-2 py-0.5 transition-none"
           >
             Refresh
           </button>

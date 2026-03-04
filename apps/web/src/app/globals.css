@@ -39,6 +39,15 @@ body {
   font-family: 'JetBrains Mono', 'Fira Code', Menlo, monospace;
 }
 
+/* 모든 폼 요소도 monospace 상속 */
+input,
+button,
+select,
+textarea,
+option {
+  font-family: inherit;
+}
+
 /* 전역 픽셀 리셋 — rounded-* 클래스를 무효화 */
 *,
 *::before,
