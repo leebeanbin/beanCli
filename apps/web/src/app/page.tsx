@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { apiClient } from '../lib/api';
 import { loadConnections, type DbConnection } from '../lib/connections';
+import { useLang } from '../lib/i18n';
 
 interface HealthData {
   status: string;
@@ -29,6 +30,7 @@ export default function DashboardPage() {
   const [health, setHealth] = useState<HealthData | null>(null);
   const [loading, setLoading] = useState(true);
   const [conns, setConns] = useState<DbConnection[]>([]);
+  const { t } = useLang();
 
   useEffect(() => {
     setConns(loadConnections());
@@ -61,7 +63,7 @@ export default function DashboardPage() {
             <div className="font-pixel text-2xl text-fg-2 opacity-40">◈</div>
             <p className="font-pixel text-xl text-fg-2">No connections configured</p>
             <p className="font-mono text-xs text-fg-2 opacity-60">
-              DB 연결을 등록하면 모든 페이지에서 데이터에 접근할 수 있습니다.
+              {t('dashboard.noConnsDesc')}
             </p>
             <Link
               href="/connections"
