@@ -3,49 +3,53 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { ThemeToggle } from './ThemeToggle';
-
-type NavLeaf = { label: string; href: string; desc?: string };
-type NavGroup = { label: string; children: NavLeaf[] };
-type NavItem = NavLeaf | NavGroup;
-
-function isGroup(item: NavItem): item is NavGroup {
-  return 'children' in item;
-}
-
-const NAV: NavItem[] = [
-  { label: 'Dashboard', href: '/' },
-  {
-    label: 'Data',
-    children: [
-      { href: '/query',   label: 'Query',   desc: 'SQL 실행기' },
-      { href: '/explore', label: 'Explore', desc: '데이터 탐색' },
-      { href: '/schema',  label: 'Schema',  desc: '스키마 뷰어' },
-    ],
-  },
-  {
-    label: 'Ops',
-    children: [
-      { href: '/monitor',  label: 'Monitor',  desc: '스트림 통계' },
-      { href: '/indexes',  label: 'Indexes',  desc: '인덱스 관리' },
-      { href: '/audit',    label: 'Audit',    desc: '감사 로그' },
-      { href: '/recovery', label: 'Recovery', desc: 'DLQ 복구' },
-    ],
-  },
-  {
-    label: 'Changes',
-    children: [
-      { href: '/changes',   label: 'Changes',   desc: '변경 요청' },
-      { href: '/approvals', label: 'Approvals', desc: '승인 대기' },
-    ],
-  },
-  { label: 'Auth',        href: '/auth' },
-  { label: 'Connections', href: '/connections', desc: 'DB 연결 설정' },
-];
+import { LangToggle } from './LangToggle';
+import { useLang } from '../lib/i18n';
 
 export function NavBar() {
   const pathname = usePathname();
   const router   = useRouter();
   const isHome   = pathname === '/';
+  const { t }    = useLang();
+
+  type NavLeaf = { label: string; href: string; desc?: string };
+  type NavGroup = { label: string; children: NavLeaf[] };
+  type NavItem = NavLeaf | NavGroup;
+
+  function isGroup(item: NavItem): item is NavGroup {
+    return 'children' in item;
+  }
+
+  const NAV: NavItem[] = [
+    { label: 'Dashboard', href: '/' },
+    {
+      label: 'Data',
+      children: [
+        { href: '/query',   label: 'Query',   desc: t('nav.query.desc') },
+        { href: '/explore', label: 'Explore', desc: t('nav.explore.desc') },
+        { href: '/schema',  label: 'Schema',  desc: t('nav.schema.desc') },
+      ],
+    },
+    {
+      label: 'Ops',
+      children: [
+        { href: '/monitor',  label: 'Monitor',  desc: t('nav.monitor.desc') },
+        { href: '/indexes',  label: 'Indexes',  desc: t('nav.indexes.desc') },
+        { href: '/audit',    label: 'Audit',    desc: t('nav.audit.desc') },
+        { href: '/recovery', label: 'Recovery', desc: t('nav.recovery.desc') },
+      ],
+    },
+    {
+      label: 'Changes',
+      children: [
+        { href: '/changes',   label: 'Changes',   desc: t('nav.changes.desc') },
+        { href: '/approvals', label: 'Approvals', desc: t('nav.approvals.desc') },
+      ],
+    },
+    { label: 'AI',          href: '/ai' },
+    { label: 'Auth',        href: '/auth' },
+    { label: 'Connections', href: '/connections', desc: t('nav.connections.desc') },
+  ];
 
   return (
     <nav className="bg-bg-2 border-b-2 border-rim px-3" style={{ height: '44px' }}>
@@ -103,17 +107,16 @@ export function NavBar() {
             <Link
               key={(item as NavLeaf).href}
               href={(item as NavLeaf).href}
-              className={`font-pixel text-lg text-fg-2 hover:text-accent px-2.5 h-full flex items-center border-b-2 border-transparent hover:border-accent transition-none ${
-                pathname === (item as NavLeaf).href ? 'border-accent text-accent' : ''
-              }`}
+              className={`font-pixel text-lg text-fg-2 hover:text-accent px-2.5 h-full flex items-center border-b-2 border-transparent hover:border-accent transition-none ${ pathname === (item as NavLeaf).href ? 'border-accent text-accent' : '' }`}
             >
               {item.label}
             </Link>
           ),
         )}
 
-        {/* Right */}
+        {/* Right controls */}
         <div className="ml-auto flex items-center gap-2">
+          <LangToggle />
           <ThemeToggle />
         </div>
       </div>

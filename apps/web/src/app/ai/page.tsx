@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { apiClient } from '../../lib/api';
+import { useLang } from '../../lib/i18n';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -17,13 +18,6 @@ interface ModelsData {
   models?: string[];
 }
 
-const QUICK_PROMPTS = [
-  { label: '테이블 목록', sql: '전체 테이블 목록과 각 레코드 수를 알려줘' },
-  { label: '에러 조회', sql: '최근 24시간 에러 이벤트를 조회하는 SQL 작성해줘' },
-  { label: '인덱스 제안', sql: '현재 테이블 구조에서 인덱스 최적화 제안해줘' },
-  { label: '느린 쿼리', sql: '느린 쿼리를 찾는 방법과 개선 방법 설명해줘' },
-];
-
 export default function AiPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -34,6 +28,14 @@ export default function AiPage() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3100';
+  const { t } = useLang();
+
+  const QUICK_PROMPTS = [
+    { label: t('ai.prompt1.label'), sql: t('ai.prompt1.sql') },
+    { label: t('ai.prompt2.label'), sql: t('ai.prompt2.sql') },
+    { label: t('ai.prompt3.label'), sql: t('ai.prompt3.sql') },
+    { label: t('ai.prompt4.label'), sql: t('ai.prompt4.sql') },
+  ];
 
   useEffect(() => {
     void (async () => {
@@ -216,11 +218,9 @@ export default function AiPage() {
               ))}
             </div>
             <div className="mt-3 border-t border-rim pt-2">
-              <div className="font-pixel text-lg text-fg-2 mb-1">[ 위젯 ]</div>
+              <div className="font-pixel text-lg text-fg-2 mb-1">{t('ai.widgetSection')}</div>
               <div className="font-mono text-xs text-fg-2 leading-relaxed">
-                우하단{' '}
-                <span className="text-accent font-bold">◈ AI</span>{' '}
-                버튼으로 모든 페이지에서 AI를 사용할 수 있습니다.
+                {t('ai.widgetDesc')}
               </div>
             </div>
           </div>
@@ -235,7 +235,7 @@ export default function AiPage() {
                 <div className="font-pixel text-4xl text-accent">◈</div>
                 <div className="font-pixel text-2xl text-fg">AI Assistant</div>
                 <div className="font-pixel text-lg text-fg-2 max-w-xs">
-                  데이터베이스에 대한 질문, SQL 생성, 성능 분석을 도와드립니다
+                  {t('ai.emptySubtitle')}
                 </div>
               </div>
             ) : (
@@ -258,7 +258,7 @@ export default function AiPage() {
                       <pre className="whitespace-pre-wrap break-words font-mono text-sm leading-relaxed">
                         {msg.content ||
                           (i === messages.length - 1 && streaming ? (
-                            <span className="text-fg-2 animate-pulse">▋ 생성 중...</span>
+                            <span className="text-fg-2 animate-pulse">{t('ai.generating')}</span>
                           ) : (
                             ''
                           ))}
@@ -286,7 +286,7 @@ export default function AiPage() {
                 disabled={streaming}
                 autoFocus
                 className="flex-1 font-mono text-sm bg-bg border border-rim text-fg px-3 py-2 focus:outline-none focus:border-accent disabled:opacity-50"
-                placeholder="SQL 작성, 데이터 분석, 최적화 제안 등… (Enter)"
+                placeholder={t('ai.inputPlaceholder')}
               />
               <button
                 onClick={() => void send()}
@@ -297,9 +297,9 @@ export default function AiPage() {
               </button>
             </div>
             <div className="flex items-center gap-3 mt-2 px-5">
-              <span className="font-mono text-xs text-fg-2">Enter: 전송</span>
+              <span className="font-mono text-xs text-fg-2">{t('ai.enterSend')}</span>
               <span className="font-mono text-xs text-fg-2">·</span>
-              <span className="font-mono text-xs text-fg-2">좌측 Quick Prompts 클릭으로 빠른 시작</span>
+              <span className="font-mono text-xs text-fg-2">{t('ai.quickHint')}</span>
             </div>
           </div>
         </div>

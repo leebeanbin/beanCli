@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useLang } from '../lib/i18n';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -20,6 +21,7 @@ export function AiChatWidget() {
   const [unread, setUnread] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { t } = useLang();
 
   useEffect(() => {
     if (open) {
@@ -134,6 +136,12 @@ export function AiChatWidget() {
     if (e.key === 'Escape') setOpen(false);
   }
 
+  const quickPrompts = [
+    t('ai.prompt1.label'),
+    t('ai.prompt2.label'),
+    t('ai.prompt3.label'),
+  ];
+
   return (
     <>
       {/* Chat panel */}
@@ -151,13 +159,6 @@ export function AiChatWidget() {
               )}
             </div>
             <div className="flex items-center gap-1">
-              <a
-                href="/ai"
-                className="font-pixel text-lg text-fg-2 hover:text-accent px-1 border border-transparent hover:border-rim transition-none"
-                title="Full screen"
-              >
-                ⤢
-              </a>
               <button
                 onClick={() => setMessages([])}
                 className="font-pixel text-lg text-fg-2 hover:text-danger px-1 border border-transparent hover:border-rim transition-none"
@@ -180,14 +181,10 @@ export function AiChatWidget() {
               <div className="h-full flex flex-col items-center justify-center gap-3 py-4">
                 <div className="font-pixel text-2xl text-accent">◈ AI</div>
                 <div className="font-pixel text-lg text-fg-2 text-center px-4">
-                  데이터에 대해 무엇이든 물어보세요
+                  {t('ai.emptySubtitle')}
                 </div>
                 {/* Quick prompts */}
-                {[
-                  '전체 테이블 목록 알려줘',
-                  '최근 에러 이벤트 조회해줘',
-                  '인덱스 최적화 제안해줘',
-                ].map((prompt) => (
+                {quickPrompts.map((prompt) => (
                   <button
                     key={prompt}
                     onClick={() => {
@@ -237,7 +234,7 @@ export function AiChatWidget() {
               onKeyDown={handleKeyDown}
               disabled={streaming}
               className="flex-1 font-mono text-xs bg-bg border border-rim text-fg px-2 py-1.5 focus:outline-none focus:border-accent disabled:opacity-50"
-              placeholder="메시지 입력… (Enter)"
+              placeholder={t('ai.inputPlaceholder')}
             />
             <button
               onClick={() => void send()}

@@ -2,6 +2,7 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { NavBar } from '../components/NavBar';
 import { AiChatWidget } from '../components/AiChatWidget';
+import { LangProvider } from '../lib/i18n';
 
 export const metadata: Metadata = {
   title: 'BeanCLI Web Console',
@@ -20,6 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
 
       <body className="font-mono text-fg flex justify-center items-start py-6 px-2 sm:py-10 sm:px-4">
+        <LangProvider>
 
         {/* ╔══════════════════════════════════════════════════════════════╗
             ║            GAME BOY CONSOLE SHELL                          ║
@@ -153,6 +155,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </div>
         {/* ╚══════════════════════════════════════════════════════════════╝ */}
 
+        </LangProvider>
       </body>
     </html>
   );
