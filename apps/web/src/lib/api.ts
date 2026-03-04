@@ -1,6 +1,6 @@
 import { ApiClient } from '@tfsdc/ui-web';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3100';
 
 let _token: string | null = null;
 

@@ -22,6 +22,7 @@
     "db:test-conn": "node --env-file=.env -e \"process.env.DATABASE_URL && true\" && pnpm --filter @tfsdc/cli test -- --testPathPattern='integration'",
     "dev:all": "bash scripts/dev-start.sh",
     "dev:api": "turbo run dev --filter=@tfsdc/api",
+    "dev:web": "turbo run dev --filter=@tfsdc/web",
     "dev:projector": "turbo run dev --filter=@tfsdc/projector",
     "dev:cli": "node --env-file=.env --watch --import tsx/esm apps/cli/src/index-ink.tsx",
     "dev:mock": "node --watch --import tsx/esm apps/cli/src/index-ink.tsx --mock",
