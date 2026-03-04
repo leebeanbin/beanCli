@@ -29,14 +29,11 @@ export function ChangeTable({ rows, onSubmit, onExecute }: ChangeTableProps) {
       <table className="min-w-full border-collapse text-xs font-mono">
         <thead>
           <tr className="bg-bg border-b border-rim">
-            <th className="px-3 py-2 text-left text-fg-2 uppercase tracking-widest">ID</th>
-            <th className="px-3 py-2 text-left text-fg-2 uppercase tracking-widest">Status</th>
-            <th className="px-3 py-2 text-left text-fg-2 uppercase tracking-widest">Actor</th>
-            <th className="px-3 py-2 text-left text-fg-2 uppercase tracking-widest">Table</th>
-            <th className="px-3 py-2 text-left text-fg-2 uppercase tracking-widest">Risk</th>
-            <th className="px-3 py-2 text-left text-fg-2 uppercase tracking-widest">Env</th>
-            <th className="px-3 py-2 text-left text-fg-2 uppercase tracking-widest">Created</th>
-            <th className="px-3 py-2 text-left text-fg-2 uppercase tracking-widest">Actions</th>
+            {['ID', 'Status', 'Actor', 'Table', 'Risk', 'Env', 'Created', 'Actions'].map((h) => (
+              <th key={h} className="px-3 py-2 text-left">
+                <span className="font-pixel text-base text-fg-2">{h}</span>
+              </th>
+            ))}
           </tr>
         </thead>
         <tbody>
@@ -64,7 +61,7 @@ export function ChangeTable({ rows, onSubmit, onExecute }: ChangeTableProps) {
                   {row.status === 'DRAFT' && onSubmit && (
                     <button
                       onClick={() => onSubmit(row.id)}
-                      className="px-2 py-0.5 border border-accent text-accent hover:bg-accent hover:text-bg shadow-px-a transition-none"
+                      className="px-2 py-0.5 font-pixel text-base border border-accent text-accent hover:bg-accent hover:text-bg shadow-px-a transition-none"
                     >
                       Submit
                     </button>
@@ -73,7 +70,7 @@ export function ChangeTable({ rows, onSubmit, onExecute }: ChangeTableProps) {
                     onExecute && (
                       <button
                         onClick={() => onExecute(row.id)}
-                        className="px-2 py-0.5 border border-ok text-ok hover:bg-ok hover:text-bg shadow-px-o transition-none"
+                        className="px-2 py-0.5 font-pixel text-base border border-ok text-ok hover:bg-ok hover:text-bg shadow-px-o transition-none"
                       >
                         Execute
                       </button>
