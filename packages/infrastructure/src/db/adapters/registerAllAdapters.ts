@@ -9,6 +9,10 @@ import { MySqlAdapter } from './MySqlAdapter.js';
 import { SqliteAdapter } from './SqliteAdapter.js';
 import { MongoAdapter } from './MongoAdapter.js';
 import { RedisAdapter } from './RedisAdapter.js';
+import { KafkaAdapter } from './KafkaAdapter.js';
+import { RabbitMqAdapter } from './RabbitMqAdapter.js';
+import { ElasticsearchAdapter } from './ElasticsearchAdapter.js';
+import { NatsAdapter } from './NatsAdapter.js';
 import type { DbConnectionConfig } from './DbAdapterRegistry.js';
 
 export function registerAllAdapters(): void {
@@ -61,6 +65,47 @@ export function registerAllAdapters(): void {
         port: cfg.port,
         password: cfg.password,
         database: cfg.database,
+      }),
+  );
+
+  registerDbAdapter(
+    'kafka',
+    (cfg: DbConnectionConfig) =>
+      new KafkaAdapter({
+        host: cfg.host,
+        port: cfg.port,
+      }),
+  );
+
+  registerDbAdapter(
+    'rabbitmq',
+    (cfg: DbConnectionConfig) =>
+      new RabbitMqAdapter({
+        host: cfg.host,
+        port: cfg.port,
+        username: cfg.username,
+        password: cfg.password,
+        database: cfg.database, // vhost
+      }),
+  );
+
+  registerDbAdapter(
+    'elasticsearch',
+    (cfg: DbConnectionConfig) =>
+      new ElasticsearchAdapter({
+        host: cfg.host,
+        port: cfg.port,
+        username: cfg.username,
+        password: cfg.password,
+      }),
+  );
+
+  registerDbAdapter(
+    'nats',
+    (cfg: DbConnectionConfig) =>
+      new NatsAdapter({
+        host: cfg.host,
+        port: cfg.port,
       }),
   );
 }
