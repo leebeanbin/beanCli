@@ -10,6 +10,8 @@ import { MonitorPanel } from '../panels/MonitorPanel.js';
 import { IndexPanel } from '../panels/IndexPanel.js';
 import { AuditPanel } from '../panels/AuditPanel.js';
 import { RecoveryPanel } from '../panels/RecoveryPanel.js';
+import { ChangePanel } from '../panels/ChangePanel.js';
+import { ApprovalPanel } from '../panels/ApprovalPanel.js';
 import { AiPanel } from '../panels/AiPanel.js';
 import { ConnectionFormOverlay } from '../connection/ConnectionFormOverlay.js';
 import { TablePickerOverlay } from '../overlays/TablePickerOverlay.js';
@@ -31,6 +33,8 @@ const CENTER_TITLES: Record<AppMode, string> = {
   index: 'Index Lab',
   audit: 'Audit Log',
   recovery: 'DLQ Recovery',
+  changes: 'Change Requests',
+  approvals: 'Pending Approvals',
 };
 
 // ── AppShell ─────────────────────────────────────────────────────────────────
@@ -133,6 +137,16 @@ export const AppShell: React.FC = () => {
         focusPanel('query');
         return;
       }
+      if (input === 'C') {
+        setAppMode('changes');
+        focusPanel('query');
+        return;
+      }
+      if (input === 'P') {
+        setAppMode('approvals');
+        focusPanel('query');
+        return;
+      }
     }
   });
 
@@ -184,6 +198,22 @@ export const AppShell: React.FC = () => {
       return (
         <Panel title={centerTitle} isFocused={isCenterFocused} hint="2" flexGrow={1}>
           <RecoveryPanel />
+        </Panel>
+      );
+    }
+
+    if (appMode === 'changes') {
+      return (
+        <Panel title={centerTitle} isFocused={isCenterFocused} hint="2" flexGrow={1}>
+          <ChangePanel />
+        </Panel>
+      );
+    }
+
+    if (appMode === 'approvals') {
+      return (
+        <Panel title={centerTitle} isFocused={isCenterFocused} hint="2" flexGrow={1}>
+          <ApprovalPanel />
         </Panel>
       );
     }

@@ -154,6 +154,10 @@ export const ConnectionPickerOverlay: React.FC = () => {
   const [connecting, setConnecting] = useState(false);
   const [connectErr, setConnectErr] = useState<string | null>(null);
 
+  // ── Security confirm state ────────────────────────────────────────────────
+  // null = not shown; 'test' | 'connect' = waiting for y/N
+  const [secConfirm, setSecConfirm] = useState<'test' | 'connect' | null>(null);
+
   // Spinner tick
   useEffect(() => {
     if (testStatus !== 'testing' && !connecting) return;
@@ -232,7 +236,7 @@ export const ConnectionPickerOverlay: React.FC = () => {
     return conn;
   }, [isNew, connections, cursor, vals, connectionService, reloadConns]);
 
-  const runTest = useCallback(async () => {
+  const runTestActual = useCallback(async () => {
     if (!connectionService || testStatus === 'testing') return;
     const original = isNew ? null : (connections[cursor] ?? null);
     const conn = fromFormVals(vals, original);
@@ -250,7 +254,11 @@ export const ConnectionPickerOverlay: React.FC = () => {
     }
   }, [connectionService, testStatus, isNew, connections, cursor, vals]);
 
-  const doConnect = useCallback(
+  const runTest = useCallback(() => {
+    setSecConfirm('test');
+  }, []);
+
+  const doConnectActual = useCallback(
     async (conn: DbConnection) => {
       if (!connectionService || connecting) return;
       setConnecting(true);
@@ -283,10 +291,32 @@ export const ConnectionPickerOverlay: React.FC = () => {
     [connectionService, connecting, setActiveConnection, setTables, setConnection, setStartupPhase],
   );
 
+  const doConnect = useCallback(
+    (conn: DbConnection) => { setSecConfirm('connect'); },
+    [],
+  );
+
   // ── Input handling ──────────────────────────────────────────────────────────
 
   useInput((inp, key) => {
     if (connecting || testStatus === 'testing') return;
+
+    // ── Security confirm prompt ───────────────────────────────────────────────
+    if (secConfirm !== null) {
+      if (inp === 'y' || inp === 'Y') {
+        const action = secConfirm;
+        setSecConfirm(null);
+        if (action === 'test') void runTestActual();
+        else {
+          const original = isNew ? null : (connections[cursor] ?? null);
+          const conn = fromFormVals(vals, original);
+          void doConnectActual(conn);
+        }
+      } else {
+        setSecConfirm(null); // any other key = cancel
+      }
+      return;
+    }
 
     // ── LIST pane ────────────────────────────────────────────────────────────
     if (pane === 'list') {
@@ -623,9 +653,59 @@ export const ConnectionPickerOverlay: React.FC = () => {
           </Box>
         </Box>
 
+        {/* ── Security confirm prompt ─────────────────────────────────────────── */}
+        {secConfirm !== null && (() => {
+          const conn = fromFormVals(vals, isNew ? null : (connections[cursor] ?? null));
+          const target = conn.type === 'sqlite'
+            ? (conn.host ?? 'local file')
+            : `${conn.host ?? 'localhost'}:${conn.port ?? ''}${conn.database ? `/${conn.database}` : ''}`;
+          return (
+            <Box
+              flexDirection="column"
+              borderStyle="round"
+              borderColor="#f59e0b"
+              paddingX={2}
+              paddingY={1}
+              marginX={2}
+            >
+              <Text color="#f59e0b" bold>⚠  Security Confirmation</Text>
+              <Text> </Text>
+              <Text color="#9ca3af">
+                {'You are about to '}
+                <Text color="#60a5fa">{secConfirm === 'connect' ? 'connect to' : 'test'}</Text>
+                {' the following data source:'}
+              </Text>
+              <Text color="#e5e7eb">
+                {'  Type:   '}<Text color="#60a5fa">{conn.type.toUpperCase()}</Text>
+              </Text>
+              <Text color="#e5e7eb">
+                {'  Target: '}<Text color="#f9fafb">{target}</Text>
+              </Text>
+              {conn.username && (
+                <Text color="#e5e7eb">
+                  {'  User:   '}<Text color="#f9fafb">{conn.username}</Text>
+                </Text>
+              )}
+              <Text> </Text>
+              <Text color="#f59e0b">
+                {'Only connect to databases you own or are authorized to access.'}
+              </Text>
+              <Text> </Text>
+              <Text color="#d1d5db" bold>
+                {'Proceed? '}
+                <Text color="#4ade80">{'[y]'}</Text>
+                <Text color="#6b7280">{' / '}</Text>
+                <Text color="#ef4444">{'[any key] cancel'}</Text>
+              </Text>
+            </Box>
+          );
+        })()}
+
         {/* ── Footer hints ───────────────────────────────────────────────────── */}
         <Box paddingX={2}>
-          {pane === 'list' ? (
+          {secConfirm !== null ? (
+            <Text color="#374151">{'Press y to confirm · any other key to cancel'}</Text>
+          ) : pane === 'list' ? (
             <Text color="#374151">
               {'j/k:move  Tab:edit  n:add  d:delete  ★:default  Enter:connect  Esc:skip'}
             </Text>

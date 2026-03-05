@@ -4,7 +4,7 @@ import type { DbConnection, IConnectionService, QueryResult, UserRole } from '..
 export type PanelId = 'schema' | 'query' | 'result' | 'ai';
 
 /** Center pane display mode */
-export type AppMode = 'browse' | 'query' | 'monitor' | 'index' | 'audit' | 'recovery';
+export type AppMode = 'browse' | 'query' | 'monitor' | 'index' | 'audit' | 'recovery' | 'changes' | 'approvals';
 
 /** Startup boot phase — gates what the user sees on first launch */
 export type StartupPhase = 'connection-picker' | 'database-picker' | 'table-picker' | 'ready';
