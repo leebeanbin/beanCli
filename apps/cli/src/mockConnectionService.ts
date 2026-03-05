@@ -769,6 +769,26 @@ export function createMockConnectionService(): IConnectionService {
       return { status: 'FAILED' };
     },
 
+    async changePassword(_current: string, _next: string): Promise<{ error?: string }> {
+      await new Promise((r) => setTimeout(r, 400));
+      return {};
+    },
+
+    async createIndex(
+      _table: string,
+      _columns: string[],
+      _name?: string,
+      _unique?: boolean,
+    ): Promise<{ error?: string }> {
+      await new Promise((r) => setTimeout(r, 300));
+      return {};
+    },
+
+    async dropIndex(_name: string): Promise<{ error?: string }> {
+      await new Promise((r) => setTimeout(r, 300));
+      return {};
+    },
+
     async streamAi(
       messages: AiMessage[],
       _opts: { model?: string },
