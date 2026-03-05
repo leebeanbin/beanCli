@@ -387,6 +387,7 @@ export default function ExplorePage() {
   const [error, setError] = useState<string | null>(null);
   const [showCreateTable, setShowCreateTable] = useState(false);
   const [activeConn, setActiveConn] = useState<DbConnection | null>(null);
+  const [rowFilter, setRowFilter] = useState('');
 
   const PAGE_SIZE = 50;
 
@@ -466,8 +467,17 @@ export default function ExplorePage() {
     setSelected(t);
     setPage(0);
     setDetail(null);
+    setRowFilter('');
     void loadRows(t, 0);
   }
+
+  const filteredRows = rowFilter
+    ? rows.filter((r) =>
+        Object.values(r).some((v) =>
+          String(v ?? '').toLowerCase().includes(rowFilter.toLowerCase()),
+        ),
+      )
+    : rows;
 
   async function deleteRow(row: StateRow) {
     if (!selected) return;
@@ -549,7 +559,7 @@ export default function ExplorePage() {
             <div className="bg-bg-2 border border-rim shadow-px p-4">
               <div className="flex items-center justify-between mb-3">
                 <div className="font-pixel text-xl text-fg-2">
-                  [ {selected} ] — {total} rows
+                  [ {selected} ] — {filteredRows.length !== rows.length ? `${filteredRows.length} / ` : ''}{total} rows
                 </div>
                 <div className="flex gap-2">
                   {rows.length > 0 && (
@@ -604,6 +614,18 @@ export default function ExplorePage() {
 
               {error && <p className="text-danger text-xs font-mono mb-2">{error}</p>}
 
+              {/* Realtime filter input */}
+              {rows.length > 0 && (
+                <div className="mb-3">
+                  <input
+                    value={rowFilter}
+                    onChange={(e) => setRowFilter(e.target.value)}
+                    className="w-full font-mono text-sm bg-bg border border-rim text-fg px-3 py-1 focus:outline-none focus:border-accent"
+                    placeholder="Filter rows…"
+                  />
+                </div>
+              )}
+
               {loading ? (
                 <p className="text-fg-2 text-xs font-mono">Loading…</p>
               ) : (
@@ -623,7 +645,7 @@ export default function ExplorePage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {rows.map((row, i) => (
+                      {filteredRows.map((row, i) => (
                         <tr
                           key={i}
                           className="border-b border-rim hover:bg-bg cursor-pointer"

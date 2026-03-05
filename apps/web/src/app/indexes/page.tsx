@@ -18,6 +18,13 @@ interface SchemaTable {
   table_name?: string;
 }
 
+function usageBar(scanCount: number): string {
+  // Cap at 10,000 scans = 100%
+  const pct = Math.min(100, Math.round((scanCount / 10_000) * 100));
+  const filled = Math.floor(pct / 10);
+  return `${'█'.repeat(filled)}${'░'.repeat(10 - filled)} ${pct}%`;
+}
+
 export default function IndexesPage() {
   const [indexes, setIndexes] = useState<IndexMeta[]>([]);
   const [tables, setTables] = useState<string[]>([]);
@@ -150,7 +157,7 @@ export default function IndexesPage() {
             <table className="w-full text-xs font-mono border-collapse">
               <thead>
                 <tr>
-                  {['Index', 'Table', 'Columns', 'Unique', 'Scans', ''].map((h) => (
+                  {['Index', 'Table', 'Columns', 'Unique', 'Scans', 'Usage', ''].map((h) => (
                     <th
                       key={h}
                       className="text-left px-2 py-1 font-pixel text-lg text-fg-2 border-b border-rim"
@@ -171,6 +178,7 @@ export default function IndexesPage() {
                       <td className="px-2 py-1 text-fg">{idx.column_names ?? '—'}</td>
                       <td className="px-2 py-1 text-fg-2">{idx.is_unique ? 'YES' : 'NO'}</td>
                       <td className="px-2 py-1 text-fg-2">{scans}</td>
+                      <td className="px-2 py-1 font-mono text-xs text-ok whitespace-nowrap">{usageBar(scans)}</td>
                       <td className="px-2 py-1">
                         {dropTarget === name ? (
                           <span className="flex gap-1">
