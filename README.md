@@ -68,7 +68,7 @@ Both interfaces support **9 database types**, role-based access control, immutab
 | **9 Database Types** | PostgreSQL · MySQL · SQLite · MongoDB · Redis · Kafka · RabbitMQ · Elasticsearch · NATS |
 | **TUI (Terminal UI)** | 3-panel Ink layout — Schema tree / SQL editor / Results viewer |
 | **Web Console** | Game Boy–styled Next.js app — 14 pages, dark/light theme, EN/KO toggle |
-| **Multi-line SQL Editor** | Line numbers, cursor movement, history, psql meta-commands (`\dt`, `\d`, `\x`) |
+| **Multi-line SQL Editor** | Line numbers, cursor movement, history, psql meta-commands (`\dt`, `\d`, `\x`, `\export`, `\explain`, `\pw`) |
 | **Role-Based CRUD** | Row browse · edit · insert · delete (DBA / MANAGER / ANALYST) |
 | **Change Review** | SQL → AST parse → risk score → AUTO / CONFIRM / MANUAL workflow |
 | **AI Assistant** | Floating `◈ AI` widget on every page + full `/ai` chat page |
@@ -159,15 +159,15 @@ make down
 | Page | Path | Description |
 |---|---|---|
 | Dashboard | `/` | API health · saved DB connections overview |
-| Query | `/query` | SQL editor with CSV/JSON download |
-| Explore | `/explore` | Data browser — row CRUD, inline edit, create table modal |
+| Query | `/query` | SQL editor + `[ Explain ]` button + CSV/JSON download + `?sql=` param pre-fill |
+| Explore | `/explore` | Data browser — row CRUD, inline edit, realtime filter, create table modal |
 | Schema | `/schema` | Table structure viewer + EXPLAIN ANALYZE tree view |
 | Monitor | `/monitor` | Stream stats, SSE live updates |
-| Indexes | `/indexes` | Index listing, create, drop |
+| Indexes | `/indexes` | Index listing with usage % bar, create, drop |
 | Audit | `/audit` | Immutable audit log with category filter |
 | Recovery | `/recovery` | DLQ failed-change re-submission |
-| AI | `/ai` | Full-page AI chat — accessible via `◈ AI` floating button |
-| Changes | `/changes` | Change request list and submission |
+| AI | `/ai` | Full-page AI chat — `[ Run SQL ]` button auto-extracted from SQL code blocks |
+| Changes | `/changes` | Change request list, status filter tabs (ALL/DRAFT/PENDING/…), `[Revert]` on FAILED |
 | Approvals | `/approvals` | Pending approval queue |
 | Auth | `/auth` | Login form with dev account hints (JWT 24h) |
 | Connections | `/connections` | API server URL config, test connection |
@@ -267,6 +267,9 @@ Launch
 | `\dt` | List tables |
 | `\d <table>` | Describe table |
 | `\x` | Toggle expanded mode |
+| `\export csv\|json <file>` | Export current result set |
+| `\explain <sql>` | Run EXPLAIN ANALYZE |
+| `\pw` | Change password (3-step overlay) |
 
 ### Browse / Explore Mode
 
@@ -281,6 +284,16 @@ Launch
 | `Q` | SELECT current table → Query Editor |
 | `r` | Refresh |
 | `f` | Filter |
+
+### Index Lab (`I`)
+
+| Key | Action |
+|---|---|
+| `n` | Create index (table → columns → name, 3-step inline) |
+| `d` | Drop selected index (y/N confirm) |
+| `f` | Switch tab (Indexes / Table Stats) |
+| `/` | Filter list |
+| `r` | Refresh |
 
 ---
 
@@ -339,15 +352,23 @@ Base URL: `http://localhost:3100`
 | Method | Path | Description |
 |---|---|---|
 | `GET` | `/health` | Health check |
+| `POST` | `/api/v1/auth/login` | Login (returns JWT) |
+| `POST` | `/api/v1/auth/change-password` | Change current user password |
 | `POST` | `/api/v1/changes` | Submit SQL change |
-| `GET` | `/api/v1/changes` | List changes |
+| `GET` | `/api/v1/changes` | List changes (filterable by `?status=`) |
 | `POST` | `/api/v1/changes/:id/execute` | Execute approved change |
+| `POST` | `/api/v1/changes/:id/submit` | Submit draft for approval |
+| `POST` | `/api/v1/changes/:id/revert` | Revert a FAILED change |
 | `GET` | `/api/v1/audit` | Audit log |
 | `GET` | `/api/v1/schema/tables` | List tables |
+| `POST` | `/api/v1/schema/analyze` | EXPLAIN ANALYZE a query |
+| `POST` | `/api/v1/indexes` | Create an index |
+| `DELETE` | `/api/v1/indexes/:name` | Drop an index |
 | `GET` | `/api/v1/state/:table` | Browse table rows |
 | `POST` | `/api/v1/sql/execute` | Direct SQL execution |
 | `GET` | `/api/v1/monitoring/stream-stats` | Stream statistics |
 | `POST` | `/api/v1/connections/test` | Test a DB connection |
+| `POST` | `/api/v1/connections/execute` | Execute SQL via external connection |
 | `POST` | `/api/v1/ai/stream` | AI SSE stream |
 | `WS` | `/ws` | Real-time event stream |
 
@@ -446,6 +467,14 @@ pnpm link:global      # Register beancli in global PATH
 | EXPLAIN ANALYZE tree view | ✅ Done |
 | Export to CSV / JSON (TUI `\export` + web download buttons) | ✅ Done |
 | Change Request panel (`C`) + Approval panel (`P`) in TUI | ✅ Done |
+| TUI `\explain <sql>` meta-command (EXPLAIN ANALYZE inline) | ✅ Done |
+| TUI `\pw` password change overlay (3-step: current → new → confirm) | ✅ Done |
+| TUI Index Lab: `n` create index · `d` drop index · usage % bar | ✅ Done |
+| Web `/query` — `[ Explain ]` button + `?sql=` deep-link param | ✅ Done |
+| Web `/changes` — status filter tabs + `[Revert]` on FAILED rows | ✅ Done |
+| Web `/explore` — realtime substring row filter | ✅ Done |
+| Web `/indexes` — scan-count usage bar (████░░ N%) | ✅ Done |
+| Web `/ai` — `[ Run SQL ]` button extracted from \`\`\`sql blocks | ✅ Done |
 
 ---
 
