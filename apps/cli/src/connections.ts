@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { homedir, hostname } from 'os';
 import { join } from 'path';
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypto';
@@ -28,6 +28,7 @@ export interface DbConnection {
 
 const CONN_DIR = join(homedir(), '.config', 'beanCli');
 const CONN_FILE = join(CONN_DIR, 'connections.json');
+const SESSION_FILE = join(CONN_DIR, 'session.json');
 
 // ── Encryption helpers ────────────────────────────────────────────────────────
 // Key derived from machine identity — passwords are unreadable on other machines.
@@ -115,6 +116,46 @@ export function upsertConnection(conn: DbConnection): void {
 export function removeConnection(id: string): void {
   const conns = loadConnections().filter((c) => c.id !== id);
   saveConnections(conns);
+}
+
+// ── Session (JWT token) ────────────────────────────────────────────────────────
+
+interface StoredSession {
+  token: string;
+  expiresAt: number;
+}
+
+export function saveSession(token: string): void {
+  try {
+    const [, payload] = token.split('.');
+    if (!payload) return;
+    const parsed = JSON.parse(Buffer.from(payload, 'base64').toString('utf8')) as {
+      exp?: number;
+    };
+    const expiresAt = parsed.exp ? parsed.exp * 1000 : Date.now() + 3_600_000;
+    mkdirSync(CONN_DIR, { recursive: true });
+    writeFileSync(SESSION_FILE, JSON.stringify({ token, expiresAt }), { mode: 0o600 });
+  } catch {
+    // session storage is best-effort
+  }
+}
+
+export function loadSession(): string | null {
+  try {
+    if (!existsSync(SESSION_FILE)) return null;
+    const data = JSON.parse(readFileSync(SESSION_FILE, 'utf8')) as StoredSession;
+    if (data.expiresAt < Date.now()) {
+      try { rmSync(SESSION_FILE); } catch { /* ignore */ }
+      return null;
+    }
+    return data.token;
+  } catch {
+    return null;
+  }
+}
+
+export function clearSession(): void {
+  try { rmSync(SESSION_FILE, { force: true }); } catch { /* ignore */ }
 }
 
 /**

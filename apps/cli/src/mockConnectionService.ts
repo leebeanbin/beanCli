@@ -15,6 +15,7 @@ import type {
   AiMessage,
   AiStreamCallbacks,
   LoginResult,
+  ChangeItem,
 } from '@tfsdc/tui';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -515,6 +516,59 @@ const STREAMING_STORES: Record<string, Record<string, unknown>[]> = {
   AUDIT: NATS_ROWS.slice(10, 15),
 };
 
+// ── Mock Change Requests ──────────────────────────────────────────────────────
+
+let mockChangeSeq = 6;
+
+const MOCK_CHANGES: ChangeItem[] = [
+  {
+    id: 'chg-001',
+    sql: "UPDATE state_users SET role = 'MANAGER' WHERE id = 5",
+    status: 'DONE',
+    actor: 'alice_0',
+    environment: 'dev',
+    description: 'Promote user to manager',
+    created_at: new Date(Date.now() - 3 * 86_400_000).toISOString(),
+    affected_rows_actual: 1,
+  },
+  {
+    id: 'chg-002',
+    sql: "DELETE FROM state_orders WHERE status = 'CANCELLED'",
+    status: 'PENDING',
+    actor: 'bob_1',
+    environment: 'dev',
+    description: 'Clean up cancelled orders',
+    created_at: new Date(Date.now() - 86_400_000).toISOString(),
+  },
+  {
+    id: 'chg-003',
+    sql: "UPDATE state_products SET active = false WHERE stock = 0",
+    status: 'APPROVED',
+    actor: 'alice_0',
+    environment: 'staging',
+    description: 'Deactivate out-of-stock products',
+    created_at: new Date(Date.now() - 2 * 3_600_000).toISOString(),
+  },
+  {
+    id: 'chg-004',
+    sql: "INSERT INTO state_products (sku, name, price_cents, stock) VALUES ('SKU-9999','Test Item',999,10)",
+    status: 'DRAFT',
+    actor: 'admin',
+    environment: 'dev',
+    created_at: new Date(Date.now() - 3_600_000).toISOString(),
+  },
+  {
+    id: 'chg-005',
+    sql: "UPDATE state_users SET balance_cents = 0 WHERE id = 99",
+    status: 'FAILED',
+    actor: 'bob_1',
+    environment: 'dev',
+    description: 'Zero out balance',
+    created_at: new Date(Date.now() - 7_200_000).toISOString(),
+    failure_reason: 'Row not found: id=99',
+  },
+];
+
 // ── Mock saved connection ─────────────────────────────────────────────────────
 
 const MOCK_CONNECTION: DbConnection = {
@@ -640,6 +694,79 @@ export function createMockConnectionService(): IConnectionService {
         return { error: `Cannot drop protected database "${name}"` };
       }
       return {};
+    },
+
+    async listChanges(params?: { status?: string; limit?: number }): Promise<ChangeItem[]> {
+      await new Promise((r) => setTimeout(r, 150));
+      let result = [...MOCK_CHANGES];
+      if (params?.status && params.status !== 'ALL') {
+        result = result.filter((c) => c.status.toUpperCase() === params.status!.toUpperCase());
+      }
+      if (params?.limit) result = result.slice(0, params.limit);
+      return result;
+    },
+
+    async createChange(sql: string, description?: string): Promise<{ id: string; status: string }> {
+      await new Promise((r) => setTimeout(r, 200));
+      const id = `chg-${String(++mockChangeSeq).padStart(3, '0')}`;
+      MOCK_CHANGES.push({
+        id,
+        sql,
+        status: 'DRAFT',
+        actor: 'demo',
+        environment: 'dev',
+        description,
+        created_at: new Date().toISOString(),
+      });
+      return { id, status: 'DRAFT' };
+    },
+
+    async submitChange(id: string): Promise<{ status: string }> {
+      await new Promise((r) => setTimeout(r, 200));
+      const item = MOCK_CHANGES.find((c) => c.id === id);
+      if (!item) throw new Error(`Change ${id} not found`);
+      if (item.status === 'DRAFT') item.status = 'PENDING';
+      else if (item.status === 'PENDING') item.status = 'APPROVED';
+      return { status: item.status };
+    },
+
+    async executeChange(id: string): Promise<{ status: string; affectedRows?: number }> {
+      await new Promise((r) => setTimeout(r, 300));
+      const item = MOCK_CHANGES.find((c) => c.id === id);
+      if (!item) throw new Error(`Change ${id} not found`);
+      item.status = 'DONE';
+      item.affected_rows_actual = Math.floor(Math.random() * 10) + 1;
+      return { status: 'DONE', affectedRows: item.affected_rows_actual };
+    },
+
+    async revertChange(id: string): Promise<{ status: string }> {
+      await new Promise((r) => setTimeout(r, 200));
+      const item = MOCK_CHANGES.find((c) => c.id === id);
+      if (!item) throw new Error(`Change ${id} not found`);
+      item.status = 'REVERTED';
+      return { status: 'REVERTED' };
+    },
+
+    async listPendingApprovals(): Promise<ChangeItem[]> {
+      await new Promise((r) => setTimeout(r, 150));
+      return MOCK_CHANGES.filter((c) => c.status === 'PENDING');
+    },
+
+    async approveChange(changeId: string): Promise<{ status: string }> {
+      await new Promise((r) => setTimeout(r, 200));
+      const item = MOCK_CHANGES.find((c) => c.id === changeId);
+      if (!item) throw new Error(`Change ${changeId} not found`);
+      item.status = 'APPROVED';
+      return { status: 'APPROVED' };
+    },
+
+    async rejectChange(changeId: string): Promise<{ status: string }> {
+      await new Promise((r) => setTimeout(r, 200));
+      const item = MOCK_CHANGES.find((c) => c.id === changeId);
+      if (!item) throw new Error(`Change ${changeId} not found`);
+      item.status = 'FAILED';
+      item.failure_reason = 'Rejected by approver';
+      return { status: 'FAILED' };
     },
 
     async streamAi(
