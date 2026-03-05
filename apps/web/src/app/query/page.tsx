@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { apiClient } from '../../lib/api';
 import { getActiveConnection, type DbConnection } from '../../lib/connections';
 
@@ -36,15 +37,42 @@ interface QueryResult {
   error?: string;
 }
 
-export default function QueryPage() {
-  const [sql, setSql] = useState('');
+function QueryPageContent() {
+  const searchParams = useSearchParams();
+  const [sql, setSql] = useState(() => searchParams.get('sql') ?? '');
   const [result, setResult] = useState<QueryResult | null>(null);
   const [running, setRunning] = useState(false);
   const [activeConn, setActiveConn] = useState<DbConnection | null>(null);
+  const [explaining, setExplaining] = useState(false);
 
   useEffect(() => {
     setActiveConn(getActiveConnection());
   }, []);
+
+  const explain = useCallback(async () => {
+    if (!sql.trim() || explaining) return;
+    setExplaining(true);
+    const explainSql = `EXPLAIN ANALYZE ${sql.trim()}`;
+    let res: QueryResult;
+    if (activeConn) {
+      try {
+        const r = await fetch(`${API_BASE}/api/v1/connections/execute`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ connection: activeConn, sql: explainSql }),
+        });
+        const data = (await r.json()) as QueryResult & { error?: string };
+        res = r.ok ? data : { columns: [], rows: [], rowCount: 0, error: data.error ?? `HTTP ${r.status}` };
+      } catch (e) {
+        res = { columns: [], rows: [], rowCount: 0, error: e instanceof Error ? e.message : 'Network error' };
+      }
+    } else {
+      const apiRes = await apiClient.post<QueryResult>('/api/v1/schema/analyze', { sql: sql.trim() });
+      res = apiRes.ok && apiRes.data ? apiRes.data : { columns: [], rows: [], rowCount: 0, error: apiRes.error ?? 'Explain failed' };
+    }
+    setResult(res);
+    setExplaining(false);
+  }, [sql, explaining, activeConn]);
 
   const execute = useCallback(async () => {
     if (!sql.trim() || running) return;
@@ -119,6 +147,14 @@ export default function QueryPage() {
             className="px-3 py-1 font-pixel text-xl border border-accent text-accent hover:bg-accent hover:text-bg shadow-px-a disabled:opacity-40 disabled:cursor-not-allowed transition-none"
           >
             {running ? 'Running…' : '[ Execute ]'}
+          </button>
+          <button
+            onClick={() => void explain()}
+            disabled={explaining || running || !sql.trim()}
+            className="px-3 py-1 font-pixel text-xl border border-warn text-warn hover:bg-warn hover:text-bg shadow-px-a disabled:opacity-40 disabled:cursor-not-allowed transition-none"
+            title="Run EXPLAIN ANALYZE on the query"
+          >
+            {explaining ? 'Explaining…' : '[ Explain ]'}
           </button>
           <span className="font-pixel text-lg text-fg-2">Ctrl+Enter to run</span>
           {result && !result.error && result.rows.length > 0 && (
@@ -201,5 +237,13 @@ export default function QueryPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function QueryPage() {
+  return (
+    <Suspense fallback={<p className="text-fg-2 text-xs font-mono">Loading…</p>}>
+      <QueryPageContent />
+    </Suspense>
   );
 }

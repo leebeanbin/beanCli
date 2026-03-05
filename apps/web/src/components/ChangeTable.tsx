@@ -17,9 +17,10 @@ interface ChangeTableProps {
   rows: ChangeRow[];
   onSubmit?: (id: string) => void;
   onExecute?: (id: string) => void;
+  onRevert?: (id: string) => void;
 }
 
-export function ChangeTable({ rows, onSubmit, onExecute }: ChangeTableProps) {
+export function ChangeTable({ rows, onSubmit, onExecute, onRevert }: ChangeTableProps) {
   if (rows.length === 0) {
     return <p className="text-fg-2 text-xs font-mono py-4">No change requests found.</p>;
   }
@@ -75,6 +76,14 @@ export function ChangeTable({ rows, onSubmit, onExecute }: ChangeTableProps) {
                         Execute
                       </button>
                     )}
+                  {row.status === 'FAILED' && onRevert && (
+                    <button
+                      onClick={() => onRevert(row.id)}
+                      className="px-2 py-0.5 font-pixel text-base border border-warn text-warn hover:bg-warn hover:text-bg transition-none"
+                    >
+                      Revert
+                    </button>
+                  )}
                 </td>
               </tr>
             );

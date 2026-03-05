@@ -1,8 +1,21 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { apiClient } from '../../lib/api';
 import { useLang } from '../../lib/i18n';
+
+/** Extract all ```sql ... ``` blocks from assistant message content */
+function extractSqlBlocks(content: string): string[] {
+  const blocks: string[] = [];
+  const re = /```sql\s*([\s\S]*?)```/gi;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(content)) !== null) {
+    const sql = match[1]?.trim();
+    if (sql) blocks.push(sql);
+  }
+  return blocks;
+}
 
 interface Message {
   role: 'user' | 'assistant';
@@ -29,6 +42,7 @@ export default function AiPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3100';
   const { t } = useLang();
+  const router = useRouter();
 
   const QUICK_PROMPTS = [
     { label: t('ai.prompt1.label'), sql: t('ai.prompt1.sql') },
@@ -263,6 +277,24 @@ export default function AiPage() {
                             ''
                           ))}
                       </pre>
+                      {msg.role === 'assistant' && msg.content && (() => {
+                        const sqlBlocks = extractSqlBlocks(msg.content);
+                        if (sqlBlocks.length === 0) return null;
+                        return (
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {sqlBlocks.map((sql, si) => (
+                              <button
+                                key={si}
+                                onClick={() => router.push(`/query?sql=${encodeURIComponent(sql)}`)}
+                                className="font-pixel text-lg border border-ok text-ok hover:bg-ok hover:text-bg px-2 py-0.5 transition-none"
+                                title={sql}
+                              >
+                                {sqlBlocks.length > 1 ? `[ Run SQL ${si + 1} ]` : '[ Run SQL ]'}
+                              </button>
+                            ))}
+                          </div>
+                        );
+                      })()}
                     </div>
                     {msg.role === 'user' && (
                       <div className="shrink-0 font-pixel text-xl text-fg-2 mt-0.5">›</div>

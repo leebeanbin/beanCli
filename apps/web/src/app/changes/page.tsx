@@ -6,12 +6,16 @@ import { ChangeTable } from '../../components/ChangeTable';
 import { apiClient, getToken } from '../../lib/api';
 import type { ChangeRow } from '../../components/ChangeTable';
 
+type StatusFilter = 'ALL' | 'DRAFT' | 'PENDING' | 'APPROVED' | 'DONE' | 'FAILED';
+const STATUS_TABS: StatusFilter[] = ['ALL', 'DRAFT', 'PENDING', 'APPROVED', 'DONE', 'FAILED'];
+
 function ChangesPageContent() {
   const searchParams = useSearchParams();
   const [changes, setChanges] = useState<ChangeRow[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
 
   const [sql, setSql] = useState(() => searchParams.get('sql') ?? '');
   const [environment, setEnvironment] = useState('DEV');
@@ -58,6 +62,16 @@ function ChangesPageContent() {
     await apiClient.post(`/api/v1/changes/${id}/execute`);
     await fetchChanges();
   }
+
+  async function handleRevert(id: string) {
+    await apiClient.post(`/api/v1/changes/${id}/revert`);
+    await fetchChanges();
+  }
+
+  const filteredChanges =
+    statusFilter === 'ALL'
+      ? changes
+      : changes.filter((c) => (c as ChangeRow & { status?: string }).status?.toUpperCase() === statusFilter);
 
   if (!getToken()) {
     return (
@@ -121,16 +135,39 @@ function ChangesPageContent() {
         <div className="flex items-center justify-between mb-3">
           <div className="font-pixel text-xl text-fg-2">[ All Changes ({total}) ]</div>
           <button
-            onClick={fetchChanges}
+            onClick={() => void fetchChanges()}
             className="font-pixel text-lg text-fg-2 hover:text-accent border border-rim hover:border-accent px-2 py-0.5 transition-none"
           >
             Refresh
           </button>
         </div>
+
+        {/* Status filter tabs */}
+        <div className="flex gap-1 mb-3 flex-wrap">
+          {STATUS_TABS.map((s) => (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              className={`font-pixel text-lg px-2 py-0.5 border transition-none ${
+                statusFilter === s
+                  ? 'border-accent text-accent bg-accent/10'
+                  : 'border-rim text-fg-2 hover:border-accent hover:text-accent'
+              }`}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+
         {loading ? (
           <p className="text-fg-2 text-xs font-mono">Loading…</p>
         ) : (
-          <ChangeTable rows={changes} onSubmit={handleSubmit} onExecute={handleExecute} />
+          <ChangeTable
+            rows={filteredChanges}
+            onSubmit={handleSubmit}
+            onExecute={handleExecute}
+            onRevert={handleRevert}
+          />
         )}
       </div>
     </div>
