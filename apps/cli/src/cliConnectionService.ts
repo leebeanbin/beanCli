@@ -10,6 +10,9 @@ import {
   upsertConnection,
   removeConnection,
   getEnvConnection,
+  saveSession,
+  loadSession,
+  clearSession,
 } from './connections.js';
 import { createAdapter, initDbAdapters } from '@tfsdc/infrastructure';
 import type {
@@ -19,11 +22,18 @@ import type {
   AiMessage,
   AiStreamCallbacks,
   UserRole,
+  ChangeItem,
 } from '@tfsdc/tui';
 import type { IDbAdapter } from '@tfsdc/infrastructure';
 import { detectQueryType } from '@tfsdc/tui';
 
 const API_URL = process.env['API_URL'] ?? 'http://localhost:3100';
+
+/** Returns Authorization header if a valid session token is stored. */
+function authHeaders(): Record<string, string> {
+  const token = loadSession();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 // SEC-005: query safety limits
 const QUERY_TIMEOUT_MS = 30_000;
@@ -257,6 +267,8 @@ export function createCliConnectionService(): IConnectionService {
         if (!res.ok) {
           return { ok: false, error: data.error ?? `Login failed (HTTP ${res.status})` };
         }
+        // Persist token for future API calls
+        if (data.token) saveSession(data.token);
         return {
           ok: true,
           token: data.token,
@@ -271,6 +283,63 @@ export function createCliConnectionService(): IConnectionService {
       }
     },
 
+    async listChanges(params?: { status?: string; limit?: number }): Promise<ChangeItem[]> {
+      const qs = new URLSearchParams();
+      if (params?.status) qs.set('status', params.status);
+      if (params?.limit) qs.set('limit', String(params.limit));
+      const res = await fetch(`${API_URL}/api/v1/changes?${qs}`, { headers: authHeaders() });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = (await res.json()) as { items?: ChangeItem[] } | ChangeItem[];
+      return Array.isArray(data) ? data : (data.items ?? []);
+    },
+
+    async createChange(sql: string, description?: string, env?: string): Promise<{ id: string; status: string }> {
+      const res = await fetch(`${API_URL}/api/v1/changes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ sql, description, environment: env ?? 'dev' }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json() as Promise<{ id: string; status: string }>;
+    },
+
+    async submitChange(id: string): Promise<{ status: string }> {
+      const res = await fetch(`${API_URL}/api/v1/changes/${id}/submit`, { method: 'POST', headers: authHeaders() });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json() as Promise<{ status: string }>;
+    },
+
+    async executeChange(id: string): Promise<{ status: string; affectedRows?: number }> {
+      const res = await fetch(`${API_URL}/api/v1/changes/${id}/execute`, { method: 'POST', headers: authHeaders() });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json() as Promise<{ status: string; affectedRows?: number }>;
+    },
+
+    async revertChange(id: string): Promise<{ status: string }> {
+      const res = await fetch(`${API_URL}/api/v1/changes/${id}/revert`, { method: 'POST', headers: authHeaders() });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json() as Promise<{ status: string }>;
+    },
+
+    async listPendingApprovals(): Promise<ChangeItem[]> {
+      const res = await fetch(`${API_URL}/api/v1/approvals/pending`, { headers: authHeaders() });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = (await res.json()) as { items?: ChangeItem[] } | ChangeItem[];
+      return Array.isArray(data) ? data : (data.items ?? []);
+    },
+
+    async approveChange(changeId: string): Promise<{ status: string }> {
+      const res = await fetch(`${API_URL}/api/v1/approvals/${changeId}/approve`, { method: 'POST', headers: authHeaders() });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json() as Promise<{ status: string }>;
+    },
+
+    async rejectChange(changeId: string): Promise<{ status: string }> {
+      const res = await fetch(`${API_URL}/api/v1/approvals/${changeId}/reject`, { method: 'POST', headers: authHeaders() });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json() as Promise<{ status: string }>;
+    },
+
     async streamAi(
       messages: AiMessage[],
       opts: { model?: string },
@@ -279,7 +348,7 @@ export function createCliConnectionService(): IConnectionService {
       try {
         const res = await fetch(`${API_URL}/api/v1/ai/stream`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...authHeaders() },
           body: JSON.stringify({ messages, model: opts.model, includeSchema: true }),
         });
 

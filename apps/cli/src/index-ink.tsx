@@ -15,9 +15,31 @@ import { start } from '@tfsdc/tui';
 import { createCliConnectionService } from './cliConnectionService.js';
 import { createMockConnectionService } from './mockConnectionService.js';
 import { loadHistory, appendHistory } from './historyStore.js';
+import { loadPlugin, initDbAdapters } from '@tfsdc/infrastructure';
 
 const isMock =
   process.argv.includes('--mock') || process.env['MOCK'] === 'true' || process.env['MOCK'] === '1';
+
+// Collect --plugin <path> arguments (may appear multiple times)
+const pluginPaths: string[] = [];
+for (let i = 0; i < process.argv.length; i++) {
+  if (process.argv[i] === '--plugin' && process.argv[i + 1]) {
+    pluginPaths.push(process.argv[i + 1]!);
+    i++; // skip next arg
+  }
+}
+
+// Load plugins after adapters are initialized
+if (!isMock && pluginPaths.length > 0) {
+  initDbAdapters();
+  for (const p of pluginPaths) {
+    try {
+      await loadPlugin(p);
+    } catch (e) {
+      process.stderr.write(`[plugin] Failed to load "${p}": ${e instanceof Error ? e.message : String(e)}\n`);
+    }
+  }
+}
 
 start({
   connectionService: isMock ? createMockConnectionService() : createCliConnectionService(),
