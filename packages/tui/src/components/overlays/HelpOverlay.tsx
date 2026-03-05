@@ -31,6 +31,8 @@ const SECTIONS: Array<{ title: string; rows: Row[] }> = [
       { key: 'R', desc: 'DLQ Recovery' },
       { key: 'I', desc: 'Index Lab' },
       { key: 'b', desc: 'Browse (Explore) mode' },
+      { key: 'C', desc: 'Change Requests' },
+      { key: 'P', desc: 'Pending Approvals' },
     ],
   },
   {
@@ -104,6 +106,27 @@ const SECTIONS: Array<{ title: string; rows: Row[] }> = [
       { key: '/', desc: 'Filter tables' },
       { key: 'Enter', desc: 'Open table in browse mode' },
       { key: 'Esc / q', desc: 'Close picker' },
+    ],
+  },
+  {
+    title: 'CHANGE PANEL',
+    rows: [
+      { key: 'j / k', desc: 'Navigate list' },
+      { key: 'n', desc: 'New change request' },
+      { key: 's', desc: 'Submit (DRAFT→PENDING)' },
+      { key: 'x', desc: 'Execute (APPROVED→DONE)' },
+      { key: 'r', desc: 'Revert (FAILED→REVERTED)' },
+      { key: 'f', desc: 'Cycle status filter' },
+      { key: 'R', desc: 'Refresh list' },
+    ],
+  },
+  {
+    title: 'APPROVAL PANEL',
+    rows: [
+      { key: 'j / k', desc: 'Navigate list' },
+      { key: 'a', desc: 'Approve selected' },
+      { key: 'r', desc: 'Reject (y/n confirm)' },
+      { key: 'R', desc: 'Refresh list' },
     ],
   },
 ];

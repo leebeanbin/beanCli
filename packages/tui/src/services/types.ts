@@ -136,4 +136,28 @@ export interface IConnectionService {
     opts: { model?: string },
     callbacks: AiStreamCallbacks,
   ) => Promise<void>;
+
+  // ── Change Request methods ────────────────────────────────────────────────
+  listChanges?(params?: { status?: string; limit?: number }): Promise<ChangeItem[]>;
+  createChange?(sql: string, description?: string, env?: string): Promise<{ id: string; status: string }>;
+  submitChange?(id: string): Promise<{ status: string }>;
+  executeChange?(id: string): Promise<{ status: string; affectedRows?: number }>;
+  revertChange?(id: string): Promise<{ status: string }>;
+  listPendingApprovals?(): Promise<ChangeItem[]>;
+  approveChange?(changeId: string): Promise<{ status: string }>;
+  rejectChange?(changeId: string): Promise<{ status: string }>;
+}
+
+// ── ChangeItem ────────────────────────────────────────────────────────────────
+
+export interface ChangeItem {
+  id: string;
+  sql: string;
+  status: string;
+  actor: string;
+  environment: string;
+  description?: string;
+  created_at: string;
+  failure_reason?: string;
+  affected_rows_actual?: number;
 }

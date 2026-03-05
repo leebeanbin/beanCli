@@ -1,7 +1,9 @@
 import React, { useMemo } from 'react';
 import { Box, Text, useInput } from 'ink';
+import * as fs from 'fs';
 import { useAppContext } from '../../context/AppContext.js';
 import { useQuery } from '../../hooks/useQuery.js';
+import { rowsToCsv, rowsToJson } from '../../utils/exportUtils.js';
 
 // ── SQL keyword highlighter ───────────────────────────────────────────────────
 
@@ -91,6 +93,7 @@ export const QueryPanel: React.FC = () => {
     paletteOpen,
     activeConnection,
     queryLoading,
+    queryResult,
     tables,
     setOverlay,
     setExpandedMode,
@@ -204,6 +207,48 @@ export const QueryPanel: React.FC = () => {
         '  pg_postmaster_start_time() AS started_at',
       ].join(' ');
       await execute(sql);
+      setInput('');
+      return true;
+    }
+
+    // \export csv|json <filename>  — export current result set
+    if (verb === '\\export') {
+      const fmt = (parts[1] ?? '').toLowerCase();
+      const filename = parts[2] ?? '';
+      if (!filename || (fmt !== 'csv' && fmt !== 'json')) {
+        setQueryError('Usage: \\export csv|json <filename>');
+        setInput('');
+        return true;
+      }
+      if (!queryResult || queryResult.rows.length === 0) {
+        setQueryError('No results to export — run a query first');
+        setInput('');
+        return true;
+      }
+      try {
+        const content = fmt === 'csv'
+          ? rowsToCsv(queryResult.columns, queryResult.rows)
+          : rowsToJson(queryResult.rows);
+        fs.writeFileSync(filename, content, 'utf8');
+        setQueryError(null);
+        // Show success via a transient message — we reuse setQueryError with a success prefix
+        setQueryError(`✓ Exported ${queryResult.rows.length} rows → ${filename}`);
+      } catch (e) {
+        setQueryError(`Export failed: ${e instanceof Error ? e.message : String(e)}`);
+      }
+      setInput('');
+      return true;
+    }
+
+    // \explain <sql>  — run EXPLAIN ANALYZE on the given SQL
+    if (verb === '\\explain') {
+      const explainSql = parts.slice(1).join(' ');
+      if (!explainSql) {
+        setQueryError('Usage: \\explain <sql>');
+        setInput('');
+        return true;
+      }
+      await execute(`EXPLAIN ANALYZE ${explainSql}`);
       setInput('');
       return true;
     }
@@ -493,6 +538,9 @@ export const QueryPanel: React.FC = () => {
           </Text>
           <Text color="#374151" dimColor>
             {'  \\dt:tables  \\d <tbl>:schema  \\x:expanded  \\ping:test  \\status  \\q:quit'}
+          </Text>
+          <Text color="#374151" dimColor>
+            {'  \\export csv|json <file>:export  \\explain <sql>:explain'}
           </Text>
         </Box>
       )}

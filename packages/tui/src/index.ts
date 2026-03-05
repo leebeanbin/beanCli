@@ -49,6 +49,7 @@ export type {
   UserRole,
   LoginResult,
   IConnectionService,
+  ChangeItem,
 } from './services/types.js';
 
 // Context types
