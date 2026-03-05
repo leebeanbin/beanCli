@@ -253,6 +253,13 @@ export const QueryPanel: React.FC = () => {
       return true;
     }
 
+    // \pw  — change password
+    if (verb === '\\pw') {
+      setOverlay({ type: 'password-change' });
+      setInput('');
+      return true;
+    }
+
     // \?  /  \help  — show meta help as result
     if (verb === '\\?' || verb === '\\help') {
       setInput('');
@@ -540,7 +547,7 @@ export const QueryPanel: React.FC = () => {
             {'  \\dt:tables  \\d <tbl>:schema  \\x:expanded  \\ping:test  \\status  \\q:quit'}
           </Text>
           <Text color="#374151" dimColor>
-            {'  \\export csv|json <file>:export  \\explain <sql>:explain'}
+            {'  \\export csv|json <file>:export  \\explain <sql>:explain  \\pw:change-pw'}
           </Text>
         </Box>
       )}

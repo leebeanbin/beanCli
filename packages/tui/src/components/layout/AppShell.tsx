@@ -17,6 +17,7 @@ import { ConnectionFormOverlay } from '../connection/ConnectionFormOverlay.js';
 import { TablePickerOverlay } from '../overlays/TablePickerOverlay.js';
 import { CreateTableOverlay } from '../overlays/CreateTableOverlay.js';
 import { HelpOverlay } from '../overlays/HelpOverlay.js';
+import { PasswordChangeOverlay } from '../overlays/PasswordChangeOverlay.js';
 import { usePanelFocus } from '../../hooks/usePanelFocus.js';
 import { useAppContext } from '../../context/AppContext.js';
 import { useConnection } from '../../hooks/useConnection.js';
@@ -155,6 +156,7 @@ export const AppShell: React.FC = () => {
   const showTablePicker = overlay?.type === 'table-picker';
   const showCreateTable = overlay?.type === 'create-table';
   const showHelp = overlay?.type === 'help';
+  const showPasswordChange = overlay?.type === 'password-change';
   const centerTitle =
     appMode === 'browse' ? `Explore · ${browseTable ?? '—'}` : (CENTER_TITLES[appMode] ?? 'Query');
 
@@ -296,6 +298,13 @@ export const AppShell: React.FC = () => {
       {showHelp && (
         <Box position="absolute" marginLeft={0} marginTop={0}>
           <HelpOverlay />
+        </Box>
+      )}
+
+      {/* ── Password change overlay (\pw meta-command) ─── */}
+      {showPasswordChange && (
+        <Box position="absolute" marginLeft={0} marginTop={0}>
+          <PasswordChangeOverlay />
         </Box>
       )}
     </Box>
