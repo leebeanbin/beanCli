@@ -4,6 +4,9 @@ import { useAppContext } from '../../context/AppContext.js';
 import { SPINNER } from '../../utils/constants.js';
 import { useCursor } from '../../hooks/useCursor.js';
 
+type InputMode = 'none' | 'create-table' | 'create-columns' | 'create-name' | 'drop-confirm';
+
+
 const INDEXES_SQL = `
 SELECT
   tablename   AS "table",
@@ -53,6 +56,14 @@ export const IndexPanel: React.FC = () => {
   const [filter, setFilter] = useState('');
   const [filtering, setFiltering] = useState(false);
   const [spinIdx, setSpinIdx] = useState(0);
+
+  // ── Create / drop index state ──────────────────────────────────────────────
+  const [inputMode, setInputMode] = useState<InputMode>('none');
+  const [createTable, setCreateTable] = useState('');
+  const [createColumns, setCreateColumns] = useState('');
+  const [createName, setCreateName] = useState('');
+  const [fieldInput, setFieldInput] = useState('');
+  const [actionMsg, setActionMsg] = useState<string | null>(null);
 
   const isActive =
     (focusedPanel === 'query' || focusedPanel === 'result') && !overlay && !paletteOpen;
@@ -109,6 +120,78 @@ export const IndexPanel: React.FC = () => {
 
   useInput((inp, key) => {
     if (!isActive) return;
+
+    // ── Create/drop input modes ────────────────────────────────────────────
+    if (inputMode !== 'none') {
+      if (key.escape) {
+        setInputMode('none');
+        setFieldInput('');
+        setActionMsg(null);
+        return;
+      }
+      if (inputMode === 'drop-confirm') {
+        if (inp === 'y' || inp === 'Y') {
+          const row = filtered[cursor];
+          const name = String(row?.['name'] ?? '');
+          if (!name) { setInputMode('none'); return; }
+          void (async () => {
+            const result = await connectionService?.dropIndex?.(name);
+            if (result?.error) {
+              setActionMsg(`✗ ${result.error}`);
+            } else {
+              setActionMsg(`✓ Dropped index "${name}"`);
+              void fetchData();
+            }
+            setInputMode('none');
+          })();
+        } else {
+          setInputMode('none');
+          setActionMsg(null);
+        }
+        return;
+      }
+      if (key.return) {
+        if (inputMode === 'create-table') {
+          if (!fieldInput.trim()) return;
+          setCreateTable(fieldInput.trim());
+          setFieldInput('');
+          setInputMode('create-columns');
+        } else if (inputMode === 'create-columns') {
+          if (!fieldInput.trim()) return;
+          setCreateColumns(fieldInput.trim());
+          setFieldInput('');
+          setInputMode('create-name');
+        } else if (inputMode === 'create-name') {
+          const nameVal = fieldInput.trim();
+          setCreateName(nameVal);
+          setFieldInput('');
+          void (async () => {
+            const cols = createColumns.split(',').map((c) => c.trim()).filter(Boolean);
+            const result = await connectionService?.createIndex?.(createTable, cols, nameVal || undefined);
+            if (result?.error) {
+              setActionMsg(`✗ ${result.error}`);
+            } else {
+              setActionMsg(`✓ Index created on ${createTable}(${cols.join(', ')})`);
+              void fetchData();
+            }
+            setInputMode('none');
+            setCreateTable('');
+            setCreateColumns('');
+            setCreateName('');
+          })();
+        }
+        return;
+      }
+      if (key.backspace) {
+        setFieldInput((s) => s.slice(0, -1));
+        return;
+      }
+      if (inp && inp >= ' ' && !key.ctrl && !key.meta) {
+        setFieldInput((s) => s + inp);
+      }
+      return;
+    }
+
     if (filtering) {
       if (key.escape || key.return) {
         setFiltering(false);
@@ -121,6 +204,17 @@ export const IndexPanel: React.FC = () => {
       if (inp && inp >= ' ' && !key.ctrl) {
         setFilter((s) => s + inp);
       }
+      return;
+    }
+    if (inp === 'n' && tab === 'indexes') {
+      setActionMsg(null);
+      setFieldInput('');
+      setInputMode('create-table');
+      return;
+    }
+    if (inp === 'd' && tab === 'indexes' && filtered.length > 0) {
+      setActionMsg(null);
+      setInputMode('drop-confirm');
       return;
     }
     if (inp === 'f') {
@@ -136,6 +230,7 @@ export const IndexPanel: React.FC = () => {
     if (key.escape) {
       setFilter('');
       setFiltering(false);
+      setActionMsg(null);
       return;
     }
     if (inp === 'r') {
@@ -333,8 +428,47 @@ export const IndexPanel: React.FC = () => {
       )}
 
       <Text color="#1a2a3a">{'─'.repeat(Math.min(panelWidth, 60))}</Text>
+
+      {/* ── Create index inline form ─────────────────── */}
+      {inputMode === 'create-table' && (
+        <Box>
+          <Text color="#f59e0b">New index — Table: </Text>
+          <Text color="#e0e0e0">{fieldInput}</Text>
+          <Text color="#0a1628" backgroundColor="#00d4ff">{' '}</Text>
+        </Box>
+      )}
+      {inputMode === 'create-columns' && (
+        <Box>
+          <Text color="#f59e0b">New index on {createTable} — Columns (comma-sep): </Text>
+          <Text color="#e0e0e0">{fieldInput}</Text>
+          <Text color="#0a1628" backgroundColor="#00d4ff">{' '}</Text>
+        </Box>
+      )}
+      {inputMode === 'create-name' && (
+        <Box>
+          <Text color="#f59e0b">Index name (optional, Enter to skip): </Text>
+          <Text color="#e0e0e0">{fieldInput}</Text>
+          <Text color="#0a1628" backgroundColor="#00d4ff">{' '}</Text>
+        </Box>
+      )}
+      {inputMode === 'drop-confirm' && filtered[cursor] && (
+        <Box>
+          <Text color="#ef4444">Drop index "{String(filtered[cursor]?.['name'] ?? '')}"? </Text>
+          <Text color="#e0e0e0">[y/N] </Text>
+        </Box>
+      )}
+
+      {/* ── Action message ───────────────────────────── */}
+      {actionMsg && (
+        <Text color={actionMsg.startsWith('✓') ? '#10b981' : '#ef4444'} dimColor>
+          {actionMsg}
+        </Text>
+      )}
+
       <Text color="#374151" dimColor>
-        {`  j/k:row  f:tab  /:filter  r:refresh  [${cursor + 1}/${filtered.length}]`}
+        {tab === 'indexes'
+          ? `  j/k:row  n:create  d:drop  f:tab  /:filter  r:refresh  [${cursor + 1}/${filtered.length}]`
+          : `  j/k:row  f:tab  /:filter  r:refresh  [${cursor + 1}/${filtered.length}]`}
       </Text>
     </Box>
   );

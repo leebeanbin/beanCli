@@ -48,6 +48,9 @@ const SECTIONS: Array<{ title: string; rows: Row[] }> = [
       { key: '\\x', desc: 'Toggle expanded mode' },
       { key: '\\ping', desc: 'Connection roundtrip test' },
       { key: '\\status', desc: 'Connection info' },
+      { key: '\\export csv|json', desc: 'Export current results' },
+      { key: '\\explain <sql>', desc: 'EXPLAIN ANALYZE' },
+      { key: '\\pw', desc: 'Change password' },
       { key: '\\q', desc: 'Quit' },
     ],
   },
@@ -106,6 +109,17 @@ const SECTIONS: Array<{ title: string; rows: Row[] }> = [
       { key: '/', desc: 'Filter tables' },
       { key: 'Enter', desc: 'Open table in browse mode' },
       { key: 'Esc / q', desc: 'Close picker' },
+    ],
+  },
+  {
+    title: 'INDEX LAB (I)',
+    rows: [
+      { key: 'j / k', desc: 'Navigate indexes' },
+      { key: 'n', desc: 'Create new index' },
+      { key: 'd', desc: 'Drop selected index (y/N)' },
+      { key: 'f', desc: 'Switch tab (Indexes / Table Stats)' },
+      { key: '/', desc: 'Filter' },
+      { key: 'r', desc: 'Refresh' },
     ],
   },
   {
