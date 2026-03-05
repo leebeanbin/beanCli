@@ -1,146 +1,221 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '../../context/AuthContext';
+import { setToken } from '../../lib/api';
 
-const ROLES = ['MANAGER', 'DBA', 'SECURITY_ADMIN', 'VIEWER'] as const;
-
-function base64url(input: string | Uint8Array): string {
-  const bytes = typeof input === 'string' ? new TextEncoder().encode(input) : input;
-  let binary = '';
-  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-}
-
-async function signJwt(payload: object, secret: string): Promise<string> {
-  const header = base64url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-  const body = base64url(JSON.stringify(payload));
-  const unsigned = `${header}.${body}`;
-
-  const key = await crypto.subtle.importKey(
-    'raw',
-    new TextEncoder().encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign'],
-  );
-  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(unsigned));
-  return `${unsigned}.${base64url(new Uint8Array(sig))}`;
-}
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3100';
 
 export default function AuthPage() {
-  const [sub, setSub] = useState('dev-user');
-  const [role, setRole] = useState<string>('MANAGER');
-  const [secret, setSecret] = useState('dev-jwt-secret-change-in-prod');
-  const [token, setToken] = useState('');
-  const [saved, setSaved] = useState(false);
+  const { isAuthenticated, login, user } = useAuth();
+  const router = useRouter();
 
-  async function handleGenerate() {
-    const payload = {
-      sub,
-      role,
-      iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + 3600,
-    };
-    const jwt = await signJwt(payload, secret);
-    setToken(jwt);
-    setSaved(false);
+  // Setup detection
+  const [needsSetup, setNeedsSetup] = useState<boolean | null>(null);
+
+  // Login form state
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // Already logged in → go home
+  useEffect(() => {
+    if (isAuthenticated) router.replace('/');
+  }, [isAuthenticated, router]);
+
+  // Check setup status on mount
+  useEffect(() => {
+    fetch(`${API_BASE}/api/v1/auth/setup-status`)
+      .then((r) => r.json())
+      .then((data: unknown) => {
+        const d = data as { needsSetup?: boolean };
+        setNeedsSetup(!!d.needsSetup);
+      })
+      .catch(() => setNeedsSetup(false));
+  }, []);
+
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    const result = await login(username, password);
+    setLoading(false);
+    if (result.ok) {
+      router.replace('/');
+    } else {
+      setError(result.error ?? 'Login failed');
+    }
   }
 
-  function handleSave() {
-    if (!token) return;
-    localStorage.setItem('tfsdc_token', token);
-    setSaved(true);
+  async function handleSetup(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/auth/setup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+      const data = (await res.json()) as { token?: string; error?: string };
+      if (!res.ok) {
+        setError(data.error ?? `Setup failed (HTTP ${res.status})`);
+        return;
+      }
+      // Auto-login with returned token
+      setToken(data.token ?? '');
+      router.replace('/');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Network error');
+    } finally {
+      setLoading(false);
+    }
   }
 
-  function handleClear() {
-    localStorage.removeItem('tfsdc_token');
-    setToken('');
-    setSaved(false);
-  }
-
-  return (
-    <div className="max-w-xl mx-auto">
-      <h1 className="font-pixel text-3xl text-fg mb-2">[ Dev JWT Generator ]</h1>
-      <p className="text-xs font-mono text-fg-2 mb-6">
-        Development-only tool. Generates a HS256-signed JWT stored in localStorage. Must match{' '}
-        <code className="text-accent">JWT_SECRET</code> in .env.
-      </p>
-
-      <div className="bg-bg-2 border border-rim shadow-px p-6 space-y-4">
-        <div>
-          <label className="block font-pixel text-lg text-fg-2 mb-1">Subject (actor)</label>
-          <input
-            type="text"
-            value={sub}
-            onChange={(e) => setSub(e.target.value)}
-            className="w-full bg-bg border border-rim text-fg font-mono text-sm px-3 py-2 focus:outline-none focus:border-accent"
-          />
-        </div>
-
-        <div>
-          <label className="block font-pixel text-lg text-fg-2 mb-1">Role</label>
-          <select
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            className="w-full bg-bg border border-rim text-fg font-mono text-sm px-3 py-2 focus:outline-none focus:border-accent"
-          >
-            {ROLES.map((r) => (
-              <option key={r} value={r}>
-                {r}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block font-pixel text-lg text-fg-2 mb-1">JWT Secret</label>
-          <input
-            type="password"
-            value={secret}
-            onChange={(e) => setSecret(e.target.value)}
-            className="w-full bg-bg border border-rim text-fg font-mono text-sm px-3 py-2 focus:outline-none focus:border-accent"
-          />
-        </div>
-
-        <button
-          onClick={handleGenerate}
-          disabled={!sub || !secret}
-          className="w-full border border-accent text-accent hover:bg-accent hover:text-bg px-4 py-2 font-pixel text-xl shadow-px-a disabled:opacity-40 disabled:cursor-not-allowed transition-none"
-        >
-          [ Generate Token ]
-        </button>
+  // Loading setup status
+  if (needsSetup === null) {
+    return (
+      <div className="max-w-sm mx-auto mt-8">
+        <p className="font-mono text-xs text-fg-2 animate-pulse">[ Checking system status... ]</p>
       </div>
+    );
+  }
 
-      {token && (
-        <div className="mt-6 bg-bg-2 border border-rim shadow-px p-6 space-y-4">
-          <div className="font-pixel text-xl text-fg-2">Generated Token</div>
-          <textarea
-            readOnly
-            value={token}
-            rows={5}
-            className="w-full bg-bg border border-rim text-fg-2 font-mono text-xs px-3 py-2 resize-none focus:outline-none"
-          />
-          <div className="flex gap-3">
-            <button
-              onClick={handleSave}
-              className="flex-1 border border-ok text-ok hover:bg-ok hover:text-bg px-4 py-2 font-pixel text-xl shadow-px-o transition-none"
-            >
-              {saved ? '● Saved to localStorage' : '[ Save to localStorage ]'}
-            </button>
-            <button
-              onClick={handleClear}
-              className="flex-1 border border-rim text-fg-2 hover:border-danger hover:text-danger px-4 py-2 font-pixel text-xl transition-none"
-            >
-              [ Clear Token ]
-            </button>
+  // ── First-run setup form ──────────────────────────────────────────────────
+  if (needsSetup) {
+    return (
+      <div className="max-w-sm mx-auto mt-8">
+        <h1 className="font-pixel text-3xl text-accent mb-2">[ First Run Setup ]</h1>
+        <p className="text-xs font-mono text-fg-2 mb-6">
+          No accounts found. Create the initial administrator account (DBA role).
+        </p>
+
+        <form onSubmit={handleSetup} className="bg-bg-2 border border-rim shadow-px p-6 space-y-4">
+          <div className="border-b border-rim pb-3 mb-1">
+            <p className="font-pixel text-base text-ok">● System ready — needs first admin</p>
           </div>
-          {saved && (
-            <p className="text-xs font-mono text-ok">
-              ● Token saved. Authenticated requests will use this token automatically.
+
+          <div>
+            <label className="block font-pixel text-lg text-fg-2 mb-1">Admin Username</label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              autoFocus
+              minLength={3}
+              maxLength={64}
+              autoComplete="username"
+              className="w-full bg-bg border border-rim text-fg font-mono text-sm px-3 py-2 focus:outline-none focus:border-accent"
+            />
+          </div>
+
+          <div>
+            <label className="block font-pixel text-lg text-fg-2 mb-1">Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={8}
+              autoComplete="new-password"
+              className="w-full bg-bg border border-rim text-fg font-mono text-sm px-3 py-2 focus:outline-none focus:border-accent"
+            />
+            <p className="text-xs font-mono text-fg-2 opacity-60 mt-1">Minimum 8 characters</p>
+          </div>
+
+          {error && (
+            <p className="text-xs font-mono text-danger border border-danger px-3 py-2 bg-danger/10">
+              ✗ {error}
             </p>
           )}
+
+          <button
+            type="submit"
+            disabled={loading || !username || !password || password.length < 8}
+            className="w-full border border-accent text-accent hover:bg-accent hover:text-bg px-4 py-2 font-pixel text-xl shadow-px-a disabled:opacity-40 disabled:cursor-not-allowed transition-none"
+          >
+            {loading ? '[ Creating Admin... ]' : '[ Create Admin Account ]'}
+          </button>
+        </form>
+      </div>
+    );
+  }
+
+  // ── Normal login form ─────────────────────────────────────────────────────
+  return (
+    <div className="max-w-sm mx-auto mt-8">
+      <h1 className="font-pixel text-3xl text-fg mb-2">[ Sign In ]</h1>
+      <p className="text-xs font-mono text-fg-2 mb-6">
+        Enter your beanCLI credentials. Session is stored locally and expires in 1 hour.
+      </p>
+
+      <form onSubmit={handleLogin} className="bg-bg-2 border border-rim shadow-px p-6 space-y-4">
+        <div>
+          <label className="block font-pixel text-lg text-fg-2 mb-1">Username</label>
+          <input
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+            autoFocus
+            autoComplete="username"
+            className="w-full bg-bg border border-rim text-fg font-mono text-sm px-3 py-2 focus:outline-none focus:border-accent"
+          />
         </div>
-      )}
+
+        <div>
+          <label className="block font-pixel text-lg text-fg-2 mb-1">Password</label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            autoComplete="current-password"
+            className="w-full bg-bg border border-rim text-fg font-mono text-sm px-3 py-2 focus:outline-none focus:border-accent"
+          />
+        </div>
+
+        {error && (
+          <p className="text-xs font-mono text-danger border border-danger px-3 py-2 bg-danger/10">
+            ✗ {error}
+          </p>
+        )}
+
+        <button
+          type="submit"
+          disabled={loading || !username || !password}
+          className="w-full border border-accent text-accent hover:bg-accent hover:text-bg px-4 py-2 font-pixel text-xl shadow-px-a disabled:opacity-40 disabled:cursor-not-allowed transition-none"
+        >
+          {loading ? '[ Authenticating... ]' : '[ Sign In ]'}
+        </button>
+      </form>
+
+      <div className="mt-6 border border-rim bg-bg-2 shadow-px">
+        <button
+          type="button"
+          className="w-full px-4 py-2 font-pixel text-base text-fg-2 hover:text-accent text-left flex items-center gap-2"
+          onClick={() => {
+            const el = document.getElementById('dev-hint');
+            if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+          }}
+        >
+          <span className="opacity-50">▸</span> Dev Credentials Hint
+        </button>
+        <div id="dev-hint" style={{ display: 'none' }} className="px-4 pb-4 space-y-1">
+          <p className="text-xs font-mono text-fg-2 opacity-70">
+            Default seeded accounts (dev only):
+          </p>
+          <p className="text-xs font-mono text-accent">admin / admin → DBA role</p>
+          <p className="text-xs font-mono text-fg-2">manager / manager → MANAGER role</p>
+          <p className="text-xs font-mono text-fg-2">analyst / analyst → ANALYST role</p>
+          <p className="text-xs font-mono text-fg-2 opacity-50 mt-2">
+            JWT_SECRET must match the API server .env value.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

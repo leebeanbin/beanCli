@@ -58,3 +58,25 @@ export function upsertConnection(conn: DbConnection): void {
 export function removeConnection(id: string): void {
   saveConnections(loadConnections().filter((c) => c.id !== id));
 }
+
+// ── Active connection (persisted to localStorage) ─────────────────────────────
+
+const ACTIVE_KEY = 'bean_active_connection';
+
+export function getActiveConnection(): DbConnection | null {
+  try {
+    if (typeof window === 'undefined') return null;
+    const raw = localStorage.getItem(ACTIVE_KEY);
+    return raw ? (JSON.parse(raw) as DbConnection) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function setActiveConnection(conn: DbConnection): void {
+  localStorage.setItem(ACTIVE_KEY, JSON.stringify(conn));
+}
+
+export function clearActiveConnection(): void {
+  localStorage.removeItem(ACTIVE_KEY);
+}

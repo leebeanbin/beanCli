@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { apiClient } from '../../lib/api';
+import { parseExplain, type ExplainNode } from '../../lib/explainParser';
 
 interface ColumnMeta {
   name?: string;
@@ -27,6 +28,37 @@ interface SchemaTable {
   table_name?: string;
   row_count?: number;
   total_size?: string;
+}
+
+// ── EXPLAIN Tree renderer ─────────────────────────────────────────────────────
+
+function ExplainTree({ node, depth = 0 }: { node: ExplainNode; depth?: number }) {
+  const indent = depth * 20;
+  const isRoot = node.operation === 'Query Plan';
+  return (
+    <div>
+      {!isRoot && (
+        <div className="flex items-start gap-1 py-0.5" style={{ paddingLeft: `${indent}px` }}>
+          <span className="text-fg-2 shrink-0">{depth > 0 ? '→' : ''}</span>
+          <div className="min-w-0">
+            <span className="font-mono text-xs text-accent font-bold">{node.operation}</span>
+            {node.cost && (
+              <span className="font-mono text-xs text-fg-2 ml-2">{node.cost}</span>
+            )}
+            {node.actualTime && (
+              <span className="font-mono text-xs text-ok ml-2">actual={node.actualTime}</span>
+            )}
+            {node.rows != null && (
+              <span className="font-mono text-xs text-fg-2 ml-2">rows={node.rows}</span>
+            )}
+          </div>
+        </div>
+      )}
+      {node.children.map((child, i) => (
+        <ExplainTree key={i} node={child} depth={isRoot ? 0 : depth + 1} />
+      ))}
+    </div>
+  );
 }
 
 export default function SchemaPage() {
@@ -212,7 +244,18 @@ export default function SchemaPage() {
               {analyzeResult && (
                 <div className="bg-bg-2 border border-rim shadow-px p-4">
                   <div className="font-pixel text-xl text-fg-2 mb-2">[ EXPLAIN ANALYZE ]</div>
-                  <pre className="font-mono text-xs text-fg whitespace-pre-wrap">{analyzeResult}</pre>
+                  {(() => {
+                    const lines = analyzeResult.split('\n');
+                    const tree = parseExplain(lines);
+                    const hasTree = tree.children.length > 0;
+                    return hasTree ? (
+                      <div className="overflow-x-auto">
+                        <ExplainTree node={tree} />
+                      </div>
+                    ) : (
+                      <pre className="font-mono text-xs text-fg whitespace-pre-wrap">{analyzeResult}</pre>
+                    );
+                  })()}
                 </div>
               )}
             </div>
