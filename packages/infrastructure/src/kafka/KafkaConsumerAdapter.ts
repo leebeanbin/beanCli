@@ -7,13 +7,23 @@ const CONSUMER_CONFIG = {
   heartbeatInterval: 3000,
 };
 
+// Suppress Node.js TimeoutNegativeWarning from KafkaJS v2 internal heartbeat timing
+process.on('warning', (w) => {
+  if (w.name === 'TimeoutNegativeWarning') return;
+  console.warn(w);
+});
+
 export class KafkaConsumerAdapter implements IKafkaConsumer {
   private consumer: Consumer;
   private buffer: RawEvent[] = [];
   private resolveWait: (() => void) | null = null;
 
   constructor(brokers: string[], groupId?: string) {
-    const kafka = new Kafka({ clientId: 'tfsdc-projector', brokers });
+    const kafka = new Kafka({
+      clientId: 'tfsdc-projector',
+      brokers,
+      retry: { initialRetryTime: 300, retries: 8 },
+    });
     this.consumer = kafka.consumer({
       groupId: groupId ?? CONSUMER_CONFIG.groupId,
       sessionTimeout: CONSUMER_CONFIG.sessionTimeout,

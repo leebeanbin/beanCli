@@ -48,3 +48,7 @@ export { NatsAdapter } from './db/adapters/NatsAdapter.js';
  * Adding a new adapter = create adapter class + add one line to registerAllAdapters.ts.
  */
 export { registerAllAdapters as initDbAdapters } from './db/adapters/registerAllAdapters.js';
+
+// Plugin API
+export type { BeanCliPlugin, PluginModule } from './db/adapters/plugin.js';
+export { loadPlugin } from './db/adapters/loadPlugin.js';

@@ -43,21 +43,43 @@ export class MySqlAdapter implements IDbAdapter {
     return this.connection;
   }
 
+  async listDatabases(): Promise<string[]> {
+    const conn = (await this.getConnection()) as {
+      execute: (sql: string, values: unknown[]) => Promise<[Array<Record<string, unknown>>, unknown]>;
+    };
+    const [rows] = await conn.execute(
+      `SELECT SCHEMA_NAME AS db FROM information_schema.SCHEMATA ORDER BY SCHEMA_NAME`,
+      [],
+    );
+    return (rows as Array<{ db: string }>).map((r) => r.db);
+  }
+
   async listTables(): Promise<string[]> {
     const conn = (await this.getConnection()) as {
-      execute: (
-        sql: string,
-        values: unknown[],
-      ) => Promise<[Array<Record<string, unknown>>, unknown]>;
+      execute: (sql: string, values: unknown[]) => Promise<[Array<Record<string, unknown>>, unknown]>;
     };
-    const db = this.config.database ?? '';
-    // SEC-FIX: parameterised query — db name never interpolated into SQL string
+    const db = this.config.database?.trim() ?? '';
+
+    if (db) {
+      // database 지정됨 — 해당 스키마의 테이블만
+      const [rows] = await conn.execute(
+        `SELECT TABLE_NAME AS table_name FROM information_schema.TABLES
+         WHERE TABLE_SCHEMA = ?
+           AND TABLE_TYPE IN ('BASE TABLE', 'VIEW')
+         ORDER BY TABLE_NAME`,
+        [db],
+      );
+      return (rows as Array<{ table_name: string }>).map((r) => r.table_name);
+    }
+
+    // database 미지정 — 접근 가능한 모든 DB의 테이블을 'db.table' 형식으로 반환
     const [rows] = await conn.execute(
-      `SELECT TABLE_NAME AS table_name FROM information_schema.TABLES
-       WHERE TABLE_SCHEMA = ?
-       AND TABLE_TYPE IN ('BASE TABLE', 'VIEW')
-       ORDER BY TABLE_NAME`,
-      [db],
+      `SELECT CONCAT(TABLE_SCHEMA, '.', TABLE_NAME) AS table_name
+       FROM information_schema.TABLES
+       WHERE TABLE_SCHEMA NOT IN ('information_schema','performance_schema','mysql','sys')
+         AND TABLE_TYPE IN ('BASE TABLE', 'VIEW')
+       ORDER BY TABLE_SCHEMA, TABLE_NAME`,
+      [],
     );
     return (rows as Array<{ table_name: string }>).map((r) => r.table_name);
   }
