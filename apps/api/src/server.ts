@@ -1,4 +1,5 @@
 import Fastify from 'fastify';
+import fastifyCors from '@fastify/cors';
 import fastifyWebsocket from '@fastify/websocket';
 import fastifyRateLimit from '@fastify/rate-limit';
 import type { UserRole } from '@tfsdc/kernel';
@@ -44,6 +45,10 @@ export interface ServerDeps {
   changeHandler: IChangeRouteHandler;
   approvalHandler: IApprovalRouteHandler;
   pgPool: PgPool;
+  /** Skip rate limiting — for load/bench tests only, never set in production */
+  disableRateLimit?: boolean;
+  /** Disable request logging — for load/bench tests only, never set in production */
+  disableRequestLogging?: boolean;
 }
 
 export async function buildServer(deps: ServerDeps) {
@@ -51,40 +56,58 @@ export async function buildServer(deps: ServerDeps) {
   initDbAdapters();
 
   const app = Fastify({
-    logger: {
-      // SEC-006: redact sensitive fields from all pino log records
-      redact: {
-        paths: [
-          'req.headers.authorization',
-          'req.headers.cookie',
-          'body.password',
-          'body.credential',
-          'body.secret',
-          '*.password',
-          '*.credential',
-          '*.secret',
-        ],
-        censor: '[REDACTED]',
-      },
-    },
+    logger: deps.disableRequestLogging
+      ? false
+      : {
+          // SEC-006: redact sensitive fields from all pino log records
+          redact: {
+            paths: [
+              'req.headers.authorization',
+              'req.headers.cookie',
+              'body.password',
+              'body.currentPassword',
+              'body.newPassword',
+              'body.credential',
+              'body.secret',
+              '*.password',
+              '*.currentPassword',
+              '*.newPassword',
+              '*.credential',
+              '*.secret',
+            ],
+            censor: '[REDACTED]',
+          },
+        },
   });
   const APP_ENV = (process.env.APP_ENV ?? 'dev').toLowerCase();
 
-  await app.register(fastifyRateLimit, {
-    max: 60,
-    timeWindow: '1 minute',
-    // errorResponseBuilder result is thrown by the plugin — must be an Error with statusCode
-    errorResponseBuilder: (
-      _req: unknown,
-      ctx: { max: number; after: string; statusCode: number },
-    ) => {
-      const err = Object.assign(new Error(`Rate limit exceeded — max ${ctx.max} req/min`), {
-        statusCode: ctx.statusCode,
-        retryAfter: ctx.after,
-      });
-      return err;
-    },
+  // CORS — allow web console (localhost:3000) and any local origin in dev
+  await app.register(fastifyCors, {
+    origin: APP_ENV === 'prod'
+      ? (process.env.ALLOWED_ORIGINS ?? '').split(',').map((o) => o.trim()).filter(Boolean)
+      : true,   // reflect all origins in dev
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Correlation-ID'],
+    credentials: true,
   });
+
+  if (!deps.disableRateLimit) {
+    await app.register(fastifyRateLimit, {
+      max: 60,
+      timeWindow: '1 minute',
+      // errorResponseBuilder result is thrown by the plugin — must be an Error with statusCode
+      errorResponseBuilder: (
+        _req: unknown,
+        ctx: { max: number; after: string; statusCode: number },
+      ) => {
+        const err = Object.assign(new Error(`Rate limit exceeded — max ${ctx.max} req/min`), {
+          statusCode: ctx.statusCode,
+          retryAfter: ctx.after,
+        });
+        return err;
+      },
+    });
+  }
 
   await app.register(fastifyWebsocket);
 
@@ -204,8 +227,259 @@ export async function buildServer(deps: ServerDeps) {
     },
   );
 
+  // ─── Auth: setup-status ──────────────────────────
+  app.get('/api/v1/auth/setup-status', async (_request, reply) => {
+    try {
+      const result = await deps.pgPool.query('SELECT COUNT(*)::int AS cnt FROM cli_users');
+      const cnt = (result.rows[0] as { cnt: number }).cnt;
+      return reply.send({ needsSetup: cnt === 0 });
+    } catch {
+      return reply.send({ needsSetup: false });
+    }
+  });
+
+  // ─── Auth: first-run setup ────────────────────────
+  app.post(
+    '/api/v1/auth/setup',
+    { config: { rateLimit: { max: 3, timeWindow: '5 minutes' } } },
+    async (request, reply) => {
+      const body = request.body as { username?: string; password?: string };
+      if (!body?.username || !body?.password) {
+        return reply.status(400).send({ error: 'username and password are required' });
+      }
+      if (body.username.length < 3 || body.username.length > 64) {
+        return reply.status(400).send({ error: 'username must be 3–64 characters' });
+      }
+      if (body.password.length < 8) {
+        return reply.status(400).send({ error: 'password must be at least 8 characters' });
+      }
+
+      // Only allow when no users exist
+      const countResult = await deps.pgPool.query('SELECT COUNT(*)::int AS cnt FROM cli_users');
+      const cnt = (countResult.rows[0] as { cnt: number }).cnt;
+      if (cnt > 0) {
+        return reply.status(403).send({ error: 'Setup already completed. Use /auth/login.' });
+      }
+
+      await deps.pgPool.query(
+        `INSERT INTO cli_users (username, password_hash, role, active)
+         VALUES ($1, crypt($2, gen_salt('bf', 12)), 'DBA', true)`,
+        [body.username, body.password],
+      );
+
+      const token = deps.jwtSign(body.username, 'DBA');
+      return reply.status(201).send({ token, username: body.username, role: 'DBA' });
+    },
+  );
+
+  // ─── Users: list ─────────────────────────────────
+  app.get(
+    '/api/v1/users',
+    { preHandler: (await authPreHandler(['DBA', 'SECURITY_ADMIN'])) as never },
+    async (_request, reply) => {
+      const result = await deps.pgPool.query(
+        `SELECT username, role, active, created_at
+         FROM cli_users
+         ORDER BY created_at`,
+      );
+      return reply.send({ items: result.rows });
+    },
+  );
+
+  // ─── Users: create ───────────────────────────────
+  app.post(
+    '/api/v1/users',
+    { preHandler: (await authPreHandler(['DBA'])) as never },
+    async (request, reply) => {
+      const body = request.body as { username?: string; password?: string; role?: string };
+      if (!body?.username || !body?.password || !body?.role) {
+        return reply.status(400).send({ error: 'username, password, and role are required' });
+      }
+      const VALID_ROLES = ['ANALYST', 'MANAGER', 'DBA', 'SECURITY_ADMIN'];
+      if (!VALID_ROLES.includes(body.role)) {
+        return reply.status(400).send({ error: `role must be one of: ${VALID_ROLES.join(', ')}` });
+      }
+      if (body.username.length < 3 || body.username.length > 64) {
+        return reply.status(400).send({ error: 'username must be 3–64 characters' });
+      }
+      if (body.password.length < 8) {
+        return reply.status(400).send({ error: 'password must be at least 8 characters' });
+      }
+
+      try {
+        await deps.pgPool.query(
+          `INSERT INTO cli_users (username, password_hash, role, active)
+           VALUES ($1, crypt($2, gen_salt('bf', 12)), $3, true)`,
+          [body.username, body.password, body.role],
+        );
+        return reply.status(201).send({ username: body.username, role: body.role, active: true });
+      } catch (err) {
+        const e = err as { code?: string };
+        if (e?.code === '23505') {
+          return reply.status(409).send({ error: `Username '${body.username}' already exists` });
+        }
+        throw err;
+      }
+    },
+  );
+
+  // ─── Users: update role/active/username ──────────
+  app.patch<{ Params: { username: string } }>(
+    '/api/v1/users/:username',
+    { preHandler: (await authPreHandler(['DBA'])) as never },
+    async (request, reply) => {
+      const { username } = request.params;
+      const body = request.body as { role?: string; active?: boolean; newUsername?: string };
+
+      // Self-guard: role/active changes on own account are forbidden; newUsername rename is allowed
+      if (username === request.actor && (body.role !== undefined || body.active !== undefined)) {
+        return reply.status(400).send({ error: 'Cannot modify your own role or active status' });
+      }
+
+      if (body.newUsername !== undefined) {
+        if (body.newUsername.length < 3 || body.newUsername.length > 64) {
+          return reply.status(400).send({ error: 'newUsername must be 3–64 characters' });
+        }
+      }
+
+      const VALID_ROLES = ['ANALYST', 'MANAGER', 'DBA', 'SECURITY_ADMIN'];
+      if (body.role !== undefined && !VALID_ROLES.includes(body.role)) {
+        return reply.status(400).send({ error: `role must be one of: ${VALID_ROLES.join(', ')}` });
+      }
+
+      // Guard: cannot deactivate or downgrade last DBA
+      if (body.role !== undefined || body.active !== undefined) {
+        if (body.role !== 'DBA' || body.active === false) {
+          const dbaCountResult = await deps.pgPool.query(
+            `SELECT COUNT(*)::int AS cnt FROM cli_users WHERE role = 'DBA' AND active = true AND username != $1`,
+            [username],
+          );
+          const remaining = (dbaCountResult.rows[0] as { cnt: number }).cnt;
+
+          const targetResult = await deps.pgPool.query(
+            `SELECT role FROM cli_users WHERE username = $1`,
+            [username],
+          );
+          if (targetResult.rows.length === 0) {
+            return reply.status(404).send({ error: 'User not found' });
+          }
+          const targetRole = (targetResult.rows[0] as { role: string }).role;
+
+          if (targetRole === 'DBA' && remaining === 0) {
+            return reply.status(400).send({ error: 'Cannot remove the last active DBA account' });
+          }
+        }
+      }
+
+      const setClauses: string[] = [];
+      const params: unknown[] = [];
+      if (body.newUsername !== undefined) { params.push(body.newUsername); setClauses.push(`username = $${params.length}`); }
+      if (body.role !== undefined) { params.push(body.role); setClauses.push(`role = $${params.length}`); }
+      if (body.active !== undefined) { params.push(body.active); setClauses.push(`active = $${params.length}`); }
+
+      if (setClauses.length === 0) {
+        return reply.status(400).send({ error: 'Nothing to update' });
+      }
+
+      params.push(username);
+      try {
+        const result = await deps.pgPool.query(
+          `UPDATE cli_users SET ${setClauses.join(', ')} WHERE username = $${params.length}
+           RETURNING username, role, active`,
+          params,
+        );
+        if (result.rows.length === 0) {
+          return reply.status(404).send({ error: 'User not found' });
+        }
+        const row = result.rows[0] as { username: string; role: string; active: boolean };
+        const isSelfRenamed = body.newUsername !== undefined && username === request.actor;
+        return reply.send(isSelfRenamed ? { ...row, selfRenamed: true } : row);
+      } catch (err) {
+        const e = err as { code?: string };
+        if (e?.code === '23505') {
+          return reply.status(409).send({ error: 'Username already exists' });
+        }
+        throw err;
+      }
+    },
+  );
+
+  // ─── Users: deactivate (soft delete) ────────────
+  app.delete<{ Params: { username: string } }>(
+    '/api/v1/users/:username',
+    { preHandler: (await authPreHandler(['DBA'])) as never },
+    async (request, reply) => {
+      const { username } = request.params;
+
+      if (username === request.actor) {
+        return reply.status(400).send({ error: 'Cannot deactivate your own account' });
+      }
+
+      // Guard: cannot deactivate last DBA
+      const targetResult = await deps.pgPool.query(
+        `SELECT role FROM cli_users WHERE username = $1`,
+        [username],
+      );
+      if (targetResult.rows.length === 0) {
+        return reply.status(404).send({ error: 'User not found' });
+      }
+      const targetRole = (targetResult.rows[0] as { role: string }).role;
+
+      if (targetRole === 'DBA') {
+        const dbaCountResult = await deps.pgPool.query(
+          `SELECT COUNT(*)::int AS cnt FROM cli_users WHERE role = 'DBA' AND active = true AND username != $1`,
+          [username],
+        );
+        const remaining = (dbaCountResult.rows[0] as { cnt: number }).cnt;
+        if (remaining === 0) {
+          return reply.status(400).send({ error: 'Cannot deactivate the last active DBA account' });
+        }
+      }
+
+      await deps.pgPool.query(`UPDATE cli_users SET active = false WHERE username = $1`, [username]);
+      return reply.send({ success: true, username, active: false });
+    },
+  );
+
+  // ─── Auth: change-password ────────────────────────
+  app.post(
+    '/api/v1/auth/change-password',
+    {
+      preHandler: (await authPreHandler(['ANALYST', 'MANAGER', 'DBA', 'SECURITY_ADMIN'])) as never,
+      config: { rateLimit: { max: 5, timeWindow: '1 hour' } },
+    },
+    async (request, reply) => {
+      const body = request.body as { currentPassword?: string; newPassword?: string };
+      if (!body?.currentPassword || !body?.newPassword) {
+        return reply.status(400).send({ error: 'currentPassword and newPassword are required' });
+      }
+      if (body.newPassword.length < 8) {
+        return reply.status(400).send({ error: 'newPassword must be at least 8 characters' });
+      }
+
+      // Verify current password
+      const verifyResult = await deps.pgPool.query(
+        `SELECT username FROM cli_users
+         WHERE username = $1 AND active = true
+           AND password_hash = crypt($2, password_hash)`,
+        [request.actor, body.currentPassword],
+      );
+      if (verifyResult.rows.length === 0) {
+        return reply.status(401).send({ error: 'Current password is incorrect' });
+      }
+
+      await deps.pgPool.query(
+        `UPDATE cli_users SET password_hash = crypt($1, gen_salt('bf', 12)) WHERE username = $2`,
+        [body.newPassword, request.actor],
+      );
+      return reply.send({ success: true });
+    },
+  );
+
   // ─── Health ─────────────────────────────────────
   app.get('/health', async () => healthHandler(deps.healthDeps));
+  // Also expose under /api/v1 prefix for consistency
+  app.get('/api/v1/health', async () => healthHandler(deps.healthDeps));
 
   // ─── Changes ────────────────────────────────────
   app.post(
@@ -564,14 +838,29 @@ export async function buildServer(deps: ServerDeps) {
         return reply.status(400).send({ error: 'multiple statements are not allowed' });
       }
 
+      const SQL_TIMEOUT_MS = 30_000;
+      const ROW_LIMIT = 5_000;
+
+      function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+        return Promise.race([
+          promise,
+          new Promise<T>((_, reject) =>
+            setTimeout(() => reject(new Error(`Query timed out after ${ms / 1000}s`)), ms),
+          ),
+        ]);
+      }
+
       try {
         if (READONLY_SQL.test(sql)) {
-          const result = await deps.pgPool.query(sql);
+          const result = await withTimeout(deps.pgPool.query(sql), SQL_TIMEOUT_MS);
+          const truncated = result.rows.length > ROW_LIMIT;
+          const rows = truncated ? result.rows.slice(0, ROW_LIMIT) : result.rows;
           return {
             type: 'query',
-            rows: result.rows,
+            rows,
             rowCount: result.rowCount ?? result.rows.length,
-            columns: result.rows.length > 0 ? Object.keys(result.rows[0]) : [],
+            columns: rows.length > 0 ? Object.keys(rows[0]) : [],
+            ...(truncated ? { warning: `Result truncated to ${ROW_LIMIT} rows` } : {}),
           };
         }
 
@@ -586,7 +875,7 @@ export async function buildServer(deps: ServerDeps) {
               .status(403)
               .send({ error: 'Only DBA can run DDL via direct SQL endpoint' });
           }
-          const result = await deps.pgPool.query(sql);
+          const result = await withTimeout(deps.pgPool.query(sql), SQL_TIMEOUT_MS);
           return {
             type: 'ddl',
             message: `DDL executed successfully`,
@@ -605,7 +894,7 @@ export async function buildServer(deps: ServerDeps) {
               .status(403)
               .send({ error: 'Only DBA can run DML via direct SQL endpoint' });
           }
-          const result = await deps.pgPool.query(sql);
+          const result = await withTimeout(deps.pgPool.query(sql), SQL_TIMEOUT_MS);
           return {
             type: 'dml',
             message: `${result.rowCount ?? 0} row(s) affected`,
@@ -613,12 +902,15 @@ export async function buildServer(deps: ServerDeps) {
           };
         }
 
-        const result = await deps.pgPool.query(sql);
+        const result = await withTimeout(deps.pgPool.query(sql), SQL_TIMEOUT_MS);
+        const truncated = (result.rows?.length ?? 0) > ROW_LIMIT;
+        const rows = truncated ? result.rows.slice(0, ROW_LIMIT) : (result.rows ?? []);
         return {
           type: 'other',
-          rows: result.rows ?? [],
+          rows,
           rowCount: result.rowCount ?? 0,
-          columns: result.rows?.length > 0 ? Object.keys(result.rows[0]) : [],
+          columns: rows.length > 0 ? Object.keys(rows[0]) : [],
+          ...(truncated ? { warning: `Result truncated to ${ROW_LIMIT} rows` } : {}),
         };
       } catch (err) {
         return reply.status(400).send({ error: (err as Error).message });
@@ -627,111 +919,115 @@ export async function buildServer(deps: ServerDeps) {
   );
 
   // ─── Index Management ────────────────────────────
-  app.post(
-    '/api/v1/indexes/create',
-    {
-      preHandler: (await authPreHandler(['DBA'])) as never,
-    },
-    async (request, reply) => {
-      const body = request.body as {
-        table?: string;
-        columns?: string[];
-        name?: string;
-        unique?: boolean;
-      };
-      if (!body?.table || !body?.columns?.length) {
-        return reply.status(400).send({ error: 'table and columns are required' });
-      }
+  // POST /api/v1/indexes  — create an index (RESTful)
+  // POST /api/v1/indexes/create — legacy alias (kept for backward compat)
+  async function handleCreateIndex(
+    request: { body: unknown; role: UserRole },
+    reply: { status: (n: number) => { send: (d: unknown) => unknown } },
+  ) {
+    const body = request.body as {
+      table?: string;
+      columns?: string[];
+      name?: string;
+      unique?: boolean;
+    };
+    if (!body?.table || !body?.columns?.length) {
+      return reply.status(400).send({ error: 'table and columns are required' });
+    }
+    if (!isSafeIdentifier(body.table))
+      return reply.status(400).send({ error: 'invalid table name' });
+    if (!body.columns.every(isSafeIdentifier))
+      return reply.status(400).send({ error: 'invalid column name' });
+    const indexName = body.name ?? `idx_${body.table}_${body.columns.join('_')}`;
+    if (!isSafeIdentifier(indexName))
+      return reply.status(400).send({ error: 'invalid index name' });
 
-      if (!isSafeIdentifier(body.table)) {
-        return reply.status(400).send({ error: 'invalid table name' });
-      }
-      if (!body.columns.every(isSafeIdentifier)) {
-        return reply.status(400).send({ error: 'invalid column name' });
-      }
-      const indexName = body.name ?? `idx_${body.table}_${body.columns.join('_')}`;
-      if (!isSafeIdentifier(indexName)) {
-        return reply.status(400).send({ error: 'invalid index name' });
-      }
+    const uniqueStr = body.unique ? 'UNIQUE ' : '';
+    const sql = `CREATE ${uniqueStr}INDEX CONCURRENTLY IF NOT EXISTS ${quoteIdent(indexName)} ON ${quoteIdent(body.table)} (${body.columns.map(quoteIdent).join(', ')})`;
+    try {
+      await deps.pgPool.query(sql);
+      return reply.status(201).send({ success: true, sql, indexName });
+    } catch (err) {
+      return reply.status(400).send({ error: (err as Error).message, sql });
+    }
+  }
 
-      const uniqueStr = body.unique ? 'UNIQUE ' : '';
-      const safeTable = quoteIdent(body.table);
-      const safeIndex = quoteIdent(indexName);
-      const safeColumns = body.columns.map(quoteIdent).join(', ');
-      const sql = `CREATE ${uniqueStr}INDEX CONCURRENTLY IF NOT EXISTS ${safeIndex} ON ${safeTable} (${safeColumns})`;
+  const indexCreateOpts = { preHandler: (await authPreHandler(['DBA'])) as never };
+  app.post('/api/v1/indexes', indexCreateOpts, handleCreateIndex as never);
+  app.post('/api/v1/indexes/create', indexCreateOpts, handleCreateIndex as never);  // legacy
 
-      try {
-        await deps.pgPool.query(sql);
-        return { success: true, sql, indexName };
-      } catch (err) {
-        return reply.status(400).send({ error: (err as Error).message, sql });
-      }
-    },
-  );
+  // DELETE /api/v1/indexes/:name  — drop an index (RESTful)
+  // POST   /api/v1/indexes/drop   — legacy alias (kept for backward compat)
+  async function handleDropIndex(
+    request: { params?: { name?: string }; body?: { name?: string } },
+    reply: { status: (n: number) => { send: (d: unknown) => unknown } },
+  ) {
+    const name = (request.params as { name?: string })?.name ?? (request.body as { name?: string })?.name;
+    if (!name) return reply.status(400).send({ error: 'index name is required' });
+    if (!isSafeIdentifier(name)) return reply.status(400).send({ error: 'invalid index name' });
+    const sql = `DROP INDEX CONCURRENTLY IF EXISTS ${quoteIdent(name)}`;
+    try {
+      await deps.pgPool.query(sql);
+      return { success: true, sql };
+    } catch (err) {
+      return reply.status(400).send({ error: (err as Error).message, sql });
+    }
+  }
 
-  app.post(
-    '/api/v1/indexes/drop',
-    {
-      preHandler: (await authPreHandler(['DBA'])) as never,
-    },
-    async (request, reply) => {
-      const body = request.body as { name?: string };
-      if (!body?.name) return reply.status(400).send({ error: 'index name is required' });
-      if (!isSafeIdentifier(body.name))
-        return reply.status(400).send({ error: 'invalid index name' });
-
-      const sql = `DROP INDEX CONCURRENTLY IF EXISTS ${quoteIdent(body.name)}`;
-      try {
-        await deps.pgPool.query(sql);
-        return { success: true, sql };
-      } catch (err) {
-        return reply.status(400).send({ error: (err as Error).message, sql });
-      }
-    },
-  );
+  const indexDropOpts = { preHandler: (await authPreHandler(['DBA'])) as never };
+  app.delete<{ Params: { name: string } }>('/api/v1/indexes/:name', indexDropOpts, handleDropIndex as never);
+  app.post('/api/v1/indexes/drop', indexDropOpts, handleDropIndex as never);  // legacy
 
   // ─── Row Update ──────────────────────────────────
+  // PATCH /api/v1/state/:table/:id  — update a field (RESTful)
+  // POST  /api/v1/state/:table/update — legacy alias (kept for backward compat)
   // Uses updateStateField: table validated by whitelist, field by WRITABLE_FIELDS,
   // values via parameterized query — no SQL injection surface
+  async function handleStateUpdate(
+    request: {
+      params: { table: string; id?: string };
+      body: { id?: string; field: string; value: string };
+      actor: string;
+      dbSession: IDbSession;
+      role: UserRole;
+    },
+    reply: { status: (n: number) => { send: (d: unknown) => unknown } },
+  ) {
+    const { table } = request.params;
+    if (!isValidStateTable(table))
+      return reply.status(400).send({ error: `Invalid table: ${table}` });
+    const id = request.params.id ?? request.body?.id;
+    const { field, value } = request.body ?? {};
+    if (!id || !field || value === undefined) {
+      return reply.status(400).send({ error: 'id, field, value are required' });
+    }
+    try {
+      const result = await updateStateField(request.dbSession, table, id, field, String(value));
+      if (!result.updated) return reply.status(404).send({ error: 'Row not found' });
+      return { success: true };
+    } catch (err) {
+      const e = err as Error;
+      app.log.warn({ table, id, field, actor: request.actor, error: e.message }, 'state-update failed');
+      const integrity = mapIntegrityError(err);
+      if (integrity) return reply.status(integrity.status).send({ error: integrity.error, code: integrity.code });
+      const isValidation = isStateValidationError(e);
+      return reply.status(isValidation ? 422 : 400).send({
+        error: e.message,
+        code: isValidation ? 'STATE_VALIDATION_ERROR' : 'BAD_REQUEST',
+      });
+    }
+  }
+
+  const stateUpdateOpts = { preHandler: (await authPreHandler(['MANAGER', 'DBA'])) as never };
+  app.patch<{ Params: { table: string; id: string }; Body: { field: string; value: string } }>(
+    '/api/v1/state/:table/:id',
+    stateUpdateOpts,
+    handleStateUpdate as never,
+  );
   app.post<{ Params: { table: string }; Body: { id: string; field: string; value: string } }>(
     '/api/v1/state/:table/update',
-    {
-      preHandler: (await authPreHandler(['MANAGER', 'DBA'])) as never,
-    },
-    async (request, reply) => {
-      const { table } = request.params;
-      if (!isValidStateTable(table))
-        return reply.status(400).send({ error: `Invalid table: ${table}` });
-      const { id, field, value } = request.body ?? {};
-      if (!id || !field || value === undefined) {
-        return reply.status(400).send({ error: 'id, field, value are required' });
-      }
-      try {
-        const result = await updateStateField(request.dbSession, table, id, field, String(value));
-        if (!result.updated) return reply.status(404).send({ error: 'Row not found' });
-        return { success: true };
-      } catch (err) {
-        const e = err as Error;
-        app.log.warn(
-          { table, id, field, actor: request.actor, error: e.message },
-          'state-update failed',
-        );
-        const integrity = mapIntegrityError(err);
-        if (integrity) {
-          return reply
-            .status(integrity.status)
-            .send({ error: integrity.error, code: integrity.code });
-        }
-        const isValidation = isStateValidationError(e);
-        const code = isValidation ? 422 : 400;
-        return reply
-          .status(code)
-          .send({
-            error: e.message,
-            code: isValidation ? 'STATE_VALIDATION_ERROR' : 'BAD_REQUEST',
-          });
-      }
-    },
+    stateUpdateOpts,
+    handleStateUpdate as never,  // legacy
   );
 
   // ─── AI Chat Proxy ────────────────────────────
@@ -964,10 +1260,73 @@ Provide brief explanations in Korean.`;
       }
 
       try {
-        const tables = await adapter.listTables();
-        return { ok: true, tables };
+        const [tables, databases] = await Promise.all([
+          adapter.listTables(),
+          adapter.listDatabases?.().catch(() => undefined),
+        ]);
+        return { ok: true, tables, databases };
       } catch (err) {
         return reply.status(400).send({ ok: false, error: (err as Error).message });
+      } finally {
+        await adapter.close().catch(() => {});
+      }
+    },
+  );
+
+  // ─── POST /api/v1/connections/execute ───────────
+  // Execute arbitrary SQL against a caller-supplied connection config.
+  // Creates an ephemeral adapter per request (stateless).
+  app.post(
+    '/api/v1/connections/execute',
+    {
+      config: { rateLimit: { max: 120, timeWindow: '1 minute' } },
+    },
+    async (request, reply) => {
+      const body = request.body as {
+        connection?: { type?: string; host?: string; port?: number; database?: string; username?: string; password?: string };
+        sql?: string;
+      };
+
+      if (!body?.connection?.type) {
+        return reply.status(400).send({ error: 'connection.type is required' });
+      }
+      if (!body?.sql?.trim()) {
+        return reply.status(400).send({ error: 'sql is required' });
+      }
+
+      const sql = body.sql.trim();
+      if (hasMultipleStatements(sql)) {
+        return reply.status(400).send({ error: 'multiple statements are not allowed' });
+      }
+
+      let adapter;
+      try {
+        adapter = createAdapter({
+          type: body.connection.type,
+          host: body.connection.host,
+          port: body.connection.port,
+          database: body.connection.database,
+          username: body.connection.username,
+          password: body.connection.password,
+        });
+      } catch (err) {
+        return reply.status(400).send({ error: (err as Error).message });
+      }
+
+      try {
+        const start = Date.now();
+        const rows = await adapter.queryRows(sql);
+        const duration = Date.now() - start;
+        const sliced = rows.slice(0, 5000);
+        return {
+          rows: sliced,
+          columns: sliced.length > 0 ? Object.keys(sliced[0]!) : [],
+          rowCount: rows.length,
+          duration,
+          type: READONLY_SQL.test(sql) ? 'query' : DDL_SQL.test(sql) ? 'ddl' : 'dml',
+        };
+      } catch (err) {
+        return reply.status(400).send({ error: (err as Error).message });
       } finally {
         await adapter.close().catch(() => {});
       }
