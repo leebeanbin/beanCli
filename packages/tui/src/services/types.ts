@@ -146,6 +146,26 @@ export interface IConnectionService {
   listPendingApprovals?(): Promise<ChangeItem[]>;
   approveChange?(changeId: string): Promise<{ status: string }>;
   rejectChange?(changeId: string): Promise<{ status: string }>;
+
+  /**
+   * Change the current user's password.
+   */
+  changePassword?(current: string, next: string): Promise<{ error?: string }>;
+
+  /**
+   * Create an index on the given table and columns.
+   */
+  createIndex?(
+    table: string,
+    columns: string[],
+    name?: string,
+    unique?: boolean,
+  ): Promise<{ error?: string }>;
+
+  /**
+   * Drop an index by name.
+   */
+  dropIndex?(name: string): Promise<{ error?: string }>;
 }
 
 // ── ChangeItem ────────────────────────────────────────────────────────────────
