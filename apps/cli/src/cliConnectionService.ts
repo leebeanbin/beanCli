@@ -340,6 +340,61 @@ export function createCliConnectionService(): IConnectionService {
       return res.json() as Promise<{ status: string }>;
     },
 
+    async changePassword(current: string, next: string): Promise<{ error?: string }> {
+      try {
+        const res = await fetch(`${API_URL}/api/v1/auth/change-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authHeaders() },
+          body: JSON.stringify({ current_password: current, new_password: next }),
+        });
+        if (!res.ok) {
+          const body = (await res.json().catch(() => ({}))) as { error?: string };
+          return { error: body.error ?? `HTTP ${res.status}` };
+        }
+        return {};
+      } catch (err) {
+        return { error: err instanceof Error ? err.message : 'Network error' };
+      }
+    },
+
+    async createIndex(
+      table: string,
+      columns: string[],
+      name?: string,
+      unique?: boolean,
+    ): Promise<{ error?: string }> {
+      try {
+        const res = await fetch(`${API_URL}/api/v1/indexes`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authHeaders() },
+          body: JSON.stringify({ table, columns, name, unique: unique ?? false }),
+        });
+        if (!res.ok) {
+          const body = (await res.json().catch(() => ({}))) as { error?: string };
+          return { error: body.error ?? `HTTP ${res.status}` };
+        }
+        return {};
+      } catch (err) {
+        return { error: err instanceof Error ? err.message : 'Network error' };
+      }
+    },
+
+    async dropIndex(name: string): Promise<{ error?: string }> {
+      try {
+        const res = await fetch(`${API_URL}/api/v1/indexes/${encodeURIComponent(name)}`, {
+          method: 'DELETE',
+          headers: authHeaders(),
+        });
+        if (!res.ok) {
+          const body = (await res.json().catch(() => ({}))) as { error?: string };
+          return { error: body.error ?? `HTTP ${res.status}` };
+        }
+        return {};
+      } catch (err) {
+        return { error: err instanceof Error ? err.message : 'Network error' };
+      }
+    },
+
     async streamAi(
       messages: AiMessage[],
       opts: { model?: string },
