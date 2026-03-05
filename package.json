@@ -37,12 +37,19 @@
     "data:quality": "bash scripts/data-quality-report.sh",
     "data:quality:gate": "bash scripts/data-quality-gate.sh",
     "dev:stop": "bash scripts/dev-stop.sh",
-    "setup": "cp -n .env.example .env 2>/dev/null; pnpm install; pnpm link:global; pnpm docker:up; pnpm docker:wait; echo '✅ Ready! Run: beancli --mock  (or beancli for real mode)'"
+    "dev:quit": "bash scripts/dev-quit.sh",
+    "setup": "cp -n .env.example .env 2>/dev/null; pnpm install; pnpm link:global; pnpm docker:up; pnpm docker:wait; echo '✅ Ready! Run: beancli --mock  (or beancli for real mode)'",
+    "bench": "cd apps/api && NODE_OPTIONS='--max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns='bench' --runInBand --forceExit && cd ../.. && npx tsx scripts/gen-bench-report.ts",
+    "bench:auth": "cd apps/api && NODE_OPTIONS='--max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns='auth.bench' --runInBand --forceExit",
+    "bench:data": "cd apps/api && NODE_OPTIONS='--max-old-space-size=4096' npx jest --config jest.config.cjs --testPathPatterns='data.bench' --runInBand --forceExit",
+    "bench:report": "npx tsx scripts/gen-bench-report.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/autocannon": "^7.12.7",
     "@types/jest": "^30.0.0",
     "@types/node": "^25.3.0",
+    "autocannon": "^8.0.0",
     "eslint": "^10.0.0",
     "jest": "^30.2.0",
     "prettier": "^3.8.1",

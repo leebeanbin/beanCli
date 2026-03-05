@@ -32,11 +32,34 @@ for PORT in "$APP_PORT" "$WEB_PORT" "$SIDECAR_PORT"; do
   fi
 done
 
-# ── Docker 데몬 실행 여부 확인 ─────────────────────────────────
+# ── Docker 데몬 실행 여부 확인 → 꺼져 있으면 자동 시작 ─────────
 if ! docker info > /dev/null 2>&1; then
-  echo "  Docker daemon is not running."
-  echo "   Run: open -a Docker   (then wait ~20s for Docker Desktop to start)"
-  exit 1
+  echo ""
+  echo "  Docker daemon is not running — attempting to start Docker Desktop..."
+  open -a Docker 2>/dev/null || true
+
+  echo "  Waiting for Docker to be ready (up to 60s)..."
+  WAIT=0
+  until docker info > /dev/null 2>&1; do
+    sleep 2
+    WAIT=$((WAIT + 2))
+    printf "  · %ds elapsed\r" "$WAIT"
+    if [ "$WAIT" -ge 60 ]; then
+      echo ""
+      echo "  ✗ Docker did not start within 60s."
+      echo ""
+      echo "  Please start Docker Desktop manually, then run:"
+      echo "    pnpm dev:all"
+      echo ""
+      echo "  Or use without Docker:"
+      echo "    pnpm dev:web        → Web console only (port 3000)"
+      echo "    beancli --mock      → TUI mock mode"
+      echo ""
+      exit 1
+    fi
+  done
+  echo ""
+  echo "  ✓ Docker is ready."
 fi
 
 echo "  Starting Docker infrastructure..."
@@ -107,6 +130,6 @@ _cleanup() {
 trap _cleanup INT TERM
 
 set -m
-npx turbo run dev --filter='./apps/*' --filter='!@tfsdc/cli' &
+./node_modules/.bin/turbo run dev --filter='./apps/*' --filter='!@tfsdc/cli' &
 TURBO_PID=$!
 wait $TURBO_PID
