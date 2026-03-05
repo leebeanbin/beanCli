@@ -67,14 +67,16 @@ Both interfaces support **9 database types**, role-based access control, immutab
 |---|---|
 | **9 Database Types** | PostgreSQL · MySQL · SQLite · MongoDB · Redis · Kafka · RabbitMQ · Elasticsearch · NATS |
 | **TUI (Terminal UI)** | 3-panel Ink layout — Schema tree / SQL editor / Results viewer |
-| **Web Console** | Game Boy–styled Next.js app — 13 pages, dark/light theme, EN/KO toggle |
+| **Web Console** | Game Boy–styled Next.js app — 14 pages, dark/light theme, EN/KO toggle |
 | **Multi-line SQL Editor** | Line numbers, cursor movement, history, psql meta-commands (`\dt`, `\d`, `\x`) |
 | **Role-Based CRUD** | Row browse · edit · insert · delete (DBA / MANAGER / ANALYST) |
 | **Change Review** | SQL → AST parse → risk score → AUTO / CONFIRM / MANUAL workflow |
 | **AI Assistant** | Floating `◈ AI` widget on every page + full `/ai` chat page |
 | **Audit Log** | Immutable `audit_events` table — every change recorded |
+| **Auth System** | JWT login (24h), bcrypt passwords, RBAC guards, admin user management |
 | **Mock Mode** | Full demo with no DB or API — ideal for development & demos |
 | **Connection Manager** | GUI form for registering, testing, and saving DB connections |
+| **Plugin API** | Load custom DB adapters at runtime via `--plugin ./adapter.js` |
 | **EN/KO Language Toggle** | UI language switch (English / Korean) persisted in browser |
 | **Security** | AES-256-GCM encrypted credentials, rate limiting, logger redact |
 
@@ -157,9 +159,9 @@ make down
 | Page | Path | Description |
 |---|---|---|
 | Dashboard | `/` | API health · saved DB connections overview |
-| Query | `/query` | SQL editor with results table |
-| Explore | `/explore` | Data browser — row CRUD, detail modal |
-| Schema | `/schema` | Table structure viewer + query analyzer |
+| Query | `/query` | SQL editor with CSV/JSON download |
+| Explore | `/explore` | Data browser — row CRUD, inline edit, create table modal |
+| Schema | `/schema` | Table structure viewer + EXPLAIN ANALYZE tree view |
 | Monitor | `/monitor` | Stream stats, SSE live updates |
 | Indexes | `/indexes` | Index listing, create, drop |
 | Audit | `/audit` | Immutable audit log with category filter |
@@ -167,8 +169,9 @@ make down
 | AI | `/ai` | Full-page AI chat — accessible via `◈ AI` floating button |
 | Changes | `/changes` | Change request list and submission |
 | Approvals | `/approvals` | Pending approval queue |
-| Auth | `/auth` | Dev JWT generator (HS256, stored in localStorage) |
-| Connections | `/connections` | DB connection registration & test |
+| Auth | `/auth` | Login form with dev account hints (JWT 24h) |
+| Connections | `/connections` | API server URL config, test connection |
+| Admin — Users | `/admin/users` | User management: create, rename, deactivate (DBA only) |
 
 ---
 
@@ -250,6 +253,8 @@ Launch
 | `A` | Audit log |
 | `R` | DLQ Recovery |
 | `I` | Index Lab |
+| `C` | Change Requests |
+| `P` | Approvals |
 
 ### SQL Editor
 
@@ -320,8 +325,8 @@ SQL submitted
 | **SQL injection** | Parameterized queries + `quoteIdent()` identifier quoting |
 | **Audit log** | `audit_events` — no UPDATE/DELETE at application layer |
 | **Query safety** | 30s hard kill + 5,000 row cap on all adapters |
-| **Rate limiting** | `@fastify/rate-limit` — 60 req/min global · 5/min `/auth/login` · 10/min `/connections/test` |
-| **Logger** | Fastify pino redacts `authorization`, `password`, `credential`, `secret` |
+| **Rate limiting** | `@fastify/rate-limit` — 60 req/min global · 5/min `/auth/login` · 5/hr `/auth/change-password` · 10/min `/connections/test` |
+| **Logger** | Fastify pino redacts `authorization`, `password`, `currentPassword`, `newPassword`, `credential`, `secret` |
 | **Key cache** | `CachedKeyStore` — 5 min TTL in-memory (3–10× throughput) |
 | **DB name guard** | Allowlist regex `/^[a-zA-Z_][a-zA-Z0-9_$\-]{0,63}$/` |
 
@@ -435,9 +440,12 @@ pnpm link:global      # Register beancli in global PATH
 | Web Console — EN/KO language toggle (persisted in localStorage) | ✅ Done |
 | Web Console — WebSocket LiveTableRefresh | ✅ Done |
 | Web Console — RBAC AccessGuard | ✅ Done |
-| Plugin adapter API for custom DB types | 🔜 Planned |
-| Query explain visualizer | 🔜 Planned |
-| Export to CSV / JSON | 🔜 Planned |
+| JWT auth system (login form, 24h token, role-based guards) | ✅ Done |
+| Admin user management (create, rename, deactivate, RBAC) | ✅ Done |
+| Plugin adapter API (`--plugin ./adapter.js`) | ✅ Done |
+| EXPLAIN ANALYZE tree view | ✅ Done |
+| Export to CSV / JSON (TUI `\export` + web download buttons) | ✅ Done |
+| Change Request panel (`C`) + Approval panel (`P`) in TUI | ✅ Done |
 
 ---
 
