@@ -14,6 +14,7 @@ export type AppOverlay =
   | { type: 'table-picker' }
   | { type: 'create-table' }
   | { type: 'help' }
+  | { type: 'password-change' }
   | null;
 
 interface AppState {

@@ -32,6 +32,7 @@ export { ConnectionFormOverlay } from './components/connection/ConnectionFormOve
 export { LoginOverlay } from './components/overlays/LoginOverlay.js';
 export { ConnectionPickerOverlay } from './components/overlays/ConnectionPickerOverlay.js';
 export { TablePickerOverlay } from './components/overlays/TablePickerOverlay.js';
+export { PasswordChangeOverlay } from './components/overlays/PasswordChangeOverlay.js';
 
 // Utilities
 export { formatValue, detectQueryType } from './utils/formatValue.js';
