@@ -8,7 +8,7 @@ import { setToken } from '../../lib/api';
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3100';
 
 export default function AuthPage() {
-  const { isAuthenticated, login, user } = useAuth();
+  const { isAuthenticated, login } = useAuth();
   const router = useRouter();
 
   // Setup detection
