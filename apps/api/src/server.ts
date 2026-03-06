@@ -81,11 +81,13 @@ export async function buildServer(deps: ServerDeps) {
   });
   const APP_ENV = (process.env.APP_ENV ?? 'dev').toLowerCase();
 
-  // CORS — allow web console (localhost:3000) and any local origin in dev
+  // CORS — never use wildcard with credentials=true (CORS misconfiguration).
+  // Dev: explicit localhost origins only. Prod: ALLOWED_ORIGINS env var.
+  const devOrigins = ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000'];
   await app.register(fastifyCors, {
     origin: APP_ENV === 'prod'
       ? (process.env.ALLOWED_ORIGINS ?? '').split(',').map((o) => o.trim()).filter(Boolean)
-      : true,   // reflect all origins in dev
+      : devOrigins,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Correlation-ID'],
     credentials: true,
@@ -505,20 +507,28 @@ export async function buildServer(deps: ServerDeps) {
     },
   );
 
-  app.get('/api/v1/changes', async (request) => {
-    const q = request.query as { status?: string; limit?: string; offset?: string };
-    return deps.changeHandler.list(request.dbSession, {
-      status: q.status,
-      limit: q.limit ? Number(q.limit) : undefined,
-      offset: q.offset ? Number(q.offset) : undefined,
-    });
-  });
+  app.get(
+    '/api/v1/changes',
+    { preHandler: (await authPreHandler(['ANALYST', 'MANAGER', 'DBA', 'SECURITY_ADMIN'])) as never },
+    async (request) => {
+      const q = request.query as { status?: string; limit?: string; offset?: string };
+      return deps.changeHandler.list(request.dbSession, {
+        status: q.status,
+        limit: q.limit ? Number(q.limit) : undefined,
+        offset: q.offset ? Number(q.offset) : undefined,
+      });
+    },
+  );
 
-  app.get<{ Params: { id: string } }>('/api/v1/changes/:id', async (request, reply) => {
-    const result = await deps.changeHandler.getById(request.dbSession, request.params.id);
-    if (!result) return reply.status(404).send({ error: 'Not found' });
-    return result;
-  });
+  app.get<{ Params: { id: string } }>(
+    '/api/v1/changes/:id',
+    { preHandler: (await authPreHandler(['ANALYST', 'MANAGER', 'DBA', 'SECURITY_ADMIN'])) as never },
+    async (request, reply) => {
+      const result = await deps.changeHandler.getById(request.dbSession, request.params.id);
+      if (!result) return reply.status(404).send({ error: 'Not found' });
+      return result;
+    },
+  );
 
   app.post<{ Params: { id: string } }>(
     '/api/v1/changes/:id/submit',

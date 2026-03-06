@@ -60,14 +60,24 @@ const COL_TYPES = [
   'TIMESTAMPTZ', 'UUID', 'JSONB', 'VARCHAR(255)',
 ];
 
+/** Double-quote a SQL identifier, escaping any embedded double-quotes. */
+function quoteIdent(name: string): string {
+  return `"${name.replace(/"/g, '""')}"`;
+}
+
+/** Escape a SQL string literal value (single-quote doubling per SQL standard). */
+function quoteLiteral(val: string): string {
+  return `'${val.replace(/'/g, "''")}'`;
+}
+
 function generateDdl(tableName: string, cols: ColDef[]): string {
   const lines = cols.map((c) => {
-    let def = `  ${c.name} ${c.type}`;
+    let def = `  ${quoteIdent(c.name)} ${c.type}`;
     if (c.pk) def += ' PRIMARY KEY';
     else if (c.notNull) def += ' NOT NULL';
     return def;
   });
-  return `CREATE TABLE ${tableName} (\n${lines.join(',\n')}\n);`;
+  return `CREATE TABLE ${quoteIdent(tableName)} (\n${lines.join(',\n')}\n);`;
 }
 
 // ── CreateTableModal ──────────────────────────────────────────────────────────
@@ -266,12 +276,12 @@ function RowDetailModal({
     setSaving(true);
     setError(null);
 
-    // Build UPDATE SQL
+    // Build UPDATE SQL — all identifiers are double-quoted, all values are single-quote-escaped.
     const setClauses = Object.entries(editValues)
       .filter(([k]) => k !== pkCol)
-      .map(([k, v]) => `"${k}" = '${v.replace(/'/g, "''")}'`)
+      .map(([k, v]) => `${quoteIdent(k)} = ${quoteLiteral(v)}`)
       .join(', ');
-    const sql = `UPDATE "${table}" SET ${setClauses} WHERE "${pkCol}" = '${String(id).replace(/'/g, "''")}'`;
+    const sql = `UPDATE ${quoteIdent(table)} SET ${setClauses} WHERE ${quoteIdent(pkCol)} = ${quoteLiteral(String(id))}`;
 
     const token = getToken();
     const res = await fetch(`${API_BASE}/api/v1/sql/execute`, {

@@ -25,9 +25,9 @@ const STORAGE_KEY = 'tfsdc_connections';
 
 function nanoid(len = 10): string {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < len; i++) result += chars[Math.floor(Math.random() * chars.length)];
-  return result;
+  const buf = new Uint8Array(len);
+  crypto.getRandomValues(buf);
+  return Array.from(buf).map((x) => chars[x % chars.length]).join('');
 }
 
 export function generateId(): string {
