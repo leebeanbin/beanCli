@@ -13,6 +13,9 @@ out/
 # Coverage
 coverage/
 
+# Benchmark results (local only)
+docs/bench-results/
+
 # IDE
 .vscode/
 !.vscode/settings.json
