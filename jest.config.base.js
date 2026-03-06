@@ -4,6 +4,10 @@ const baseConfig = {
   testEnvironment: 'node',
   roots: ['<rootDir>/src'],
   testMatch: ['**/*.test.ts', '**/*.spec.ts'],
+  // Bench tests measure raw CPU/memory throughput and depend on machine
+  // performance. Exclude them from the regular suite to prevent flaky CI
+  // failures on shared runners. Run locally with: jest --testPathPattern=bench
+  testPathIgnorePatterns: ['\\.bench\\.test\\.ts$'],
   moduleFileExtensions: ['ts', 'js', 'json'],
   transform: {
     '^.+\\.ts$': [
