@@ -96,6 +96,91 @@ pnpm dev:all
 
 ---
 
+## 사용 흐름 예시 (Walkthrough)
+
+### 1단계 — Mock 모드로 탐색 (DB 불필요)
+
+```bash
+beancli --mock
+```
+
+TUI가 열리면 샘플 연결이 자동 선택된다. `Enter`로 접속 → Table Picker에서 `j/k`로 테이블을 고른 뒤 `Enter`.
+
+```
+┌─ BeanCLI v0.1.2 ──────────────────────────────────────────────────────────┐
+│ [1] Schema             │ [2] Query Editor                                  │
+│────────────────────────│───────────────────────────────────────────────────│
+│ ◉ tfsdc_demo           │  1│ SELECT * FROM state_users LIMIT 10;           │
+│  ├─ state_users   25   │   │                                               │
+│  ├─ state_orders  40   │───────────────────────────────────────────────────│
+│  └─ state_products 18  │ [3] Results  10 rows · 4ms                        │
+│                        │  id  username   email              created_at      │
+│ ◈ AI Assistant [4]     │  1   alice      alice@example.com  2025-01-10     │
+├────────────────────────┴───────────────────────────────────────────────────┤
+│ MOCK  tfsdc_demo   DBA   dev    [?] help  [Ctrl+P] palette  [q] quit       │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
+패널 이동: `1`/`2`/`3`/`4` 또는 `Tab`. SQL 실행은 `Enter`, 줄바꿈은 `Shift+Enter`.
+
+---
+
+### 2단계 — 실제 DB 연결 추가
+
+```bash
+beancli          # 실제 모드로 실행
+```
+
+Connection Picker에서 `n`을 눌러 새 연결 추가:
+
+```
+  Type  > postgresql
+  Host  > localhost
+  Port  > 5432
+  DB    > mydb
+  User  > postgres
+  Pass  > ••••••••
+```
+
+연결 정보는 `~/.config/beanCli/connections.json`에 AES-256-GCM 암호화 저장. 이후 `Enter`로 바로 접속.
+
+---
+
+### 3단계 — 리스크 SQL Change Review
+
+대량 UPDATE처럼 위험한 쿼리는 직접 실행되지 않고 **Change Request**로 전환된다:
+
+```sql
+-- panel [2]에 입력 후 Enter
+UPDATE orders SET status = 'REFUNDED' WHERE created_at < '2024-01-01';
+```
+
+AST 파서가 영향 행 수를 추정 → L2(1000행 이상)이면 승인 큐로 전송:
+
+```
+  ⚠️  Risk: L2  (estimated 3,842 rows)
+  → Change Request #47 created (PENDING approval)
+  Press [C] to open Change panel
+```
+
+`C` → `j/k`로 요청 선택 → `x`로 실행(승인된 경우) 또는 `r`로 되돌리기.
+
+---
+
+### 4단계 — 터미널 녹화
+
+실제 사용 장면을 공유하려면:
+
+```bash
+# asciinema 설치 후
+asciinema rec demo.cast
+beancli --mock
+# 탐색 후 Ctrl+D로 종료
+asciinema upload demo.cast
+```
+
+---
+
 ## Feature Overview
 
 ```
